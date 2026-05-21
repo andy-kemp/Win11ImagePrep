@@ -1,0 +1,70 @@
+<Window x:Class="WinImagePrep.Dialogs.ProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Processing..." 
+        Height="240" 
+        Width="520" 
+        WindowStartupLocation="CenterScreen" 
+        ResizeMode="NoResize" 
+        Topmost="True" 
+        WindowStyle="None" 
+        Background="White"
+        BorderBrush="#0078D4" 
+        BorderThickness="1">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock x:Name="txtTitle" 
+                   Text="Processing..." 
+                   Grid.Row="0" 
+                   FontSize="18" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,15" 
+                   Foreground="#0078D4"/>
+
+        <!-- Message -->
+        <TextBlock x:Name="txtMessage" 
+                   Text="Please wait while the operation completes..." 
+                   Grid.Row="1" 
+                   FontSize="13" 
+                   Margin="0,0,0,15" 
+                   TextWrapping="Wrap"/>
+
+        <!-- Progress Bar -->
+        <ProgressBar x:Name="progressBar" 
+                     Grid.Row="2" 
+                     Height="30" 
+                     Minimum="0" 
+                     Maximum="100" 
+                     Value="0" 
+                     Margin="0,0,0,10"/>
+
+        <!-- Percentage -->
+        <TextBlock x:Name="txtPercent" 
+                   Grid.Row="3" 
+                   Text="0%" 
+                   HorizontalAlignment="Center" 
+                   FontSize="14" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,10" 
+                   Foreground="#0078D4"/>
+
+        <!-- Cancel Button -->
+        <Button x:Name="btnCancel" 
+                Content="Cancel Operation" 
+                Grid.Row="4" 
+                Width="140" 
+                Height="32" 
+                Background="#E81123" 
+                Foreground="White" 
+                FontWeight="Bold"
+                Click="BtnCancel_Click"/>
+    </Grid>
+</Window>

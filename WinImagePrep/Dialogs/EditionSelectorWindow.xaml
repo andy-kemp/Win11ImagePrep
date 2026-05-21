@@ -1,0 +1,90 @@
+<Window x:Class="WinImagePrep.Dialogs.EditionSelectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Select Windows Editions" 
+        Height="450" 
+        Width="600" 
+        WindowStartupLocation="CenterScreen" 
+        ResizeMode="NoResize">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" 
+                   Text="Select Windows Editions to Process" 
+                   FontSize="18" 
+                   FontWeight="Bold" 
+                   Foreground="#0078D4" 
+                   Margin="0,0,0,10"/>
+
+        <!-- Instructions -->
+        <TextBlock Grid.Row="1" 
+                   Text="Select which editions you want to inject drivers into. By default, all editions will be processed." 
+                   TextWrapping="Wrap" 
+                   Margin="0,0,0,15"/>
+
+        <!-- Edition List -->
+        <Border Grid.Row="2" 
+                BorderBrush="#CCCCCC" 
+                BorderThickness="1" 
+                Margin="0,0,0,15">
+            <ListBox x:Name="lstEditions" 
+                     SelectionMode="Multiple"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="5">
+                            <TextBlock Text="{Binding ImageName}" 
+                                       FontWeight="Bold" 
+                                       FontSize="13"/>
+                            <TextBlock>
+                                <Run Text="Index: "/>
+                                <Run Text="{Binding ImageIndex}"/>
+                                <Run Text=" | Size: "/>
+                                <Run Text="{Binding ImageSizeDisplay}"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding Description}" 
+                                       Foreground="Gray" 
+                                       FontSize="11" 
+                                       TextWrapping="Wrap"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="Select All" 
+                    Width="100" 
+                    Height="32" 
+                    Margin="0,0,10,0"
+                    Click="BtnSelectAll_Click"/>
+            <Button Content="Clear Selection" 
+                    Width="100" 
+                    Height="32" 
+                    Margin="0,0,10,0"
+                    Click="BtnClearSelection_Click"/>
+            <Button Content="OK" 
+                    Width="100" 
+                    Height="32" 
+                    Margin="0,0,10,0"
+                    Background="#0078D4"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    Click="BtnOk_Click"/>
+            <Button Content="Cancel" 
+                    Width="100" 
+                    Height="32"
+                    Click="BtnCancel_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

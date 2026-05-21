@@ -1,0 +1,88 @@
+<Window x:Class="WinImagePrep.SplashScreen"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Windows Image Preparation Tool"
+        Height="400" 
+        Width="600"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True">
+    <Border Background="White" 
+            BorderBrush="#0078D4" 
+            BorderThickness="2"
+            CornerRadius="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" 
+                            ShadowDepth="0" 
+                            Opacity="0.5"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="60"/>
+            </Grid.RowDefinitions>
+
+            <!-- Logo and Title -->
+            <StackPanel Grid.Row="0" 
+                       VerticalAlignment="Center" 
+                       HorizontalAlignment="Center"
+                       Margin="40">
+
+                <!-- Logo Image -->
+                <Image Source="app.ico" 
+                       Width="120" 
+                       Height="120"
+                       Margin="0,0,0,20"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                <!-- Title -->
+                <TextBlock Text="Windows Image Preparation Tool" 
+                          FontSize="28" 
+                          FontWeight="Bold"
+                          Foreground="#0078D4"
+                          TextAlignment="Center"
+                          Margin="0,0,0,10"/>
+
+                <!-- Version -->
+                <TextBlock x:Name="txtVersion"
+                          Text="Version 3.0.0" 
+                          FontSize="16" 
+                          Foreground="#666666"
+                          TextAlignment="Center"
+                          Margin="0,0,0,5"/>
+
+                <!-- Subtitle -->
+                <TextBlock Text="Preparing Windows installation media with drivers" 
+                          FontSize="14" 
+                          Foreground="#999999"
+                          TextAlignment="Center"
+                          TextWrapping="Wrap"
+                          Margin="20,10,20,0"/>
+            </StackPanel>
+
+            <!-- Progress Bar -->
+            <StackPanel Grid.Row="1" Margin="40,0,40,20">
+                <ProgressBar Height="6" 
+                            IsIndeterminate="True"
+                            Foreground="#0078D4"
+                            Background="#E0E0E0"
+                            BorderThickness="0"/>
+            </StackPanel>
+
+            <!-- Status Text -->
+            <TextBlock x:Name="txtStatus"
+                      Grid.Row="2"
+                      Text="Initializing application..." 
+                      FontSize="12" 
+                      Foreground="#666666"
+                      TextAlignment="Center"
+                      VerticalAlignment="Center"
+                      Margin="20"/>
+        </Grid>
+    </Border>
+</Window>

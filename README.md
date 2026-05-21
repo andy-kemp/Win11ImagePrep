@@ -1,9 +1,9 @@
 # Windows 11 Image & USB Creator
 
-A professional PowerShell GUI tool for preparing Windows 11 installation images with injected drivers and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
+A professional WPF application for preparing Windows 11 installation images with injected drivers and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
 
 ![Version](https://img.shields.io/badge/version-3.0-blue.svg)
-![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)
+![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue.svg)
 
@@ -11,43 +11,39 @@ A professional PowerShell GUI tool for preparing Windows 11 installation images 
 
 ## 🎯 Overview
 
-Similar in concept to Rufus, but specialized for driver integration before deployment. This tool streamlines the process of injecting hardware drivers (primarily Surface drivers from MSI packages) into Windows 11 ISO images, creating bootable USB drives with fully integrated drivers.
+Similar in concept to Rufus, but specialized for driver integration before deployment. This native Windows application streamlines the process of injecting hardware drivers (primarily Surface drivers from MSI packages) into Windows 11 ISO images, creating bootable USB drives with fully integrated drivers.
 
 ### Key Benefits
+- **Native Windows Application**: Full .NET 8 WPF application with modern UI
 - **One-time setup**: Create a single USB with all drivers pre-installed
 - **Zero-touch installation**: No need to install drivers post-Windows setup
 - **Time-saving**: Eliminates manual driver installation on multiple devices
 - **UEFI compatible**: Creates FAT32 bootable USB drives with proper partitioning
 - **Edition flexibility**: Choose which Windows editions to process (Pro, Enterprise, etc.)
-- **Graphical interface**: No command-line work required - all operations via GUI
+- **Graphical interface**: Professional WPF UI with real-time progress tracking
+- **Splash screen**: Branded startup with initialization status
 
 ---
 
 ## ✨ Features
 
-### Version 3.0 (Latest)
-- ✅ **Silent background processing** - No popup windows during DISM operations
-- ✅ **Hidden console window** - Professional appearance with clean UI
-- ✅ **Real-time USB drive information** - Shows drive details, size, filesystem, status
-- ✅ **Enhanced progress tracking** - Detailed step-by-step progress with percentage
-- ✅ **Time warnings** - Alerts users that operations can take 45-60 minutes
-- ✅ **Professional UI** - Rufus-inspired interface with blue theme
-- ✅ **Visual warnings** - Color-coded alerts for drive size and data loss
-- ✅ **About dialog** - Version info and system requirements
-
-### Version 2.0
-- ✅ **Driver injection** - Slipstreams drivers into all Windows images (WinPE, WinSetup, WinRE, Editions)
-- ✅ **ISO integrity validation** - Verifies ISO structure before processing
-- ✅ **Disk space checking** - Ensures 25GB+ free space before operations
-- ✅ **Driver validation** - Scans for .inf files and checks digital signatures
-- ✅ **Edition selection** - Choose specific Windows editions to process
-- ✅ **Progress dialogs** - Visual feedback with cancellation support
-- ✅ **Error recovery** - Automatic cleanup of mounted WIM images on failure
-- ✅ **WIM splitting** - Automatically splits install.wim >4GB for FAT32 compatibility
-- ✅ **Saved image management** - Save and reuse prepared images
-- ✅ **USB creation** - Creates 14GB FAT32 bootable UEFI USB drives
-- ✅ **Label preservation** - Maintains original ISO volume labels
-- ✅ **Repair/Cleanup utility** - Fixes stuck WIM mounts
+### Version 3.0 (Latest - Native WPF Application)
+- ✅ **Native Windows Application** - Full .NET 8 WPF desktop application
+- ✅ **MVVM Architecture** - Clean separation of concerns with ViewModels and Services
+- ✅ **Startup Splash Screen** - Branded splash screen during application initialization
+- ✅ **Administrator Privilege Checking** - Automatic detection and restart with elevation
+- ✅ **Modern UI** - Professional WPF interface with Material Design inspired controls
+- ✅ **Real-time Progress Tracking** - Live operation log with detailed status updates
+- ✅ **Smart Directory Management** - Separate persistent and temporary file locations:
+  - `C:\WinImagePrep\SavedImages\` - Persistent saved image outputs
+  - `C:\WinImagePrep\Logs\` - Application logs
+  - `C:\WinImagePrep\Temp\` - Temporary working files (auto-cleanup)
+- ✅ **Enhanced DISM Logging** - Detailed command execution and error reporting
+- ✅ **Robust ISO Mounting** - Persistent ISO mount with drive verification
+- ✅ **Process Management** - Clean shutdown with proper resource cleanup
+- ✅ **USB Drive Detection** - Automatic USB drive enumeration and validation
+- ✅ **Edition Selection Dialog** - Multi-select Windows edition picker
+- ✅ **Error Recovery** - Comprehensive error handling and cleanup
 
 ### Core Functionality
 - **Multiple injection points**: Drivers injected into:
@@ -57,8 +53,9 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
   - All Windows 11 editions in install.wim
 - **Three creation modes**:
   1. **Prepare Image with Drivers** - Full driver injection workflow
-  2. **Create from Saved Image** - Quick USB creation from previously prepared images
-  3. **Create USB from ISO** - Direct USB creation without driver injection
+  2. **Create USB** - Create bootable USB from prepared image
+  3. **From Saved Image** - Load and use previously prepared images
+- **Repair/Cleanup** - Utility to clean mounted images and temporary files
 
 ---
 
@@ -67,12 +64,12 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 ### Operating System
 - Windows 10 (20H2 or later)
 - Windows 11 (any version)
-- **Administrator privileges required**
+- **Administrator privileges required** (application will prompt for elevation)
 
 ### Software Dependencies
-- PowerShell 5.1 or higher (included in Windows)
-- .NET Framework 4.7.2+ (included in Windows 10/11)
+- .NET 8.0 Runtime (Desktop) - bundled with application
 - DISM (Deployment Image Servicing and Management) - built into Windows
+- PowerShell (for ISO mounting operations)
 
 ### Hardware Requirements
 - **Disk Space**: Minimum 25GB free space on C: drive
@@ -96,19 +93,19 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 
 1. **Run as Administrator**
    ```powershell
-   # Right-click WinImagePrep_V3.ps1 → Run with PowerShell (as Admin)
-   # Or from PowerShell console:
+   # Right-click WinImagePrep.exe → Run as Administrator
+   # Or the application will prompt you to restart with elevation
    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    .\WinImagePrep_V3.ps1
    ```
 
 2. **Select Windows 11 ISO**
-   - Click "Browse..." next to ISO field
+   - Click "Browse..." next to "1. Select Windows ISO"
    - Select your Windows 11 ISO file
    - Optional: Click "Verify" to validate ISO integrity
 
 3. **Select Driver MSI**
-   - Click "Browse..." next to Driver MSI field
+   - Click "Browse..." next to "2. Select Driver MSI"
    - Select your Surface drivers MSI file
 
 4. **Configure Options** (Optional)
@@ -117,27 +114,33 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 
 5. **Start Processing**
    - Click "Prepare Image with Drivers"
-   - Read the time warning (45-60 minutes typical)
-   - Click "Yes" to proceed
+   - Application will check for admin privileges and prompt if needed
+   - Monitor real-time progress in the Operation Log
+   - Process takes 30-60 minutes depending on hardware
 
 6. **Create Bootable USB**
-   - After image preparation completes, select USB drive from dropdown
-   - Click through prompts to create bootable USB
-   - Choose to save prepared image for future use (optional)
+   - After image preparation completes
+   - Insert USB drive (14GB+ required)
+   - Click "Refresh" to detect USB drive
+   - Select USB drive from "3. Select USB Drive" dropdown
+   - Click "Create USB"
+   - Confirm data loss warning
+   - Wait for USB creation to complete
 
 ### Alternative Workflows
 
-#### Create from Saved Image
-1. Click "Create from Saved Image"
-2. Select previously saved image from dropdown
-3. Select USB drive
-4. Click "Create USB" - much faster than full preparation!
+#### Create USB from Saved Image
+1. Previously prepared images are saved in `C:\WinImagePrep\SavedImages\`
+2. Click "From Saved Image" button
+3. Select saved image from dialog
+4. Select USB drive
+5. Click "Create USB" - much faster than full preparation!
 
-#### Create USB from ISO (No Drivers)
-1. Click "Create USB from ISO"
-2. Select Windows 11 ISO
-3. Select USB drive
-4. Click "Create USB from ISO" - creates standard bootable USB without driver injection
+#### Repair/Cleanup
+- Click "Repair/Cleanup" button to:
+  - Dismount any stuck WIM images
+  - Clean up temporary files in `C:\WinImagePrep\Temp\`
+  - Resolve DISM mount errors
 
 ---
 
@@ -146,11 +149,28 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 ```
 C:\WinImagePrep\
 │
-├── WinImagePrep_V2.ps1       # Version 2 (stable, visible operations)
-├── WinImagePrep_V3.ps1       # Version 3 (recommended, silent operations)
+├── WinImagePrep.exe          # Main application executable
+├── app.ico                   # Application icon
 ├── README.md                 # This file
 │
-├── Windows11\                # Working directory for Windows files (temporary)
+├── SavedImages\              # Persistent: Saved prepared images
+│   └── [ImageName].wim files
+│
+├── Logs\                     # Persistent: Application logs
+│   └── WinImagePrep_[date].log
+│
+├── Config\                   # Persistent: Configuration files
+│
+└── Temp\                     # Temporary: Auto-cleanup working directory
+    ├── Windows11\            # Extracted ISO contents
+    ├── Drivers\              # Extracted MSI drivers
+    └── Mount\                # WIM mount points
+        ├── PE\               # WinPE mount
+        ├── Setup\            # Setup mount
+        └── Edition_[N]\      # Edition-specific mounts
+```
+
+**Note**: The `Temp\` folder is automatically cleaned during operations and on startup. SavedImages, Logs, and Config are preserved.
 ├── Drivers\                  # Extracted drivers from MSI (temporary)
 ├── Mount\                    # Temporary mount root for WIM files (WinPE, WinSetup, Edition_*, WinRE_*)
 ├── Config\                   # Configuration storage (iso-label.txt)

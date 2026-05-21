@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<OutputType>WinExe</OutputType>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<UseWPF>true</UseWPF>
+	<Nullable>enable</Nullable>
+	<ApplicationManifest>app.manifest</ApplicationManifest>
+	<ApplicationIcon>app.ico</ApplicationIcon>
+	<AssemblyName>WinImagePrep</AssemblyName>
+	<RootNamespace>WinImagePrep</RootNamespace>
+	<Version>3.0.0</Version>
+	<Authors>WinImagePrep</Authors>
+	<Company>WinImagePrep</Company>
+	<Product>Windows Image Preparation Tool</Product>
+	<Description>Windows ISO preparation tool with driver injection for Surface and other devices</Description>
+	<Copyright>Copyright © 2024</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
+	<PackageReference Include="System.Management" Version="8.0.0" />
+	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<Resource Include="app.ico" />
+  </ItemGroup>
+
+</Project>
