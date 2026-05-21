@@ -102,7 +102,8 @@ namespace WinImagePrep.Services
             string mountPath,
             bool commit = true,
             IProgress<string>? progress = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool deleteMountDirectory = false)
         {
             try
             {
@@ -149,19 +150,35 @@ namespace WinImagePrep.Services
                 {
                     progress?.Report($"Successfully unmounted image");
 
-                    // Clean up the mount directory after successful unmount
-                    try
+                    // Only delete the mount directory if requested (for edition-specific mounts)
+                    if (deleteMountDirectory)
                     {
-                        if (Directory.Exists(mountPath))
+                        try
                         {
-                            progress?.Report($"Cleaning up mount directory: {mountPath}");
-                            Directory.Delete(mountPath, true);
+                            if (Directory.Exists(mountPath))
+                            {
+                                progress?.Report($"Deleting temporary mount directory: {mountPath}");
+                                Directory.Delete(mountPath, true);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            progress?.Report($"⚠ Warning: Could not delete mount directory: {ex.Message}");
+                            // Not a fatal error, continue
                         }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        progress?.Report($"⚠ Warning: Could not delete mount directory: {ex.Message}");
-                        // Not a fatal error, continue
+                        // For persistent mount directories, just clear contents
+                        try
+                        {
+                            progress?.Report($"Clearing contents of persistent mount directory: {mountPath}");
+                            FileSystemHelper.DeleteDirectoryContents(mountPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            progress?.Report($"⚠ Warning: Could not clear mount directory: {ex.Message}");
+                        }
                     }
 
                     return true;
@@ -174,14 +191,18 @@ namespace WinImagePrep.Services
                         progress?.Report($"⚠ Image was not mounted (error 50), cleaning directory...");
                         try
                         {
-                            if (Directory.Exists(mountPath))
+                            if (deleteMountDirectory && Directory.Exists(mountPath))
                             {
                                 Directory.Delete(mountPath, true);
+                            }
+                            else
+                            {
+                                FileSystemHelper.DeleteDirectoryContents(mountPath);
                             }
                         }
                         catch (Exception ex)
                         {
-                            progress?.Report($"⚠ Warning: Could not delete mount directory: {ex.Message}");
+                            progress?.Report($"⚠ Warning: Could not clean mount directory: {ex.Message}");
                         }
                         return true;
                     }

@@ -569,7 +569,7 @@ namespace WinImagePrep.ViewModels
             { 
                 AddLog(msg); 
                 CurrentOperationText = msg;
-            }), cancellationToken);
+            }), cancellationToken, deleteMountDirectory: true);
 
             // Setup (Index 2)
             AddLog("Injecting drivers into Windows Setup...");
@@ -599,7 +599,7 @@ namespace WinImagePrep.ViewModels
             { 
                 AddLog(msg); 
                 CurrentOperationText = msg;
-            }), cancellationToken);
+            }), cancellationToken, deleteMountDirectory: true);
 
             CurrentOperationProgress = 100;
         }
@@ -672,7 +672,7 @@ namespace WinImagePrep.ViewModels
                     { 
                         AddLog(msg); 
                         CurrentOperationText = msg;
-                    }), cancellationToken);
+                    }), cancellationToken, deleteMountDirectory: true);
                 }
 
                 CurrentOperationText = $"Unmounting {editionName}...";
@@ -681,7 +681,7 @@ namespace WinImagePrep.ViewModels
                 { 
                     AddLog(msg); 
                     CurrentOperationText = msg;
-                }), cancellationToken);
+                }), cancellationToken, deleteMountDirectory: true);
 
                 CurrentOperationProgress = 100;
             }
