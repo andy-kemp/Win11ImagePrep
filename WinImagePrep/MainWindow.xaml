@@ -5,23 +5,34 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Windows Image Preparation Tool V3" 
-        Height="820" 
         Width="920" 
+        SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="CanResize"
+        ResizeMode="NoResize"
         Background="White">
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <!-- Title -->
             <RowDefinition Height="Auto"/>
+            <!-- ISO -->
             <RowDefinition Height="Auto"/>
+            <!-- MSI -->
             <RowDefinition Height="Auto"/>
+            <!-- Action Buttons -->
             <RowDefinition Height="Auto"/>
+            <!-- USB Selection -->
             <RowDefinition Height="Auto"/>
+            <!-- USB Info -->
             <RowDefinition Height="Auto"/>
+            <!-- Warning Banner -->
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <!-- Overall Progress -->
+            <RowDefinition Height="Auto"/>
+            <!-- Current Operation Progress -->
+            <RowDefinition Height="Auto"/>
+            <!-- Operation Log -->
         </Grid.RowDefinitions>
 
         <!-- Title -->
@@ -75,24 +86,8 @@
                     Height="26"/>
         </StackPanel>
 
-        <!-- Advanced Options -->
-        <GroupBox Grid.Row="3" Header="Advanced Options" Padding="10" Margin="0,0,0,10">
-            <StackPanel>
-                <Button Content="Select Specific Windows Editions" 
-                        Command="{Binding SelectEditionsCommand}"
-                        Height="32" 
-                        Margin="0,0,0,5"
-                        HorizontalAlignment="Left"
-                        Width="250"/>
-                <TextBlock Text="Note: By default, all editions will be processed" 
-                           FontSize="11" 
-                           Foreground="Gray"
-                           Margin="5,0,0,0"/>
-            </StackPanel>
-        </GroupBox>
-
         <!-- Main Action Buttons -->
-        <StackPanel Grid.Row="4" 
+        <StackPanel Grid.Row="3" 
                     Orientation="Horizontal" 
                     Margin="0,10,0,10" 
                     HorizontalAlignment="Center">
@@ -119,7 +114,7 @@
         </StackPanel>
 
         <!-- USB Selection -->
-        <Grid Grid.Row="5" Margin="0,10,0,10">
+        <Grid Grid.Row="4" Margin="0,10,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -156,7 +151,7 @@
         </Grid>
 
         <!-- USB Drive Information -->
-        <Border Grid.Row="6" 
+        <Border Grid.Row="5" 
                 BorderBrush="#0078D4" 
                 BorderThickness="1" 
                 Background="#F0F0F0" 
@@ -172,7 +167,7 @@
         </Border>
 
         <!-- Warning Banner -->
-        <Border Grid.Row="7" 
+        <Border Grid.Row="6" 
                 BorderBrush="#E81123" 
                 BorderThickness="2" 
                 Background="#FFF4CE" 
@@ -186,15 +181,55 @@
                        TextWrapping="Wrap"/>
         </Border>
 
-        <!-- Operation Log -->
-        <GroupBox Grid.Row="8" Header="Operation Log" Padding="5">
+        <!-- Overall Progress -->
+        <GroupBox Grid.Row="7" Header="Overall Progress" Padding="10" Margin="0,0,0,5">
+            <StackPanel>
+                <TextBlock Text="{Binding OverallProgressText}" 
+                           FontWeight="SemiBold" 
+                           Margin="0,0,0,5"
+                           Foreground="#0078D4"/>
+                <ProgressBar Value="{Binding OverallProgress}" 
+                             Height="24" 
+                             Minimum="0" 
+                             Maximum="100"
+                             Foreground="#0078D4"/>
+                <TextBlock Text="{Binding OverallProgress, StringFormat={}{0}% Complete}" 
+                           HorizontalAlignment="Center" 
+                           FontSize="11" 
+                           Margin="0,3,0,0"
+                           Foreground="Gray"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Current Operation Progress -->
+        <GroupBox Grid.Row="8" Header="Current Operation" Padding="10" Margin="0,0,0,10">
+            <StackPanel>
+                <TextBlock Text="{Binding CurrentOperationText}" 
+                           FontWeight="SemiBold" 
+                           Margin="0,0,0,5"
+                           Foreground="#107C10"/>
+                <ProgressBar Value="{Binding CurrentOperationProgress}" 
+                             Height="20" 
+                             Minimum="0" 
+                             Maximum="100"
+                             Foreground="#107C10"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Operation Log (Collapsible) -->
+        <Expander Grid.Row="9" 
+                  Header="Operation Log" 
+                  IsExpanded="True"
+                  Margin="0,0,0,0">
             <ListBox ItemsSource="{Binding LogEntries}"
                      Background="Black"
                      Foreground="Lime"
                      FontWeight="Bold"
                      FontSize="12"
                      FontFamily="Consolas"
-                     BorderThickness="0"
+                     BorderThickness="1"
+                     BorderBrush="#0078D4"
+                     Height="200"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <ListBox.ItemContainerStyle>
@@ -208,6 +243,6 @@
                     </Style>
                 </ListBox.ItemContainerStyle>
             </ListBox>
-        </GroupBox>
+        </Expander>
     </Grid>
 </Window>

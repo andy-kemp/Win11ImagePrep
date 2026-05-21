@@ -26,7 +26,29 @@ namespace WinImagePrep.Services
             try
             {
                 progress?.Report($"Mounting WIM image {imageIndex} from {Path.GetFileName(wimPath)}...");
+
+                // Verify WIM file exists and is accessible
+                if (!File.Exists(wimPath))
+                {
+                    progress?.Report($"✗ ERROR: WIM file not found: {wimPath}");
+                    return false;
+                }
+
+                // Check and clear read-only flag if set
+                var fileInfo = new FileInfo(wimPath);
+                if (fileInfo.IsReadOnly)
+                {
+                    progress?.Report($"⚠ WIM file is read-only, removing read-only flag...");
+                    fileInfo.IsReadOnly = false;
+                }
+
+                // Ensure mount directory exists and is empty
                 FileSystemHelper.EnsureDirectoryExists(mountPath);
+                if (Directory.EnumerateFileSystemEntries(mountPath).Any())
+                {
+                    progress?.Report($"⚠ Mount directory not empty, cleaning: {mountPath}");
+                    FileSystemHelper.DeleteDirectoryContents(mountPath);
+                }
 
                 var arguments = $"/Mount-Wim /WimFile:\"{wimPath}\" /Index:{imageIndex} /MountDir:\"{mountPath}\"";
 
@@ -46,7 +68,19 @@ namespace WinImagePrep.Services
                 if (result.Success)
                 {
                     progress?.Report($"Successfully mounted image {imageIndex}");
-                    return true;
+
+                    // Verify mount was successful by checking if Windows folder exists
+                    var windowsFolder = Path.Combine(mountPath, "Windows");
+                    if (Directory.Exists(windowsFolder))
+                    {
+                        progress?.Report($"✓ Mount verified: Windows folder found");
+                        return true;
+                    }
+                    else
+                    {
+                        progress?.Report($"⚠ WARNING: Mount may not be complete, Windows folder not found");
+                        return false;
+                    }
                 }
                 else
                 {
@@ -74,6 +108,28 @@ namespace WinImagePrep.Services
             {
                 progress?.Report($"Unmounting image from {mountPath}...");
 
+                // Check if this is actually a mounted image
+                if (!Directory.Exists(mountPath))
+                {
+                    progress?.Report($"⚠ Mount directory does not exist, skipping unmount: {mountPath}");
+                    return true; // Not an error, just nothing to unmount
+                }
+
+                var windowsFolder = Path.Combine(mountPath, "Windows");
+                if (!Directory.Exists(windowsFolder))
+                {
+                    progress?.Report($"⚠ No Windows folder found, mount may have failed. Cleaning directory...");
+                    try
+                    {
+                        FileSystemHelper.DeleteDirectoryContents(mountPath);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                    return true; // Not mounted, so "unmount" succeeded
+                }
+
                 var arguments = $"/Unmount-Wim /MountDir:\"{mountPath}\" /{(commit ? "Commit" : "Discard")}";
 
                 progress?.Report($"DISM command: dism.exe {arguments}");
@@ -92,10 +148,44 @@ namespace WinImagePrep.Services
                 if (result.Success)
                 {
                     progress?.Report($"Successfully unmounted image");
+
+                    // Clean up the mount directory after successful unmount
+                    try
+                    {
+                        if (Directory.Exists(mountPath))
+                        {
+                            progress?.Report($"Cleaning up mount directory: {mountPath}");
+                            Directory.Delete(mountPath, true);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        progress?.Report($"⚠ Warning: Could not delete mount directory: {ex.Message}");
+                        // Not a fatal error, continue
+                    }
+
                     return true;
                 }
                 else
                 {
+                    // If unmount fails with error 50 (not mounted), treat as success
+                    if (result.ExitCode == 50)
+                    {
+                        progress?.Report($"⚠ Image was not mounted (error 50), cleaning directory...");
+                        try
+                        {
+                            if (Directory.Exists(mountPath))
+                            {
+                                Directory.Delete(mountPath, true);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            progress?.Report($"⚠ Warning: Could not delete mount directory: {ex.Message}");
+                        }
+                        return true;
+                    }
+
                     progress?.Report($"Failed to unmount image: Exit code {result.ExitCode}");
                     return false;
                 }

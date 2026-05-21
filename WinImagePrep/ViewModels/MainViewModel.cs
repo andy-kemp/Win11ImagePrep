@@ -71,6 +71,13 @@ namespace WinImagePrep.ViewModels
             }
         }
 
+        private string _isoVolumeLabel = "WIN11USB";
+        public string IsoVolumeLabel
+        {
+            get => _isoVolumeLabel;
+            set => SetProperty(ref _isoVolumeLabel, value);
+        }
+
         private string _selectedMsiPath = string.Empty;
         public string SelectedMsiPath
         {
@@ -129,6 +136,34 @@ namespace WinImagePrep.ViewModels
                     OnPropertyChanged(nameof(CanExecuteInject));
                 }
             }
+        }
+
+        private int _overallProgress;
+        public int OverallProgress
+        {
+            get => _overallProgress;
+            set => SetProperty(ref _overallProgress, value);
+        }
+
+        private string _overallProgressText = string.Empty;
+        public string OverallProgressText
+        {
+            get => _overallProgressText;
+            set => SetProperty(ref _overallProgressText, value);
+        }
+
+        private int _currentOperationProgress;
+        public int CurrentOperationProgress
+        {
+            get => _currentOperationProgress;
+            set => SetProperty(ref _currentOperationProgress, value);
+        }
+
+        private string _currentOperationText = string.Empty;
+        public string CurrentOperationText
+        {
+            get => _currentOperationText;
+            set => SetProperty(ref _currentOperationText, value);
         }
 
         private List<int>? _selectedEditions;
@@ -286,6 +321,26 @@ namespace WinImagePrep.ViewModels
             if (!CanExecuteInject())
                 return;
 
+            // Show time warning dialog
+            var warningResult = MessageBox.Show(
+                "This operation will prepare the Windows image with drivers and may take a significant amount of time (20-60 minutes or more).\n\n" +
+                "The process will:\n" +
+                "• Extract the Windows ISO\n" +
+                "• Install driver MSI\n" +
+                "• Inject drivers into all editions\n" +
+                "• Process Windows Recovery Environment\n" +
+                "• Split large image files if needed\n\n" +
+                "Do you want to continue?",
+                "Long Operation Warning",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Information);
+
+            if (warningResult != MessageBoxResult.OK)
+            {
+                AddLog("Image preparation cancelled by user.");
+                return;
+            }
+
             // CRITICAL: Check for administrator privileges
             if (!AdminHelper.IsRunningAsAdministrator())
             {
@@ -320,16 +375,24 @@ namespace WinImagePrep.ViewModels
 
             _cancellationTokenSource = new CancellationTokenSource();
             IsProcessing = true;
+            OverallProgress = 0;
+            CurrentOperationProgress = 0;
+            OverallProgressText = "Starting driver injection process...";
+            CurrentOperationText = "Initializing...";
             AddLog("=== Starting Driver Injection Process ===");
 
             try
             {
                 var progress = new Progress<OperationProgress>(p =>
                 {
+                    CurrentOperationProgress = p.PercentComplete;
+                    CurrentOperationText = p.CurrentOperation;
                     AddLog($"[{p.PercentComplete}%] {p.CurrentOperation}");
                 });
 
                 // Check disk space on temp directory location (where ISO extraction happens)
+                OverallProgress = 5;
+                OverallProgressText = "Checking disk space...";
                 var diskSpace = FileSystemHelper.CheckDiskSpace(_config.TempBaseDirectory, _config.RequiredFreeSpaceGB);
                 if (!diskSpace.HasEnoughSpace)
                 {
@@ -344,12 +407,36 @@ namespace WinImagePrep.ViewModels
                     return;
                 }
 
+                // Get ISO volume label before extraction
+                OverallProgress = 8;
+                OverallProgressText = "Reading ISO volume label...";
+                CurrentOperationText = "Reading ISO volume label...";
+                CurrentOperationProgress = 50;
+                IsoVolumeLabel = await _isoService.GetIsoVolumeLabelAsync(
+                    SelectedIsoPath,
+                    new Progress<string>(msg => 
+                    { 
+                        AddLog(msg); 
+                        CurrentOperationText = msg;
+                    }),
+                    _cancellationTokenSource.Token);
+                AddLog($"ISO volume label: {IsoVolumeLabel}");
+
                 // Extract ISO
+                OverallProgress = 10;
+                OverallProgressText = "Step 1/6: Extracting ISO contents...";
+                CurrentOperationText = "Extracting ISO...";
+                CurrentOperationProgress = 0;
                 AddLog("Extracting ISO contents...");
                 var extracted = await _isoService.ExtractIsoAsync(
                     SelectedIsoPath,
                     _config.Windows11Directory,
-                    new Progress<string>(AddLog),
+                    new Progress<string>(msg => 
+                    { 
+                        AddLog(msg); 
+                        CurrentOperationText = msg;
+                        CurrentOperationProgress = 50;
+                    }),
                     _cancellationTokenSource.Token);
 
                 if (!extracted)
@@ -359,11 +446,20 @@ namespace WinImagePrep.ViewModels
                 }
 
                 // Extract drivers
+                OverallProgress = 25;
+                OverallProgressText = "Step 2/6: Extracting drivers from MSI...";
+                CurrentOperationText = "Extracting drivers from MSI...";
+                CurrentOperationProgress = 0;
                 AddLog("Extracting drivers from MSI...");
                 var driversExtracted = await _driverService.ExtractDriverMsiAsync(
                     SelectedMsiPath,
                     _config.DriversDirectory,
-                    new Progress<string>(AddLog),
+                    new Progress<string>(msg => 
+                    { 
+                        AddLog(msg); 
+                        CurrentOperationText = msg;
+                        CurrentOperationProgress = 50;
+                    }),
                     _cancellationTokenSource.Token);
 
                 if (!driversExtracted)
@@ -373,6 +469,8 @@ namespace WinImagePrep.ViewModels
                 }
 
                 // Validate drivers
+                OverallProgress = 30;
+                OverallProgressText = "Step 3/6: Validating drivers...";
                 var driverValidation = _driverService.ValidateDrivers(_config.DriversDirectory);
                 if (!driverValidation.IsValid)
                 {
@@ -383,29 +481,51 @@ namespace WinImagePrep.ViewModels
                 AddLog($"✓ Found {driverValidation.DriverCount} driver(s)");
 
                 // Inject drivers into WinPE and Setup
+                OverallProgress = 40;
+                OverallProgressText = "Step 4/6: Injecting drivers into boot images...";
                 await InjectDriversToBootWimAsync(_cancellationTokenSource.Token);
 
                 // Inject drivers into install.wim editions
+                OverallProgress = 60;
+                OverallProgressText = "Step 5/6: Injecting drivers into Windows editions...";
                 await InjectDriversToInstallWimAsync(_cancellationTokenSource.Token);
 
                 // Split WIM if needed
+                OverallProgress = 90;
+                OverallProgressText = "Step 6/6: Finalizing...";
                 await SplitWimIfNeededAsync(_cancellationTokenSource.Token);
 
+                OverallProgress = 100;
+                OverallProgressText = "Driver injection completed successfully!";
+                CurrentOperationProgress = 100;
+                CurrentOperationText = "Complete";
                 AddLog("=== Driver Injection Complete ===");
                 AddLog("Ready to create bootable USB");
 
-                MessageBox.Show(
-                    "Driver injection completed successfully!\n\nYou can now create a bootable USB drive.",
-                    "Success",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                // Prompt user to create USB now
+                var createUsbNow = MessageBox.Show(
+                    "Driver injection completed successfully!\n\n" +
+                    "Would you like to create a bootable USB drive now?",
+                    "Create Bootable USB?",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (createUsbNow == MessageBoxResult.Yes)
+                {
+                    // User wants to create USB, trigger the CreateUsbAsync workflow
+                    await CreateUsbAsync();
+                }
             }
             catch (OperationCanceledException)
             {
+                OverallProgressText = "Operation cancelled";
+                CurrentOperationText = "Cancelled by user";
                 AddLog("✗ Operation cancelled by user");
             }
             catch (Exception ex)
             {
+                OverallProgressText = "Error occurred";
+                CurrentOperationText = ex.Message;
                 AddLog($"✗ Error: {ex.Message}");
                 MessageBox.Show($"An error occurred:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -423,21 +543,65 @@ namespace WinImagePrep.ViewModels
 
             // WinPE (Index 1)
             AddLog("Injecting drivers into WinPE...");
+            CurrentOperationText = "Mounting WinPE...";
+            CurrentOperationProgress = 0;
             var mountPE = _config.MountPEDirectory;
             FileSystemHelper.EnsureDirectoryExists(mountPE);
 
-            await _dismService.MountWimAsync(bootWimPath, 1, mountPE, new Progress<string>(AddLog), cancellationToken);
-            await _dismService.AddDriversAsync(mountPE, _config.DriversDirectory, new Progress<string>(AddLog), cancellationToken);
-            await _dismService.UnmountWimAsync(mountPE, true, new Progress<string>(AddLog), cancellationToken);
+            await _dismService.MountWimAsync(bootWimPath, 1, mountPE, new Progress<string>(msg => 
+            { 
+                AddLog(msg); 
+                CurrentOperationText = msg;
+                CurrentOperationProgress = 25;
+            }), cancellationToken);
+
+            CurrentOperationText = "Adding drivers to WinPE...";
+            CurrentOperationProgress = 50;
+            await _dismService.AddDriversAsync(mountPE, _config.DriversDirectory, new Progress<string>(msg => 
+            { 
+                AddLog(msg); 
+                CurrentOperationText = msg;
+                CurrentOperationProgress = 75;
+            }), cancellationToken);
+
+            CurrentOperationText = "Unmounting WinPE...";
+            await _dismService.UnmountWimAsync(mountPE, true, new Progress<string>(msg => 
+            { 
+                AddLog(msg); 
+                CurrentOperationText = msg;
+            }), cancellationToken);
 
             // Setup (Index 2)
             AddLog("Injecting drivers into Windows Setup...");
+            CurrentOperationText = "Mounting Windows Setup...";
+            CurrentOperationProgress = 0;
             var mountSetup = _config.MountSetupDirectory;
             FileSystemHelper.EnsureDirectoryExists(mountSetup);
 
-            await _dismService.MountWimAsync(bootWimPath, 2, mountSetup, new Progress<string>(AddLog), cancellationToken);
-            await _dismService.AddDriversAsync(mountSetup, _config.DriversDirectory, new Progress<string>(AddLog), cancellationToken);
-            await _dismService.UnmountWimAsync(mountSetup, true, new Progress<string>(AddLog), cancellationToken);
+            await _dismService.MountWimAsync(bootWimPath, 2, mountSetup, new Progress<string>(msg => 
+            { 
+                AddLog(msg); 
+                CurrentOperationText = msg;
+                CurrentOperationProgress = 25;
+            }), cancellationToken);
+
+            CurrentOperationText = "Adding drivers to Windows Setup...";
+            CurrentOperationProgress = 50;
+            await _dismService.AddDriversAsync(mountSetup, _config.DriversDirectory, new Progress<string>(msg => 
+            { 
+                AddLog(msg); 
+                CurrentOperationText = msg;
+                CurrentOperationProgress = 75;
+            }), cancellationToken);
+
+            CurrentOperationText = "Unmounting Windows Setup...";
+            await _dismService.UnmountWimAsync(mountSetup, true, new Progress<string>(msg => 
+            { 
+                AddLog(msg); 
+                CurrentOperationText = msg;
+            }), cancellationToken);
+
+            CurrentOperationProgress = 100;
         }
 
         private async Task InjectDriversToInstallWimAsync(CancellationToken cancellationToken)
@@ -447,33 +611,79 @@ namespace WinImagePrep.ViewModels
 
             var editionsToProcess = SelectedEditions ?? editions.Select(e => e.ImageIndex).ToList();
 
+            int editionCount = 0;
+            int totalEditions = editionsToProcess.Count;
+
             foreach (var editionIndex in editionsToProcess)
             {
+                editionCount++;
                 var edition = editions.FirstOrDefault(e => e.ImageIndex == editionIndex);
                 var editionName = edition?.ImageName ?? $"Edition {editionIndex}";
 
                 AddLog($"Injecting drivers into {editionName}...");
+                CurrentOperationText = $"Mounting {editionName} ({editionCount}/{totalEditions})...";
+                CurrentOperationProgress = 0;
 
                 var mountPath = Path.Combine(_config.MountDirectory, $"Edition_{editionIndex}");
                 FileSystemHelper.EnsureDirectoryExists(mountPath);
 
-                await _dismService.MountWimAsync(installWimPath, editionIndex, mountPath, new Progress<string>(AddLog), cancellationToken);
-                await _dismService.AddDriversAsync(mountPath, _config.DriversDirectory, new Progress<string>(AddLog), cancellationToken);
+                await _dismService.MountWimAsync(installWimPath, editionIndex, mountPath, new Progress<string>(msg => 
+                { 
+                    AddLog(msg); 
+                    CurrentOperationText = msg;
+                    CurrentOperationProgress = 20;
+                }), cancellationToken);
+
+                CurrentOperationText = $"Adding drivers to {editionName} ({editionCount}/{totalEditions})...";
+                CurrentOperationProgress = 40;
+                await _dismService.AddDriversAsync(mountPath, _config.DriversDirectory, new Progress<string>(msg => 
+                { 
+                    AddLog(msg); 
+                    CurrentOperationText = msg;
+                }), cancellationToken);
 
                 // Check for WinRE
                 var winrePath = Path.Combine(mountPath, "Windows", "System32", "Recovery", "Winre.wim");
                 if (File.Exists(winrePath))
                 {
                     AddLog($"  Processing WinRE for {editionName}...");
+                    CurrentOperationText = $"Mounting WinRE for {editionName}...";
+                    CurrentOperationProgress = 60;
                     var mountWinRE = Path.Combine(_config.MountDirectory, $"WinRE_{editionIndex}");
                     FileSystemHelper.EnsureDirectoryExists(mountWinRE);
 
-                    await _dismService.MountWimAsync(winrePath, 1, mountWinRE, new Progress<string>(AddLog), cancellationToken);
-                    await _dismService.AddDriversAsync(mountWinRE, _config.DriversDirectory, new Progress<string>(AddLog), cancellationToken);
-                    await _dismService.UnmountWimAsync(mountWinRE, true, new Progress<string>(AddLog), cancellationToken);
+                    await _dismService.MountWimAsync(winrePath, 1, mountWinRE, new Progress<string>(msg => 
+                    { 
+                        AddLog(msg); 
+                        CurrentOperationText = msg;
+                    }), cancellationToken);
+
+                    CurrentOperationText = $"Adding drivers to WinRE for {editionName}...";
+                    CurrentOperationProgress = 70;
+                    await _dismService.AddDriversAsync(mountWinRE, _config.DriversDirectory, new Progress<string>(msg => 
+                    { 
+                        AddLog(msg); 
+                        CurrentOperationText = msg;
+                    }), cancellationToken);
+
+                    CurrentOperationText = $"Unmounting WinRE for {editionName}...";
+                    CurrentOperationProgress = 80;
+                    await _dismService.UnmountWimAsync(mountWinRE, true, new Progress<string>(msg => 
+                    { 
+                        AddLog(msg); 
+                        CurrentOperationText = msg;
+                    }), cancellationToken);
                 }
 
-                await _dismService.UnmountWimAsync(mountPath, true, new Progress<string>(AddLog), cancellationToken);
+                CurrentOperationText = $"Unmounting {editionName}...";
+                CurrentOperationProgress = 90;
+                await _dismService.UnmountWimAsync(mountPath, true, new Progress<string>(msg => 
+                { 
+                    AddLog(msg); 
+                    CurrentOperationText = msg;
+                }), cancellationToken);
+
+                CurrentOperationProgress = 100;
             }
         }
 
@@ -493,8 +703,27 @@ namespace WinImagePrep.ViewModels
 
                     if (File.Exists(swmPath))
                     {
-                        File.Delete(installWimPath);
-                        AddLog("✓ WIM split successfully");
+                        try
+                        {
+                            // Clear read-only attribute before deleting
+                            if (File.Exists(installWimPath))
+                            {
+                                var wimFileInfo = new FileInfo(installWimPath);
+                                if (wimFileInfo.IsReadOnly)
+                                {
+                                    wimFileInfo.IsReadOnly = false;
+                                    AddLog("Cleared read-only flag on install.wim before deletion");
+                                }
+                                File.Delete(installWimPath);
+                                AddLog("✓ Deleted original install.wim after split");
+                            }
+                            AddLog("✓ WIM split successfully");
+                        }
+                        catch (Exception ex)
+                        {
+                            AddLog($"⚠ Warning: Could not delete install.wim: {ex.Message}");
+                            AddLog("The split files (.swm) will be used instead");
+                        }
                     }
                 }
             }
@@ -601,23 +830,35 @@ namespace WinImagePrep.ViewModels
                 return;
 
             IsProcessing = true;
+            OverallProgress = 0;
+            CurrentOperationProgress = 0;
+            OverallProgressText = "Creating bootable USB...";
+            CurrentOperationText = "Preparing...";
             AddLog("=== Creating Bootable USB ===");
 
             try
             {
                 var progress = new Progress<OperationProgress>(p =>
                 {
+                    CurrentOperationProgress = p.PercentComplete;
+                    CurrentOperationText = p.CurrentOperation;
+                    OverallProgress = p.PercentComplete;
+                    OverallProgressText = $"USB Creation: {p.CurrentOperation}";
                     AddLog($"[{p.PercentComplete}%] {p.CurrentOperation}");
                 });
 
                 var success = await _usbService.CreateBootableUsbAsync(
                     SelectedUsbDrive.DiskNumber,
                     _config.Windows11Directory,
-                    "WIN11USB",
+                    IsoVolumeLabel,
                     progress);
 
                 if (success)
                 {
+                    OverallProgress = 100;
+                    CurrentOperationProgress = 100;
+                    OverallProgressText = "USB creation completed successfully!";
+                    CurrentOperationText = "Complete";
                     AddLog("=== USB Creation Complete ===");
                     MessageBox.Show(
                         "Bootable Windows 11 USB created successfully!",
@@ -627,6 +868,8 @@ namespace WinImagePrep.ViewModels
                 }
                 else
                 {
+                    OverallProgressText = "USB creation failed";
+                    CurrentOperationText = "Failed";
                     AddLog("✗ USB creation failed");
                     MessageBox.Show(
                         "Failed to create bootable USB. Check the log for details.",
@@ -637,6 +880,8 @@ namespace WinImagePrep.ViewModels
             }
             catch (Exception ex)
             {
+                OverallProgressText = "Error occurred";
+                CurrentOperationText = ex.Message;
                 AddLog($"✗ Error creating USB: {ex.Message}");
                 MessageBox.Show($"Error creating USB:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }

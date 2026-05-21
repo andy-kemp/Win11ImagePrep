@@ -165,6 +165,56 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// Get the volume label from an ISO file
+        /// </summary>
+        public async Task<string> GetIsoVolumeLabelAsync(
+            string isoPath,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                progress?.Report("Reading ISO volume label...");
+
+                // Escape single quotes for PowerShell
+                var escapedPath = isoPath.Replace("'", "''");
+
+                var arguments = $"-Command \"" +
+                    $"$ErrorActionPreference='Stop'; " +
+                    $"try {{ " +
+                    $"$mount = Mount-DiskImage -ImagePath '{escapedPath}' -PassThru -StorageType ISO -Access ReadOnly; " +
+                    $"Start-Sleep -Seconds 2; " +
+                    $"$vol = Get-DiskImage -ImagePath '{escapedPath}' | Get-Volume; " +
+                    $"$label = $vol.FileSystemLabel; " +
+                    $"Dismount-DiskImage -ImagePath '{escapedPath}' | Out-Null; " +
+                    $"if ([string]::IsNullOrEmpty($label)) {{ $label = 'WIN11USB' }}; " +
+                    $"Write-Output $label; " +
+                    $"exit 0 " +
+                    $"}} catch {{ " +
+                    $"Write-Output 'WIN11USB'; " +
+                    $"exit 0 " +
+                    $"}}\"";
+
+                var result = await ProcessHelper.ExecuteProcessAsync("powershell.exe", arguments, cancellationToken);
+
+                if (result.ExitCode == 0 && !string.IsNullOrWhiteSpace(result.Output))
+                {
+                    var label = result.Output.Trim();
+                    progress?.Report($"ISO volume label: {label}");
+                    return label;
+                }
+
+                progress?.Report("Could not read ISO label, using default");
+                return "WIN11USB";
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error reading ISO label: {ex.Message}");
+                return "WIN11USB";
+            }
+        }
+
+        /// <summary>
         /// Validate ISO integrity and check for required WIM files
         /// </summary>
         public async Task<IsoValidationResult> ValidateIsoAsync(
@@ -312,6 +362,30 @@ namespace WinImagePrep.Services
                 if (success)
                 {
                     progress?.Report("ISO extracted successfully");
+
+                    // CRITICAL: Remove read-only flag from all copied files
+                    // ISO files are read-only which prevents DISM from mounting WIM files
+                    progress?.Report("Removing read-only flags from extracted files...");
+                    try
+                    {
+                        var files = Directory.GetFiles(destinationPath, "*.*", SearchOption.AllDirectories);
+                        int count = 0;
+                        foreach (var file in files)
+                        {
+                            var fileInfo = new FileInfo(file);
+                            if (fileInfo.IsReadOnly)
+                            {
+                                fileInfo.IsReadOnly = false;
+                                count++;
+                            }
+                        }
+                        progress?.Report($"✓ Cleared read-only flag on {count} files");
+                    }
+                    catch (Exception ex)
+                    {
+                        progress?.Report($"⚠ Warning: Failed to clear some read-only flags: {ex.Message}");
+                    }
+
                     return true;
                 }
                 else
