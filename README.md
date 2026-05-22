@@ -87,17 +87,54 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 
 ---
 
+## 📥 Download & Installation
+
+### Option 1: Download Pre-built Release (Recommended)
+
+Download the latest **self-contained executable** from the [Releases](https://github.com/andy-kemp/Win11ImagePrep/releases) page:
+
+- **`WinImagePrep_full.exe`** (72 MB) - Single file, includes .NET 8 runtime
+  - ✅ No installation required
+  - ✅ No dependencies needed
+  - ✅ Just download and run
+  - ✅ Works on any Windows 10/11 x64 machine
+
+### Option 2: Build from Source
+
+1. **Prerequisites**:
+   - Visual Studio 2022+ or .NET 8 SDK
+   - Windows 10/11 with DISM and PowerShell
+
+2. **Clone the repository**:
+   ```bash
+   git clone https://github.com/andy-kemp/Win11ImagePrep.git
+   cd Win11ImagePrep
+   ```
+
+3. **Build the application**:
+
+   **Standard build** (requires .NET 8 Runtime on target):
+   ```powershell
+   cd WinImagePrep
+   dotnet build --configuration Release
+   # Output: bin\Release\net8.0-windows\WinImagePrep.exe
+   ```
+
+   **Self-contained single-file build** (no runtime needed):
+   ```powershell
+   dotnet publish WinImagePrep/WinImagePrep.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded -o "WinImagePrep/bin/Publish"
+   # Output: WinImagePrep\bin\Publish\WinImagePrep.exe (rename to WinImagePrep_full.exe)
+   ```
+
+---
+
 ## 🚀 Usage
 
 ### Quick Start
 
 1. **Run as Administrator**
-   ```powershell
-   # Right-click WinImagePrep.exe → Run as Administrator
-   # Or the application will prompt you to restart with elevation
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-   .\WinImagePrep_V3.ps1
-   ```
+   - Right-click `WinImagePrep_full.exe` → **Run as Administrator**
+   - Or double-click and the application will prompt you to restart with elevation
 
 2. **Select Windows 11 ISO**
    - Click "Browse..." next to "1. Select Windows ISO"

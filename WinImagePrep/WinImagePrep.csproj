@@ -17,6 +17,17 @@
 	<Copyright>Copyright © 2024</Copyright>
   </PropertyGroup>
 
+  <!-- Self-contained single-file publish configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Standalone'">
+	<PublishSingleFile>true</PublishSingleFile>
+	<SelfContained>true</SelfContained>
+	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+	<PublishTrimmed>false</PublishTrimmed>
+	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	<DebugType>embedded</DebugType>
+	<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
   <ItemGroup>
 	<PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
 	<PackageReference Include="System.Management" Version="8.0.0" />
