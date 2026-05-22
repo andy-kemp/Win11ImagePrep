@@ -53,11 +53,35 @@ namespace WinImagePrep
 
         private void LogItem_Loaded(object sender, RoutedEventArgs e)
         {
-            // Auto-scroll to the latest log entry
-            if (sender is ListBoxItem item)
+            // Auto-scroll to the latest log entry only if we're already near the bottom
+            if (sender is ListBoxItem item && item.Parent is ListBox listBox)
             {
-                item.BringIntoView();
+                var scrollViewer = FindScrollViewer(listBox);
+                if (scrollViewer != null)
+                {
+                    // Only auto-scroll if user is already at or near the bottom (within 50 pixels)
+                    var distanceFromBottom = scrollViewer.ScrollableHeight - scrollViewer.VerticalOffset;
+                    if (distanceFromBottom < 50)
+                    {
+                        scrollViewer.ScrollToEnd();
+                    }
+                }
             }
+        }
+
+        private ScrollViewer? FindScrollViewer(DependencyObject parent)
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is ScrollViewer scrollViewer)
+                    return scrollViewer;
+
+                var result = FindScrollViewer(child);
+                if (result != null)
+                    return result;
+            }
+            return null;
         }
 
         protected override void OnClosed(EventArgs e)
