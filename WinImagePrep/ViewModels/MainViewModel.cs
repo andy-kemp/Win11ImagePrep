@@ -502,19 +502,77 @@ namespace WinImagePrep.ViewModels
                 AddLog("=== Driver Injection Complete ===");
                 AddLog("Ready to create bootable USB");
 
-                // Prompt user to create USB now
-                var createUsbNow = MessageBox.Show(
-                    "Driver injection completed successfully!\n\n" +
-                    "Would you like to create a bootable USB drive now?",
-                    "Create Bootable USB?",
-                    MessageBoxButton.YesNo,
+                // Re-enable commands by setting IsProcessing = false
+                IsProcessing = false;
+
+                // Prompt user to create USB now or save for later
+                var result = MessageBox.Show(
+                    "✓ Driver injection completed successfully!\n\n" +
+                    "What would you like to do next?\n\n" +
+                    "• Click YES to create bootable USB now\n" +
+                    "• Click NO to save and create USB later\n" +
+                    "• Click CANCEL to return to main screen",
+                    "Driver Injection Complete",
+                    MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);
 
-                if (createUsbNow == MessageBoxResult.Yes)
+                if (result == MessageBoxResult.Yes)
                 {
-                    // User wants to create USB, trigger the CreateUsbAsync workflow
+                    // Check if USB drive is inserted
+                    RefreshUsbDrives();
+
+                    if (SelectedUsbDrive == null || UsbDrives.Count == 0)
+                    {
+                        var insertUsbResult = MessageBox.Show(
+                            "No USB drive detected.\n\n" +
+                            "Please insert a USB drive (14GB or larger) now.\n\n" +
+                            "Click OK after inserting the USB drive, or Cancel to skip.",
+                            "Insert USB Drive",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Information);
+
+                        if (insertUsbResult == MessageBoxResult.OK)
+                        {
+                            // Refresh and check again
+                            RefreshUsbDrives();
+
+                            if (SelectedUsbDrive == null || UsbDrives.Count == 0)
+                            {
+                                MessageBox.Show(
+                                    "No USB drive detected.\n\n" +
+                                    "You can create the bootable USB later by clicking 'Create USB' button.",
+                                    "No USB Drive",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            return; // User cancelled
+                        }
+                    }
+
+                    // USB is ready, proceed with creation
+                    // Note: CreateUsbAsync will set IsProcessing = true internally
                     await CreateUsbAsync();
                 }
+                else if (result == MessageBoxResult.No)
+                {
+                    // User wants to save for later
+                    MessageBox.Show(
+                        "Image preparation complete!\n\n" +
+                        "The prepared Windows files are ready in:\n" +
+                        $"{_config.Windows11Directory}\n\n" +
+                        "You can create a bootable USB anytime by:\n" +
+                        "1. Insert a USB drive (14GB+)\n" +
+                        "2. Click 'Refresh' to detect it\n" +
+                        "3. Click 'Create USB'",
+                        "Save for Later",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                // If Cancel, just return to main screen
             }
             catch (OperationCanceledException)
             {
