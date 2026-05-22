@@ -275,14 +275,46 @@ namespace WinImagePrep.Services
         {
             try
             {
-                var arguments = $"\"{sourcePath}\" \"{destinationPath}\" /E /NJH /NJS /NP /NFL /NDL";
+                // Remove trailing backslash from destination
+                destinationPath = destinationPath.TrimEnd('\\');
+
+                Logger.Info($"Copying files from {sourcePath} to {destinationPath}");
+                ReportProgress(progress, 65, $"Copying files to {destinationPath}...", OperationStage.CreatingUSB);
+
+                var arguments = $"\"{sourcePath}\" \"{destinationPath}\" /E /R:3 /W:5";
+                Logger.Info($"Robocopy command: robocopy.exe {arguments}");
+
                 var result = await ProcessHelper.ExecuteProcessAsync("robocopy.exe", arguments, cancellationToken);
 
+                Logger.Info($"Robocopy exit code: {result.ExitCode}");
+                if (!string.IsNullOrEmpty(result.Output))
+                {
+                    Logger.Info($"Robocopy output: {result.Output.Substring(0, Math.Min(500, result.Output.Length))}");
+                }
+                if (!string.IsNullOrEmpty(result.Error))
+                {
+                    Logger.Error($"Robocopy error: {result.Error}");
+                }
+
+                ReportProgress(progress, 95, "File copy complete, finalizing...", OperationStage.CreatingUSB);
+
                 // Robocopy exit codes 0-7 are success
-                return result.ExitCode >= 0 && result.ExitCode < 8;
+                // 0 = No files copied (files already exist)
+                // 1 = Files copied successfully
+                // 2 = Extra files or directories detected
+                // 3 = Files copied + extra files
+                // 4 = Mismatched files
+                // 5 = Files copied + mismatched files
+                // 6 = Extra + mismatched files
+                // 7 = Files copied + extra + mismatched files
+                // 8+ = Errors
+                bool success = result.ExitCode >= 0 && result.ExitCode < 8;
+                Logger.Info($"Robocopy result: {(success ? "Success" : "Failed")}");
+                return success;
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.Error($"Error copying files to USB: {ex.Message}");
                 return false;
             }
         }

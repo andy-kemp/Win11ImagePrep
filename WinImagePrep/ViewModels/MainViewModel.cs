@@ -510,7 +510,7 @@ namespace WinImagePrep.ViewModels
                     "✓ Driver injection completed successfully!\n\n" +
                     "What would you like to do next?\n\n" +
                     "• Click YES to create bootable USB now\n" +
-                    "• Click NO to save and create USB later\n" +
+                    "• Click NO to save project for later use\n" +
                     "• Click CANCEL to return to main screen",
                     "Driver Injection Complete",
                     MessageBoxButton.YesNoCancel,
@@ -559,18 +559,8 @@ namespace WinImagePrep.ViewModels
                 }
                 else if (result == MessageBoxResult.No)
                 {
-                    // User wants to save for later
-                    MessageBox.Show(
-                        "Image preparation complete!\n\n" +
-                        "The prepared Windows files are ready in:\n" +
-                        $"{_config.Windows11Directory}\n\n" +
-                        "You can create a bootable USB anytime by:\n" +
-                        "1. Insert a USB drive (14GB+)\n" +
-                        "2. Click 'Refresh' to detect it\n" +
-                        "3. Click 'Create USB'",
-                        "Save for Later",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                    // User wants to save project for later
+                    await SaveProjectAsync();
                 }
                 // If Cancel, just return to main screen
             }
@@ -968,6 +958,109 @@ namespace WinImagePrep.ViewModels
                      $"Size: {drive.SizeGB} GB\n" +
                      $"File System: {drive.FileSystem}\n" +
                      $"Label: {(string.IsNullOrEmpty(drive.Label) ? "(none)" : drive.Label)}";
+        }
+
+        private async Task SaveProjectAsync()
+        {
+            try
+            {
+                // Prompt for project name
+                var inputDialog = new Dialogs.InputDialog(
+                    "Save Project",
+                    "Enter a name for this project:",
+                    $"Win11_Drivers_{DateTime.Now:yyyyMMdd}");
+
+                if (inputDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(inputDialog.InputText))
+                {
+                    AddLog("Project save cancelled by user");
+                    return;
+                }
+
+                // Sanitize project name
+                var projectName = string.Join("_", inputDialog.InputText.Split(Path.GetInvalidFileNameChars()));
+
+                var projectPath = Path.Combine(_config.SavedImagesDirectory, projectName);
+
+                // Check if project already exists
+                if (Directory.Exists(projectPath))
+                {
+                    var overwrite = MessageBox.Show(
+                        $"A project named '{projectName}' already exists.\n\nDo you want to overwrite it?",
+                        "Project Exists",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (overwrite != MessageBoxResult.Yes)
+                    {
+                        AddLog("Project save cancelled - project already exists");
+                        return;
+                    }
+
+                    // Delete existing project
+                    Directory.Delete(projectPath, true);
+                }
+
+                IsProcessing = true;
+                OverallProgress = 0;
+                OverallProgressText = "Saving project...";
+                CurrentOperationText = "Copying files...";
+                AddLog($"=== Saving Project: {projectName} ===");
+
+                // Create project directory
+                FileSystemHelper.EnsureDirectoryExists(projectPath);
+
+                // Copy Windows11 directory contents
+                AddLog($"Copying prepared Windows files to {projectPath}...");
+                CurrentOperationProgress = 20;
+
+                var arguments = $"\"{_config.Windows11Directory}\" \"{projectPath}\" /E /R:3 /W:5";
+                var result = await ProcessHelper.ExecuteProcessAsync("robocopy.exe", arguments);
+
+                if (result.ExitCode >= 0 && result.ExitCode < 8)
+                {
+                    // Save ISO label
+                    var labelPath = Path.Combine(projectPath, "iso-label.txt");
+                    File.WriteAllText(labelPath, IsoVolumeLabel);
+                    AddLog($"Saved ISO label: {IsoVolumeLabel}");
+
+                    CurrentOperationProgress = 100;
+                    OverallProgress = 100;
+                    OverallProgressText = "Project saved successfully!";
+                    CurrentOperationText = "Complete";
+                    AddLog($"✓ Project saved to: {projectPath}");
+
+                    MessageBox.Show(
+                        $"Project '{projectName}' saved successfully!\n\n" +
+                        $"Location: {projectPath}\n\n" +
+                        "You can now create a USB from this saved project using\n" +
+                        "the 'From Saved Image' button.",
+                        "Project Saved",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                else
+                {
+                    AddLog($"✗ Failed to save project (Robocopy exit code: {result.ExitCode})");
+                    MessageBox.Show(
+                        "Failed to save project. Check the log for details.",
+                        "Save Failed",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error saving project: {ex.Message}");
+                MessageBox.Show(
+                    $"Error saving project:\n\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsProcessing = false;
+            }
         }
 
         #endregion
