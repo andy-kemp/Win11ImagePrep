@@ -21,13 +21,32 @@ namespace WinImagePrep.Services
 
             try
             {
+                // Query for all removable drives, not just those with InterfaceType='USB'
+                // Modern USB-C and external drives may report as SCSI
                 using var searcher = new ManagementObjectSearcher(
-                    "SELECT * FROM Win32_DiskDrive WHERE InterfaceType='USB'");
+                    "SELECT * FROM Win32_DiskDrive WHERE (InterfaceType='USB' OR (MediaType='Removable Media' OR MediaType='External hard disk media'))");
 
                 foreach (ManagementObject drive in searcher.Get())
                 {
                     try
                     {
+                        // Skip internal fixed disks
+                        var mediaType = drive["MediaType"]?.ToString() ?? "";
+                        if (mediaType.Contains("Fixed hard disk media", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Check if it's actually removable via other properties
+                            var caption = drive["Caption"]?.ToString() ?? "";
+                            var model = drive["Model"]?.ToString() ?? "";
+
+                            // Skip if it looks like an internal drive (NVMe, SATA SSD, etc.)
+                            if (caption.Contains("NVMe", StringComparison.OrdinalIgnoreCase) ||
+                                caption.Contains("SAMSUNG", StringComparison.OrdinalIgnoreCase) ||
+                                model.Contains("NVMe", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+                        }
+
                         // Safely get the size - handle null or invalid values
                         ulong sizeBytes = 0;
                         var sizeValue = drive["Size"];
@@ -47,7 +66,7 @@ namespace WinImagePrep.Services
                             DiskNumber = Convert.ToUInt32(drive["Index"]),
                             FriendlyName = drive["Caption"]?.ToString() ?? "Unknown USB Drive",
                             SizeBytes = sizeBytes,
-                            MediaType = drive["MediaType"]?.ToString() ?? "Unknown",
+                            MediaType = mediaType,
                             InterfaceType = drive["InterfaceType"]?.ToString() ?? "USB",
                             IsRemovable = true
                         };
