@@ -53,9 +53,9 @@
                                                    FontSize="13"/>
                                         <TextBlock>
                                             <Run Text="Index: "/>
-                                            <Run Text="{Binding ImageIndex}"/>
+                                            <Run Text="{Binding ImageIndex, Mode=OneWay}"/>
                                             <Run Text=" | Size: "/>
-                                            <Run Text="{Binding ImageSizeDisplay}"/>
+                                            <Run Text="{Binding ImageSizeDisplay, Mode=OneWay}"/>
                                         </TextBlock>
                                         <TextBlock Text="{Binding Description}" 
                                                    Foreground="Gray" 
