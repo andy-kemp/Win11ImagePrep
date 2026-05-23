@@ -28,11 +28,25 @@ namespace WinImagePrep.Services
                 {
                     try
                     {
+                        // Safely get the size - handle null or invalid values
+                        ulong sizeBytes = 0;
+                        var sizeValue = drive["Size"];
+                        if (sizeValue != null)
+                        {
+                            // Try different conversion methods
+                            if (sizeValue is ulong ul)
+                                sizeBytes = ul;
+                            else if (sizeValue is long l && l >= 0)
+                                sizeBytes = (ulong)l;
+                            else if (ulong.TryParse(sizeValue.ToString(), out ulong parsed))
+                                sizeBytes = parsed;
+                        }
+
                         var usbInfo = new UsbDriveInfo
                         {
                             DiskNumber = Convert.ToUInt32(drive["Index"]),
                             FriendlyName = drive["Caption"]?.ToString() ?? "Unknown USB Drive",
-                            SizeBytes = Convert.ToUInt64(drive["Size"]),
+                            SizeBytes = sizeBytes,
                             MediaType = drive["MediaType"]?.ToString() ?? "Unknown",
                             InterfaceType = drive["InterfaceType"]?.ToString() ?? "USB",
                             IsRemovable = true
@@ -60,9 +74,10 @@ namespace WinImagePrep.Services
 
                         usbDrives.Add(usbInfo);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Continue with next drive
+                        // Log but continue with next drive
+                        System.Diagnostics.Debug.WriteLine($"Error reading USB drive: {ex.Message}");
                     }
                 }
             }
