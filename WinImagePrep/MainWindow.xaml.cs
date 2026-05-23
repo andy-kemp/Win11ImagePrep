@@ -49,6 +49,12 @@ namespace WinImagePrep
                     Logger.Warning($"Background cleanup failed: {ex.Message}");
                 }
             });
+
+            // Check for existing work and prompt user
+            if (_viewModel != null)
+            {
+                await _viewModel.CheckForExistingWorkAsync();
+            }
         }
 
         private void LogItem_Loaded(object sender, RoutedEventArgs e)

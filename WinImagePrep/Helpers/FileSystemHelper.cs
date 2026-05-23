@@ -93,6 +93,113 @@ namespace WinImagePrep.Helpers
         }
 
         /// <summary>
+        /// Force delete directory with retry and attribute clearing
+        /// </summary>
+        public static bool ForceDeleteDirectory(string path, bool recursive = true)
+        {
+            if (!Directory.Exists(path))
+                return true;
+
+            try
+            {
+                // First pass: clear read-only attributes
+                var dirInfo = new DirectoryInfo(path);
+                ClearReadOnlyAttributes(dirInfo, recursive);
+
+                // Wait a moment for file handles to release
+                System.Threading.Thread.Sleep(100);
+
+                // Try to delete
+                Directory.Delete(path, recursive);
+                return true;
+            }
+            catch
+            {
+                // If direct delete fails, try manual recursive delete
+                try
+                {
+                    DeleteDirectoryManually(path);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        private static void ClearReadOnlyAttributes(DirectoryInfo dirInfo, bool recursive)
+        {
+            try
+            {
+                // Clear attributes on directory itself
+                if ((dirInfo.Attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                {
+                    dirInfo.Attributes &= ~FileAttributes.ReadOnly;
+                }
+
+                // Clear attributes on all files
+                foreach (var file in dirInfo.GetFiles())
+                {
+                    try
+                    {
+                        if ((file.Attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                        {
+                            file.Attributes &= ~FileAttributes.ReadOnly;
+                        }
+                    }
+                    catch { /* Ignore */ }
+                }
+
+                // Recurse into subdirectories
+                if (recursive)
+                {
+                    foreach (var subDir in dirInfo.GetDirectories())
+                    {
+                        try
+                        {
+                            ClearReadOnlyAttributes(subDir, recursive);
+                        }
+                        catch { /* Ignore */ }
+                    }
+                }
+            }
+            catch { /* Ignore */ }
+        }
+
+        private static void DeleteDirectoryManually(string path)
+        {
+            var dirInfo = new DirectoryInfo(path);
+
+            // Delete all files
+            foreach (var file in dirInfo.GetFiles())
+            {
+                try
+                {
+                    file.Delete();
+                }
+                catch { /* Ignore */ }
+            }
+
+            // Recursively delete subdirectories
+            foreach (var subDir in dirInfo.GetDirectories())
+            {
+                try
+                {
+                    DeleteDirectoryManually(subDir.FullName);
+                }
+                catch { /* Ignore */ }
+            }
+
+            // Finally delete the directory itself
+            try
+            {
+                dirInfo.Delete(false);
+            }
+            catch { /* Ignore */ }
+        }
+
+        /// <summary>
         /// Get a safe file name by removing invalid characters
         /// </summary>
         public static string GetSafeFileName(string fileName)

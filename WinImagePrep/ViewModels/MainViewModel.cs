@@ -38,8 +38,10 @@ namespace WinImagePrep.ViewModels
             BrowseIsoCommand = new RelayCommand(BrowseIso);
             VerifyIsoCommand = new RelayCommand(VerifyIso, () => !string.IsNullOrEmpty(SelectedIsoPath));
             BrowseMsiCommand = new RelayCommand(BrowseMsi);
+            BrowseDriverSourceCommand = new RelayCommand(BrowseDriverSource);
             SelectEditionsCommand = new RelayCommand(SelectEditions, () => !string.IsNullOrEmpty(SelectedIsoPath));
             InjectDriversCommand = new RelayCommand(async () => await InjectDriversAsync(), CanExecuteInject);
+            CreateUsbFromIsoCommand = new RelayCommand(async () => await CreateUsbFromIsoAsync(), CanCreateUsbFromIso);
             CreateUsbCommand = new RelayCommand(async () => await CreateUsbAsync(), CanCreateUsb);
             FromSavedImageCommand = new RelayCommand(OpenSavedImageDialog);
             RefreshUsbCommand = new RelayCommand(RefreshUsbDrives);
@@ -86,6 +88,46 @@ namespace WinImagePrep.ViewModels
             {
                 if (SetProperty(ref _selectedMsiPath, value))
                 {
+                    OnPropertyChanged(nameof(CanExecuteInject));
+                }
+            }
+        }
+
+        private DriverSourceType _driverSourceType = DriverSourceType.Msi;
+        public DriverSourceType DriverSourceType
+        {
+            get => _driverSourceType;
+            set => SetProperty(ref _driverSourceType, value);
+        }
+
+        public bool IsDriverSourceMsi
+        {
+            get => DriverSourceType == DriverSourceType.Msi;
+            set { if (value) DriverSourceType = DriverSourceType.Msi; }
+        }
+
+        public bool IsDriverSourceFolder
+        {
+            get => DriverSourceType == DriverSourceType.Folder;
+            set { if (value) DriverSourceType = DriverSourceType.Folder; }
+        }
+
+        public bool IsDriverSourceZip
+        {
+            get => DriverSourceType == DriverSourceType.Zip;
+            set { if (value) DriverSourceType = DriverSourceType.Zip; }
+        }
+
+        private string _selectedDriverSourcePath = string.Empty;
+        public string SelectedDriverSourcePath
+        {
+            get => _selectedDriverSourcePath;
+            set
+            {
+                if (SetProperty(ref _selectedDriverSourcePath, value))
+                {
+                    // Also update SelectedMsiPath for backward compatibility
+                    SelectedMsiPath = value;
                     OnPropertyChanged(nameof(CanExecuteInject));
                 }
             }
@@ -183,8 +225,10 @@ namespace WinImagePrep.ViewModels
         public ICommand BrowseIsoCommand { get; }
         public ICommand VerifyIsoCommand { get; }
         public ICommand BrowseMsiCommand { get; }
+        public ICommand BrowseDriverSourceCommand { get; }
         public ICommand SelectEditionsCommand { get; }
         public ICommand InjectDriversCommand { get; }
+        public ICommand CreateUsbFromIsoCommand { get; }
         public ICommand CreateUsbCommand { get; }
         public ICommand FromSavedImageCommand { get; }
         public ICommand RefreshUsbCommand { get; }
@@ -262,6 +306,51 @@ namespace WinImagePrep.ViewModels
             }
         }
 
+        private void BrowseDriverSource()
+        {
+            switch (DriverSourceType)
+            {
+                case DriverSourceType.Msi:
+                    var msiDialog = new OpenFileDialog
+                    {
+                        Filter = "MSI Files (*.msi)|*.msi|All Files (*.*)|*.*",
+                        Title = "Select Driver MSI File"
+                    };
+                    if (msiDialog.ShowDialog() == true)
+                    {
+                        SelectedDriverSourcePath = msiDialog.FileName;
+                        AddLog($"Selected MSI: {Path.GetFileName(msiDialog.FileName)}");
+                    }
+                    break;
+
+                case DriverSourceType.Folder:
+                    var folderDialog = new System.Windows.Forms.FolderBrowserDialog
+                    {
+                        Description = "Select Driver Folder",
+                        ShowNewFolderButton = false
+                    };
+                    if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    {
+                        SelectedDriverSourcePath = folderDialog.SelectedPath;
+                        AddLog($"Selected folder: {folderDialog.SelectedPath}");
+                    }
+                    break;
+
+                case DriverSourceType.Zip:
+                    var zipDialog = new OpenFileDialog
+                    {
+                        Filter = "ZIP Files (*.zip)|*.zip|All Files (*.*)|*.*",
+                        Title = "Select Driver ZIP File"
+                    };
+                    if (zipDialog.ShowDialog() == true)
+                    {
+                        SelectedDriverSourcePath = zipDialog.FileName;
+                        AddLog($"Selected ZIP: {Path.GetFileName(zipDialog.FileName)}");
+                    }
+                    break;
+            }
+        }
+
         private async void SelectEditions()
         {
             if (string.IsNullOrEmpty(SelectedIsoPath))
@@ -314,6 +403,14 @@ namespace WinImagePrep.ViewModels
                    !string.IsNullOrEmpty(SelectedMsiPath) &&
                    File.Exists(SelectedIsoPath) &&
                    File.Exists(SelectedMsiPath);
+        }
+
+        private bool CanCreateUsbFromIso()
+        {
+            return !IsProcessing &&
+                   !string.IsNullOrEmpty(SelectedIsoPath) &&
+                   File.Exists(SelectedIsoPath) &&
+                   SelectedUsbDrive != null;
         }
 
         private async Task InjectDriversAsync()
@@ -816,6 +913,150 @@ namespace WinImagePrep.ViewModels
                    Directory.EnumerateFileSystemEntries(_config.Windows11Directory).Any();
         }
 
+        private async Task CreateUsbFromIsoAsync()
+        {
+            if (SelectedUsbDrive == null)
+            {
+                MessageBox.Show("Please select a USB drive.", "No USB Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // CRITICAL: Check for administrator privileges
+            if (!AdminHelper.IsRunningAsAdministrator())
+            {
+                AddLog("✗ ERROR: Administrator privileges are required for USB creation!");
+                var adminResult = MessageBox.Show(
+                    "This operation requires administrator privileges.\n\n" +
+                    "The application will now restart with elevated permissions.\n\n" +
+                    "Click OK to restart as administrator, or Cancel to abort.",
+                    "Administrator Required",
+                    MessageBoxButton.OKCancel,
+                    MessageBoxImage.Warning);
+
+                if (adminResult == MessageBoxResult.OK)
+                {
+                    AdminHelper.RestartAsAdministrator();
+                    Application.Current.Shutdown();
+                }
+                return;
+            }
+
+            // Show warning dialog
+            var result = MessageBox.Show(
+                $"⚠ WARNING: All data on the selected USB drive will be permanently deleted!\n\n" +
+                $"Drive: Disk {SelectedUsbDrive.DiskNumber} ({SelectedUsbDrive.FriendlyName})\n" +
+                $"Capacity: {SelectedUsbDrive.SizeGB} GB\n\n" +
+                $"This operation will:\n" +
+                $"• Extract the Windows ISO\n" +
+                $"• Split large image files if needed\n" +
+                $"• Format the USB drive\n" +
+                $"• Create bootable Windows installation media\n\n" +
+                $"Do you want to continue?",
+                "Create Bootable USB - Confirmation Required",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                AddLog("USB creation cancelled by user.");
+                return;
+            }
+
+            _cancellationTokenSource = new CancellationTokenSource();
+            IsProcessing = true;
+            OverallProgress = 0;
+            OverallProgressText = "Creating bootable USB from ISO...";
+            CurrentOperationProgress = 0;
+            CurrentOperationText = "";
+
+            try
+            {
+                AddLog("=== Creating Bootable USB from ISO (No Driver Injection) ===");
+
+                // Step 1: Get ISO label
+                OverallProgress = 5;
+                OverallProgressText = "Reading ISO label...";
+                IsoVolumeLabel = await _isoService.GetIsoVolumeLabelAsync(
+                    SelectedIsoPath,
+                    new Progress<string>(AddLog),
+                    _cancellationTokenSource.Token);
+
+                // Step 2: Extract ISO
+                OverallProgress = 10;
+                OverallProgressText = "Extracting ISO...";
+                CurrentOperationText = "Mounting and extracting ISO files...";
+                await _isoService.ExtractIsoAsync(
+                    SelectedIsoPath,
+                    _config.Windows11Directory,
+                    new Progress<string>(msg =>
+                    {
+                        AddLog(msg);
+                        CurrentOperationText = msg;
+                    }),
+                    _cancellationTokenSource.Token);
+
+                // Step 3: Split WIM if needed
+                OverallProgress = 60;
+                OverallProgressText = "Checking WIM size...";
+                await SplitWimIfNeededAsync(_cancellationTokenSource.Token);
+
+                // Step 4: Create USB
+                OverallProgress = 70;
+                OverallProgressText = "Creating bootable USB...";
+                CurrentOperationText = "Formatting USB drive...";
+
+                var usbProgress = new Progress<OperationProgress>(p =>
+                {
+                    CurrentOperationProgress = p.PercentComplete;
+                    CurrentOperationText = p.CurrentOperation;
+                    OverallProgress = Math.Min(70 + (int)(p.PercentComplete * 0.3), 100);
+                    AddLog($"[{p.PercentComplete}%] {p.CurrentOperation}");
+                });
+
+                var success = await _usbService.CreateBootableUsbAsync(
+                    SelectedUsbDrive.DiskNumber,
+                    _config.Windows11Directory,
+                    IsoVolumeLabel,
+                    usbProgress);
+
+                if (success)
+                {
+                    OverallProgress = 100;
+                    OverallProgressText = "Complete!";
+                    CurrentOperationText = "Bootable USB created successfully";
+                    AddLog("=== USB Creation Complete ===");
+
+                    MessageBox.Show(
+                        "Bootable USB created successfully!\n\n" +
+                        $"USB Drive: Disk {SelectedUsbDrive.DiskNumber} ({IsoVolumeLabel})\n\n" +
+                        "You can now use this USB to install Windows.",
+                        "Success",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                else
+                {
+                    throw new Exception("USB creation failed");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                AddLog("Operation cancelled by user");
+                MessageBox.Show("USB creation was cancelled.", "Cancelled", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Error during USB creation: {ex.Message}");
+                MessageBox.Show($"Error creating USB: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsProcessing = false;
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
+            }
+        }
+
         private async Task CreateUsbAsync()
         {
             if (SelectedUsbDrive == null)
@@ -866,9 +1107,16 @@ namespace WinImagePrep.ViewModels
                 return;
             }
 
+            // Calculate the size of the Windows 11 image directory
+            double imageSizeGB = GetDirectorySizeGB(_config.Windows11Directory);
+            string sizeWarning = imageSizeGB > 0 
+                ? $"\n\nImage size: {imageSizeGB} GB\n(This will take several minutes to copy)" 
+                : "";
+
             var result = MessageBox.Show(
                 $"WARNING: This will ERASE all data on USB drive {SelectedUsbDrive.DiskNumber}!\n\n" +
-                $"{SelectedUsbDrive.FriendlyName} - {SelectedUsbDrive.SizeGB} GB\n\n" +
+                $"{SelectedUsbDrive.FriendlyName} - {SelectedUsbDrive.SizeGB} GB" +
+                sizeWarning + "\n\n" +
                 "Do you want to continue?",
                 "Confirm USB Creation",
                 MessageBoxButton.YesNo,
@@ -913,6 +1161,64 @@ namespace WinImagePrep.ViewModels
                         "Success",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
+
+                    // Offer three options: Save project, Delete temp files, or Keep temp files
+                    var cleanupChoice = MessageBox.Show(
+                        "What would you like to do with the temporary files?\n\n" +
+                        "• YES - Save as a project for later use\n" +
+                        "• NO - Delete temporary files (free ~6-8 GB)\n" +
+                        "• CANCEL - Keep temporary files for now",
+                        "Temporary Files",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (cleanupChoice == MessageBoxResult.Yes)
+                    {
+                        // Save project
+                        await SaveProjectAsync();
+                    }
+                    else if (cleanupChoice == MessageBoxResult.No)
+                    {
+                        // Delete temp files
+                        try
+                        {
+                            AddLog("Cleaning up temporary files...");
+                            if (Directory.Exists(_config.Windows11Directory))
+                            {
+                                bool deleted = FileSystemHelper.ForceDeleteDirectory(_config.Windows11Directory, true);
+                                if (deleted)
+                                {
+                                    AddLog($"✓ Deleted temporary directory: {_config.Windows11Directory}");
+                                }
+                                else
+                                {
+                                    AddLog($"⚠ Warning: Could not delete all temporary files");
+                                    MessageBox.Show(
+                                        "Some temporary files could not be deleted.\n\n" +
+                                        "They may be in use or locked. Try closing all programs\n" +
+                                        "and use the Repair/Cleanup option, or manually delete:\n\n" +
+                                        _config.Windows11Directory,
+                                        "Cleanup Warning",
+                                        MessageBoxButton.OK,
+                                        MessageBoxImage.Warning);
+                                }
+                            }
+                        }
+                        catch (Exception cleanupEx)
+                        {
+                            AddLog($"⚠ Warning: Failed to delete temporary files: {cleanupEx.Message}");
+                            MessageBox.Show(
+                                $"Could not delete temporary files:\n\n{cleanupEx.Message}\n\n" +
+                                "You may need to manually delete the folder or use Repair/Cleanup.",
+                                "Cleanup Warning",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                        }
+                    }
+                    else
+                    {
+                        AddLog("Temporary files kept for future use");
+                    }
                 }
                 else
                 {
@@ -1067,6 +1373,117 @@ namespace WinImagePrep.ViewModels
 
         #region Helpers
 
+        public async Task CheckForExistingWorkAsync()
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    // Check if Windows11 directory exists and has content
+                    if (!Directory.Exists(_config.Windows11Directory))
+                        return;
+
+                    var files = Directory.GetFiles(_config.Windows11Directory, "*", SearchOption.AllDirectories);
+                    if (files.Length == 0)
+                    {
+                        // Directory exists but is empty, just delete it
+                        try
+                        {
+                            Directory.Delete(_config.Windows11Directory, false);
+                        }
+                        catch { /* Ignore cleanup failures */ }
+                        return;
+                    }
+
+                    // Found existing work - prompt user on UI thread
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        AddLog($"⚠ Found existing temporary files in {_config.Windows11Directory}");
+
+                        var result = MessageBox.Show(
+                            "Existing Windows 11 preparation files were found.\n\n" +
+                            "Would you like to resume from the existing work?\n\n" +
+                            "• YES - Keep files and resume (you can create USB from existing files)\n" +
+                            "• NO - Delete files and start fresh",
+                            "Existing Work Found",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+
+                        if (result == MessageBoxResult.No)
+                        {
+                            // User wants to start fresh - delete the directory
+                            try
+                            {
+                                AddLog("Deleting existing temporary files...");
+                                bool deleted = FileSystemHelper.ForceDeleteDirectory(_config.Windows11Directory, true);
+                                if (deleted)
+                                {
+                                    AddLog($"✓ Deleted temporary directory: {_config.Windows11Directory}");
+                                }
+                                else
+                                {
+                                    AddLog($"⚠ Warning: Could not delete all temporary files");
+                                    MessageBox.Show(
+                                        "Some temporary files could not be deleted.\n\n" +
+                                        "They may be in use or locked. Try using the Repair/Cleanup option.",
+                                        "Cleanup Warning",
+                                        MessageBoxButton.OK,
+                                        MessageBoxImage.Warning);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                AddLog($"⚠ Warning: Failed to delete temporary files: {ex.Message}");
+                                MessageBox.Show(
+                                    $"Could not delete temporary files:\n\n{ex.Message}\n\n" +
+                                    "You may need to manually delete the folder or use the Repair/Cleanup option.",
+                                    "Cleanup Warning",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                            }
+                        }
+                        else
+                        {
+                            // User wants to resume - check for saved ISO label
+                            AddLog("Resuming from existing temporary files");
+
+                            var labelFile = Path.Combine(_config.Windows11Directory, "iso-label.txt");
+                            if (File.Exists(labelFile))
+                            {
+                                try
+                                {
+                                    var savedLabel = File.ReadAllText(labelFile).Trim();
+                                    if (!string.IsNullOrWhiteSpace(savedLabel))
+                                    {
+                                        IsoVolumeLabel = savedLabel;
+                                        AddLog($"Restored ISO label: {savedLabel}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    AddLog($"⚠ Could not restore ISO label: {ex.Message}");
+                                }
+                            }
+
+                            MessageBox.Show(
+                                "You can now create a bootable USB from the existing files.\n\n" +
+                                "Select a USB drive and click 'Create Bootable USB'.",
+                                "Resume Workflow",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Application.Current?.Dispatcher.Invoke(() =>
+                    {
+                        AddLog($"⚠ Error checking for existing work: {ex.Message}");
+                    });
+                }
+            });
+        }
+
         private void AddLog(string message)
         {
             Application.Current?.Dispatcher.Invoke(() =>
@@ -1084,6 +1501,26 @@ namespace WinImagePrep.ViewModels
 
             // Also log to file
             Logger.Info(message);
+        }
+
+        private double GetDirectorySizeGB(string directoryPath)
+        {
+            try
+            {
+                if (!Directory.Exists(directoryPath))
+                    return 0;
+
+                var dirInfo = new DirectoryInfo(directoryPath);
+                long totalBytes = dirInfo.GetFiles("*", SearchOption.AllDirectories)
+                    .Sum(file => file.Length);
+
+                return Math.Round(totalBytes / (1024.0 * 1024.0 * 1024.0), 2);
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Could not calculate directory size: {ex.Message}");
+                return 0;
+            }
         }
 
         #endregion

@@ -265,7 +265,7 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
-        /// Copy files to USB drive
+        /// Copy files to USB drive with detailed progress
         /// </summary>
         private async Task<bool> CopyFilesToUsbAsync(
             string sourcePath,
@@ -279,38 +279,84 @@ namespace WinImagePrep.Services
                 destinationPath = destinationPath.TrimEnd('\\');
 
                 Logger.Info($"Copying files from {sourcePath} to {destinationPath}");
-                ReportProgress(progress, 65, $"Copying files to {destinationPath}...", OperationStage.CreatingUSB);
+                ReportProgress(progress, 65, "Scanning files to copy...", OperationStage.CreatingUSB);
 
-                var arguments = $"\"{sourcePath}\" \"{destinationPath}\" /E /R:3 /W:5";
-                Logger.Info($"Robocopy command: robocopy.exe {arguments}");
+                // Get all files to copy
+                var allFiles = Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories);
+                var totalFiles = allFiles.Length;
+                long totalBytes = allFiles.Sum(f => new FileInfo(f).Length);
+                Logger.Info($"Found {totalFiles} files to copy ({totalBytes / (1024 * 1024)} MB)");
 
-                var result = await ProcessHelper.ExecuteProcessAsync("robocopy.exe", arguments, cancellationToken);
+                int filesCopied = 0;
+                long bytesCopied = 0;
 
-                Logger.Info($"Robocopy exit code: {result.ExitCode}");
-                if (!string.IsNullOrEmpty(result.Output))
+                // Copy each file with progress reporting
+                await Task.Run(() =>
                 {
-                    Logger.Info($"Robocopy output: {result.Output.Substring(0, Math.Min(500, result.Output.Length))}");
-                }
-                if (!string.IsNullOrEmpty(result.Error))
+                    foreach (var sourceFile in allFiles)
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            Logger.Warning("File copy cancelled by user");
+                            return;
+                        }
+
+                        try
+                        {
+                            // Calculate relative path and destination
+                            var relativePath = Path.GetRelativePath(sourcePath, sourceFile);
+                            var destFile = Path.Combine(destinationPath, relativePath);
+
+                            // Create destination directory if needed
+                            var destDir = Path.GetDirectoryName(destFile);
+                            if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
+                            {
+                                Directory.CreateDirectory(destDir);
+                            }
+
+                            // Copy the file
+                            var fileInfo = new FileInfo(sourceFile);
+                            var fileSize = fileInfo.Length;
+
+                            // Report current file being copied
+                            var fileName = Path.GetFileName(sourceFile);
+                            var fileSizeMB = fileSize / (1024.0 * 1024.0);
+                            var progressMessage = fileSizeMB > 1 
+                                ? $"Copying: {fileName} ({fileSizeMB:F1} MB)"
+                                : $"Copying: {fileName}";
+
+                            File.Copy(sourceFile, destFile, true);
+
+                            filesCopied++;
+                            bytesCopied += fileSize;
+
+                            // Calculate overall progress (65% to 95% of total operation)
+                            var copyProgress = (int)((bytesCopied / (double)totalBytes) * 30) + 65;
+                            ReportProgress(progress, copyProgress, progressMessage, OperationStage.CreatingUSB);
+
+                            // Log progress every 100 files or for large files
+                            if (filesCopied % 100 == 0 || fileSizeMB > 10)
+                            {
+                                Logger.Info($"Copied {filesCopied}/{totalFiles} files - Current: {fileName}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warning($"Failed to copy {sourceFile}: {ex.Message}");
+                            // Continue with next file
+                        }
+                    }
+                }, cancellationToken);
+
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    Logger.Error($"Robocopy error: {result.Error}");
+                    return false;
                 }
 
+                Logger.Info($"Successfully copied {filesCopied}/{totalFiles} files to USB");
                 ReportProgress(progress, 95, "File copy complete, finalizing...", OperationStage.CreatingUSB);
 
-                // Robocopy exit codes 0-7 are success
-                // 0 = No files copied (files already exist)
-                // 1 = Files copied successfully
-                // 2 = Extra files or directories detected
-                // 3 = Files copied + extra files
-                // 4 = Mismatched files
-                // 5 = Files copied + mismatched files
-                // 6 = Extra + mismatched files
-                // 7 = Files copied + extra + mismatched files
-                // 8+ = Errors
-                bool success = result.ExitCode >= 0 && result.ExitCode < 8;
-                Logger.Info($"Robocopy result: {(success ? "Success" : "Failed")}");
-                return success;
+                return filesCopied > 0;
             }
             catch (Exception ex)
             {

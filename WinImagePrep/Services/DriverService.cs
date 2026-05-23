@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,6 +61,52 @@ namespace WinImagePrep.Services
                 progress?.Report($"Error extracting MSI: {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Extract drivers from ZIP file
+        /// </summary>
+        public async Task<bool> ExtractDriverZipAsync(
+            string zipPath,
+            string destinationPath,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    if (!File.Exists(zipPath))
+                    {
+                        progress?.Report($"ZIP file not found: {zipPath}");
+                        return false;
+                    }
+
+                    progress?.Report($"Extracting drivers from ZIP: {Path.GetFileName(zipPath)}");
+
+                    // Clean destination directory
+                    if (Directory.Exists(destinationPath))
+                    {
+                        progress?.Report("Cleaning previous driver extraction...");
+                        FileSystemHelper.DeleteDirectoryContents(destinationPath);
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(destinationPath);
+                    }
+
+                    // Extract ZIP using System.IO.Compression
+                    ZipFile.ExtractToDirectory(zipPath, destinationPath, overwriteFiles: true);
+
+                    progress?.Report("ZIP extraction completed");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"Error extracting ZIP: {ex.Message}");
+                    return false;
+                }
+            }, cancellationToken);
         }
 
         /// <summary>

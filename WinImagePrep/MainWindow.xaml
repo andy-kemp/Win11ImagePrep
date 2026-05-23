@@ -68,22 +68,47 @@
                     Foreground="White"/>
         </StackPanel>
 
-        <!-- MSI Selection -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="2. Select Driver MSI:" 
-                       VerticalAlignment="Center" 
-                       Width="180" 
-                       FontWeight="Bold"/>
-            <TextBox Text="{Binding SelectedMsiPath}" 
-                     Width="420" 
-                     IsReadOnly="True" 
-                     Margin="5,0,0,0" 
-                     Height="26"/>
-            <Button Content="Browse..." 
-                    Command="{Binding BrowseMsiCommand}"
-                    Margin="5,0,0,0" 
-                    Width="90" 
-                    Height="26"/>
+        <!-- Driver Source Selection -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,10">
+            <!-- Driver Source Type -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <TextBlock Text="2. Select Driver Source:" 
+                           VerticalAlignment="Center" 
+                           Width="180" 
+                           FontWeight="Bold"/>
+                <RadioButton Content="MSI File" 
+                             IsChecked="{Binding IsDriverSourceMsi}"
+                             GroupName="DriverSource"
+                             Margin="5,0,15,0"
+                             VerticalAlignment="Center"/>
+                <RadioButton Content="Folder" 
+                             IsChecked="{Binding IsDriverSourceFolder}"
+                             GroupName="DriverSource"
+                             Margin="0,0,15,0"
+                             VerticalAlignment="Center"/>
+                <RadioButton Content="ZIP File" 
+                             IsChecked="{Binding IsDriverSourceZip}"
+                             GroupName="DriverSource"
+                             Margin="0,0,0,0"
+                             VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Driver Source Path -->
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="" 
+                           VerticalAlignment="Center" 
+                           Width="180"/>
+                <TextBox Text="{Binding SelectedDriverSourcePath}" 
+                         Width="420" 
+                         IsReadOnly="True" 
+                         Margin="5,0,0,0" 
+                         Height="26"/>
+                <Button Content="Browse..." 
+                        Command="{Binding BrowseDriverSourceCommand}"
+                        Margin="5,0,0,0" 
+                        Width="90" 
+                        Height="26"/>
+            </StackPanel>
         </StackPanel>
 
         <!-- Main Action Buttons -->
@@ -91,26 +116,37 @@
                     Orientation="Horizontal" 
                     Margin="0,10,0,10" 
                     HorizontalAlignment="Center">
+            <Button Content="Create USB from ISO" 
+                    Command="{Binding CreateUsbFromIsoCommand}"
+                    Style="{StaticResource PrimaryButton}"
+                    Width="180" 
+                    Height="40" 
+                    Margin="5"
+                    FontSize="13"
+                    ToolTip="Create bootable USB directly from ISO without driver injection"/>
             <Button Content="Prepare Image with Drivers" 
                     Command="{Binding InjectDriversCommand}"
                     Style="{StaticResource PrimaryButton}"
                     Width="220" 
                     Height="40" 
                     Margin="5"
-                    FontSize="13"/>
+                    FontSize="13"
+                    ToolTip="Inject drivers into ISO, then optionally create USB"/>
             <Button Content="Create USB" 
                     Command="{Binding CreateUsbCommand}"
                     Style="{StaticResource PrimaryButton}"
                     Width="140" 
                     Height="40" 
                     Margin="5"
-                    FontSize="13"/>
+                    FontSize="13"
+                    ToolTip="Create USB from previously prepared image"/>
             <Button Content="From Saved Image" 
                     Command="{Binding FromSavedImageCommand}"
                     Width="160" 
                     Height="40" 
                     Margin="5"
-                    FontSize="13"/>
+                    FontSize="13"
+                    ToolTip="Load a previously saved image"/>
         </StackPanel>
 
         <!-- USB Selection -->
