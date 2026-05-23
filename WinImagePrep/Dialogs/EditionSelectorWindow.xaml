@@ -24,39 +24,51 @@
 
         <!-- Instructions -->
         <TextBlock Grid.Row="1" 
-                   Text="Select which editions you want to inject drivers into. By default, all editions will be processed." 
                    TextWrapping="Wrap" 
-                   Margin="0,0,0,15"/>
+                   Margin="0,0,0,15">
+            <Run Text="Select which editions to inject drivers into." FontWeight="Bold"/>
+            <LineBreak/>
+            <Run Text="Note: Drivers will "/>
+            <Run Text="always" FontWeight="Bold"/>
+            <Run Text=" be injected into WinPE and Windows Setup."/>
+            <LineBreak/>
+            <Run Text="Only the selected editions (and their WinRE) will be processed."/>
+        </TextBlock>
 
-        <!-- Edition List -->
+        <!-- Edition List with Checkboxes -->
         <Border Grid.Row="2" 
                 BorderBrush="#CCCCCC" 
                 BorderThickness="1" 
                 Margin="0,0,0,15">
-            <ListBox x:Name="lstEditions" 
-                     SelectionMode="Multiple"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Margin="5">
-                            <TextBlock Text="{Binding ImageName}" 
-                                       FontWeight="Bold" 
-                                       FontSize="13"/>
-                            <TextBlock>
-                                <Run Text="Index: "/>
-                                <Run Text="{Binding ImageIndex}"/>
-                                <Run Text=" | Size: "/>
-                                <Run Text="{Binding ImageSizeDisplay}"/>
-                            </TextBlock>
-                            <TextBlock Text="{Binding Description}" 
-                                       Foreground="Gray" 
-                                       FontSize="11" 
-                                       TextWrapping="Wrap"
-                                       Margin="0,2,0,0"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="lstEditions" Margin="10">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsSelected}" 
+                                      Margin="0,5,0,5">
+                                <CheckBox.Content>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding ImageName}" 
+                                                   FontWeight="Bold" 
+                                                   FontSize="13"/>
+                                        <TextBlock>
+                                            <Run Text="Index: "/>
+                                            <Run Text="{Binding ImageIndex}"/>
+                                            <Run Text=" | Size: "/>
+                                            <Run Text="{Binding ImageSizeDisplay}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Description}" 
+                                                   Foreground="Gray" 
+                                                   FontSize="11" 
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </CheckBox.Content>
+                            </CheckBox>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Border>
 
         <!-- Buttons -->

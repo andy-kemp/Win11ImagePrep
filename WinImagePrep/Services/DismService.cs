@@ -411,6 +411,67 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// Get WIM edition information from an ISO file
+        /// </summary>
+        public async Task<List<WimEdition>> GetWimInfoFromIsoAsync(
+            string isoPath,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            var isoService = new IsoService();
+            string? driveLetter = null;
+
+            try
+            {
+                // Mount ISO
+                progress?.Report("Mounting ISO to read editions...");
+                driveLetter = await isoService.MountIsoAsync(isoPath, progress, cancellationToken);
+
+                if (string.IsNullOrEmpty(driveLetter))
+                {
+                    progress?.Report("Failed to mount ISO");
+                    return new List<WimEdition>();
+                }
+
+                // Get install.wim path
+                var installWimPath = Path.Combine($"{driveLetter}:\\", "sources", "install.wim");
+
+                if (!File.Exists(installWimPath))
+                {
+                    // Try install.esd
+                    installWimPath = Path.Combine($"{driveLetter}:\\", "sources", "install.esd");
+
+                    if (!File.Exists(installWimPath))
+                    {
+                        progress?.Report("install.wim or install.esd not found in ISO");
+                        return new List<WimEdition>();
+                    }
+                }
+
+                // Read edition info
+                progress?.Report("Reading Windows editions...");
+                var editions = await GetWimInfoAsync(installWimPath, cancellationToken);
+
+                return editions;
+            }
+            finally
+            {
+                // Always dismount ISO
+                if (!string.IsNullOrEmpty(driveLetter))
+                {
+                    try
+                    {
+                        await isoService.DismountIsoAsync(isoPath);
+                    }
+                    catch
+                    {
+                        // Ignore dismount errors
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Get list of currently mounted images
         /// </summary>
         public async Task<List<string>> GetMountedImagesAsync()

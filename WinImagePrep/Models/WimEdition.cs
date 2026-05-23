@@ -1,15 +1,37 @@
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace WinImagePrep.Models
 {
-    public class WimEdition
+    public class WimEdition : INotifyPropertyChanged
     {
         public int ImageIndex { get; set; }
         public string ImageName { get; set; } = string.Empty;
         public ulong ImageSize { get; set; }
         public string ImageSizeDisplay => FormatBytes(ImageSize);
         public string Description { get; set; } = string.Empty;
-        public bool IsSelected { get; set; }
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
         private static string FormatBytes(ulong bytes)
         {

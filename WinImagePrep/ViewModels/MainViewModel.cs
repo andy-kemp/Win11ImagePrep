@@ -470,6 +470,56 @@ namespace WinImagePrep.ViewModels
                 return;
             }
 
+            // Get available editions and let user select
+            AddLog("Loading Windows editions from ISO...");
+            try
+            {
+                var editions = await _dismService.GetWimInfoFromIsoAsync(
+                    SelectedIsoPath,
+                    new Progress<string>(AddLog));
+
+                if (editions == null || editions.Count == 0)
+                {
+                    MessageBox.Show(
+                        "Failed to read Windows editions from ISO.\n\nPlease verify the ISO file is valid.",
+                        "Edition Detection Failed",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
+
+                AddLog($"Found {editions.Count} edition(s) in ISO");
+
+                // Show edition selector dialog
+                var editionDialog = new Dialogs.EditionSelectorWindow(editions);
+                if (editionDialog.ShowDialog() != true)
+                {
+                    AddLog("Image preparation cancelled by user.");
+                    return;
+                }
+
+                SelectedEditions = editionDialog.SelectedEditionIndices;
+                AddLog($"Selected {SelectedEditions.Count} edition(s) for driver injection:");
+                foreach (var index in SelectedEditions)
+                {
+                    var edition = editions.FirstOrDefault(e => e.ImageIndex == index);
+                    if (edition != null)
+                    {
+                        AddLog($"  • {edition.ImageName} (Index {index})");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Error loading editions: {ex.Message}");
+                MessageBox.Show(
+                    $"Failed to load Windows editions:\n\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
             _cancellationTokenSource = new CancellationTokenSource();
             IsProcessing = true;
             OverallProgress = 0;
