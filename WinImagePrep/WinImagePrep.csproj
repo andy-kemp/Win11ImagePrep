@@ -8,13 +8,13 @@
 	<Nullable>enable</Nullable>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
 	<ApplicationIcon>app.ico</ApplicationIcon>
-	<AssemblyName>WinImagePrep</AssemblyName>
+	<AssemblyName>WinImagePrep4-3</AssemblyName>
 	<RootNamespace>WinImagePrep</RootNamespace>
-	<Version>3.0.0</Version>
+	<Version>4.0.4</Version>
 	<Authors>WinImagePrep</Authors>
 	<Company>WinImagePrep</Company>
-	<Product>Windows Image Preparation Tool</Product>
-	<Description>Windows ISO preparation tool with driver injection for Surface and other devices</Description>
+	<Product>Windows Image Preparation Tool V4</Product>
+	<Description>Windows ISO preparation tool with driver injection and app removal for Surface and other devices</Description>
 	<Copyright>Copyright © 2024</Copyright>
   </PropertyGroup>
 

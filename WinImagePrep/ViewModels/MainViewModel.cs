@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -40,6 +41,7 @@ namespace WinImagePrep.ViewModels
             BrowseMsiCommand = new RelayCommand(BrowseMsi);
             BrowseDriverSourceCommand = new RelayCommand(BrowseDriverSource);
             SelectEditionsCommand = new RelayCommand(SelectEditions, () => !string.IsNullOrEmpty(SelectedIsoPath));
+            SelectAppsToRemoveCommand = new RelayCommand(SelectAppsToRemove);
             InjectDriversCommand = new RelayCommand(async () => await InjectDriversAsync(), CanExecuteInject);
             CreateUsbFromIsoCommand = new RelayCommand(async () => await CreateUsbFromIsoAsync(), CanCreateUsbFromIso);
             CreateUsbCommand = new RelayCommand(async () => await CreateUsbAsync(), CanCreateUsb);
@@ -47,15 +49,30 @@ namespace WinImagePrep.ViewModels
             RefreshUsbCommand = new RelayCommand(RefreshUsbDrives);
             RepairCleanupCommand = new RelayCommand(RepairCleanup);
 
+            // Menu commands
+            SaveConfigCommand = new RelayCommand(SaveConfiguration);
+            OpenConfigCommand = new RelayCommand(OpenConfiguration);
+            ExitCommand = new RelayCommand(ExitApplication);
+            OpenDocumentationCommand = new RelayCommand(OpenDocumentation);
+            ShowHowToUseCommand = new RelayCommand(ShowHowToUse);
+            OpenSupportCommand = new RelayCommand(OpenSupport);
+            CheckUpdatesCommand = new RelayCommand(CheckForUpdates);
+            ShowAboutCommand = new RelayCommand(ShowAbout);
+
             // Initialize collections
             LogEntries = new ObservableCollection<string>();
             UsbDrives = new ObservableCollection<UsbDriveInfo>();
+            WindowsApps = new ObservableCollection<WindowsApp>();
+
+            // Initialize predefined Windows apps to remove
+            InitializeWindowsApps();
 
             // Load initial USB drives
             RefreshUsbDrives();
 
-            AddLog("Windows Image Preparation Tool - Ready");
-            AddLog("Please select a Windows ISO and driver MSI file to begin");
+            AddLog("Windows Image Preparation Tool V4 - Ready");
+            AddLog("NEW: Windows app removal + Edition selection features");
+            AddLog("Please select a Windows ISO and driver source to begin");
         }
 
         #region Properties
@@ -215,8 +232,25 @@ namespace WinImagePrep.ViewModels
             set => SetProperty(ref _selectedEditions, value);
         }
 
+        private bool _removeWindowsApps;
+        public bool RemoveWindowsApps
+        {
+            get => _removeWindowsApps;
+            set => SetProperty(ref _removeWindowsApps, value);
+        }
+
+        public string SelectedAppsCountText
+        {
+            get
+            {
+                var count = WindowsApps?.Count(a => a.IsSelected) ?? 0;
+                return count > 0 ? $"({count} app{(count == 1 ? "" : "s")} selected)" : string.Empty;
+            }
+        }
+
         public ObservableCollection<string> LogEntries { get; }
         public ObservableCollection<UsbDriveInfo> UsbDrives { get; }
+        public ObservableCollection<WindowsApp> WindowsApps { get; }
 
         #endregion
 
@@ -227,12 +261,23 @@ namespace WinImagePrep.ViewModels
         public ICommand BrowseMsiCommand { get; }
         public ICommand BrowseDriverSourceCommand { get; }
         public ICommand SelectEditionsCommand { get; }
+        public ICommand SelectAppsToRemoveCommand { get; }
         public ICommand InjectDriversCommand { get; }
         public ICommand CreateUsbFromIsoCommand { get; }
         public ICommand CreateUsbCommand { get; }
         public ICommand FromSavedImageCommand { get; }
         public ICommand RefreshUsbCommand { get; }
         public ICommand RepairCleanupCommand { get; }
+
+        // Menu commands
+        public ICommand SaveConfigCommand { get; }
+        public ICommand OpenConfigCommand { get; }
+        public ICommand ExitCommand { get; }
+        public ICommand OpenDocumentationCommand { get; }
+        public ICommand ShowHowToUseCommand { get; }
+        public ICommand OpenSupportCommand { get; }
+        public ICommand CheckUpdatesCommand { get; }
+        public ICommand ShowAboutCommand { get; }
 
         #endregion
 
@@ -393,6 +438,25 @@ namespace WinImagePrep.ViewModels
             catch (Exception ex)
             {
                 AddLog($"Error loading editions: {ex.Message}");
+            }
+        }
+
+        private void SelectAppsToRemove()
+        {
+            var dialog = new AppRemovalDialog(WindowsApps);
+            if (dialog.ShowDialog() == true)
+            {
+                // Update the main collection with the selections from the dialog
+                for (int i = 0; i < WindowsApps.Count && i < dialog.WindowsApps.Count; i++)
+                {
+                    WindowsApps[i].IsSelected = dialog.WindowsApps[i].IsSelected;
+                }
+
+                // Update the count display
+                OnPropertyChanged(nameof(SelectedAppsCountText));
+
+                var selectedCount = WindowsApps.Count(a => a.IsSelected);
+                AddLog($"App removal selection updated: {selectedCount} app(s) selected");
             }
         }
 
@@ -634,8 +698,19 @@ namespace WinImagePrep.ViewModels
 
                 // Inject drivers into install.wim editions
                 OverallProgress = 60;
-                OverallProgressText = "Step 5/6: Injecting drivers into Windows editions...";
+                var progressMsg = RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected) 
+                    ? "Step 5/6: Injecting drivers and removing apps..." 
+                    : "Step 5/6: Injecting drivers into Windows editions...";
+                OverallProgressText = progressMsg;
                 await InjectDriversToInstallWimAsync(_cancellationTokenSource.Token);
+
+                // Delete unselected editions if user selected specific editions
+                if (SelectedEditions != null && SelectedEditions.Any())
+                {
+                    OverallProgress = 85;
+                    OverallProgressText = "Step 5.5/6: Removing unselected Windows editions...";
+                    await DeleteUnselectedEditionsAsync(_cancellationTokenSource.Token);
+                }
 
                 // Split WIM if needed
                 OverallProgress = 90;
@@ -643,23 +718,34 @@ namespace WinImagePrep.ViewModels
                 await SplitWimIfNeededAsync(_cancellationTokenSource.Token);
 
                 OverallProgress = 100;
-                OverallProgressText = "Driver injection completed successfully!";
+                var completionMsg = RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected)
+                    ? "Driver injection and app removal completed successfully!"
+                    : "Driver injection completed successfully!";
+                OverallProgressText = completionMsg;
                 CurrentOperationProgress = 100;
                 CurrentOperationText = "Complete";
-                AddLog("=== Driver Injection Complete ===");
+                AddLog("=== Processing Complete ===");
+                if (RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected))
+                {
+                    AddLog($"✓ Removed {WindowsApps.Count(a => a.IsSelected)} Windows app(s)");
+                }
                 AddLog("Ready to create bootable USB");
 
                 // Re-enable commands by setting IsProcessing = false
                 IsProcessing = false;
 
                 // Prompt user to create USB now or save for later
+                var dialogMsg = RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected)
+                    ? "✓ Driver injection and app removal completed successfully!\n\n"
+                    : "✓ Driver injection completed successfully!\n\n";
+
                 var result = MessageBox.Show(
-                    "✓ Driver injection completed successfully!\n\n" +
+                    dialogMsg +
                     "What would you like to do next?\n\n" +
                     "• Click YES to create bootable USB now\n" +
                     "• Click NO to save project for later use\n" +
                     "• Click CANCEL to return to main screen",
-                    "Driver Injection Complete",
+                    "Processing Complete",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);
 
@@ -837,6 +923,24 @@ namespace WinImagePrep.ViewModels
                     CurrentOperationText = msg;
                 }), cancellationToken);
 
+                // Remove Windows apps if option is enabled
+                if (RemoveWindowsApps)
+                {
+                    var appsToRemove = WindowsApps.Where(app => app.IsSelected).Select(app => app.PackageName).ToList();
+                    if (appsToRemove.Any())
+                    {
+                        AddLog($"Removing {appsToRemove.Count} Windows app(s) from {editionName}...");
+                        CurrentOperationText = $"Removing Windows apps from {editionName}...";
+                        CurrentOperationProgress = 50;
+
+                        await _dismService.RemoveProvisionedAppsAsync(mountPath, appsToRemove, new Progress<string>(msg =>
+                        {
+                            AddLog(msg);
+                            CurrentOperationText = msg;
+                        }), cancellationToken);
+                    }
+                }
+
                 // Check for WinRE
                 var winrePath = Path.Combine(mountPath, "Windows", "System32", "Recovery", "Winre.wim");
                 if (File.Exists(winrePath))
@@ -880,6 +984,46 @@ namespace WinImagePrep.ViewModels
 
                 CurrentOperationProgress = 100;
             }
+        }
+
+        private async Task DeleteUnselectedEditionsAsync(CancellationToken cancellationToken)
+        {
+            var installWimPath = Path.Combine(_config.Windows11Directory, "Sources", "install.wim");
+
+            if (!File.Exists(installWimPath))
+            {
+                AddLog("⚠ install.wim not found, skipping edition deletion");
+                return;
+            }
+
+            if (SelectedEditions == null || !SelectedEditions.Any())
+            {
+                AddLog("ℹ No specific editions selected, keeping all editions");
+                return;
+            }
+
+            AddLog("Removing unselected Windows editions from install.wim...");
+            CurrentOperationText = "Deleting unselected editions...";
+            CurrentOperationProgress = 0;
+
+            var deletedCount = await _dismService.DeleteUnselectedEditionsAsync(
+                installWimPath, 
+                SelectedEditions, 
+                new Progress<string>(msg =>
+                {
+                    AddLog(msg);
+                    CurrentOperationText = msg;
+                    CurrentOperationProgress = 50;
+                }), 
+                cancellationToken);
+
+            if (deletedCount > 0)
+            {
+                AddLog($"✓ Removed {deletedCount} unselected edition(s) from install.wim");
+                AddLog("ℹ Windows installation will now only show selected edition(s)");
+            }
+
+            CurrentOperationProgress = 100;
         }
 
         private async Task SplitWimIfNeededAsync(CancellationToken cancellationToken)
@@ -943,6 +1087,58 @@ namespace WinImagePrep.ViewModels
             {
                 AddLog("No USB drives detected");
                 UsbInfo = "No USB drives detected. Please insert a USB drive.";
+            }
+        }
+
+        private void InitializeWindowsApps()
+        {
+            // Predefined list of common Windows apps that users might want to remove
+            var commonApps = new List<(string package, string display, string description)>
+            {
+                ("MicrosoftTeams", "Microsoft Teams (Consumer)", "Chat and collaboration app"),
+                ("Microsoft.549981C3F5F10", "Cortana", "Digital assistant"),
+                ("Microsoft.BingNews", "Microsoft News", "News and weather app"),
+                ("Microsoft.BingWeather", "Weather", "Weather app"),
+                ("Microsoft.GetHelp", "Get Help", "Support app"),
+                ("Microsoft.Getstarted", "Tips", "Windows tips app"),
+                ("Microsoft.Microsoft3DViewer", "3D Viewer", "3D model viewer"),
+                ("Microsoft.MicrosoftOfficeHub", "Office", "Office hub app"),
+                ("Microsoft.MicrosoftSolitaireCollection", "Solitaire", "Solitaire games"),
+                ("Microsoft.MicrosoftStickyNotes", "Sticky Notes", "Note-taking app"),
+                ("Microsoft.MixedReality.Portal", "Mixed Reality Portal", "VR/AR portal"),
+                ("Microsoft.MSPaint", "Paint 3D", "3D painting app"),
+                ("Microsoft.Office.OneNote", "OneNote", "Note-taking app"),
+                ("Microsoft.People", "People", "Contact management app"),
+                ("Microsoft.PowerAutomateDesktop", "Power Automate", "Automation tool"),
+                ("Microsoft.SkypeApp", "Skype", "Video calling app"),
+                ("Microsoft.Todos", "Microsoft To Do", "Task management app"),
+                ("Microsoft.WindowsAlarms", "Alarms & Clock", "Clock and timer app"),
+                ("Microsoft.WindowsCamera", "Camera", "Camera app"),
+                ("microsoft.windowscommunicationsapps", "Mail and Calendar", "Email and calendar apps"),
+                ("Microsoft.WindowsFeedbackHub", "Feedback Hub", "User feedback app"),
+                ("Microsoft.WindowsMaps", "Maps", "Maps app"),
+                ("Microsoft.WindowsSoundRecorder", "Voice Recorder", "Audio recording app"),
+                ("Microsoft.Xbox.TCUI", "Xbox TCUI", "Xbox UI component"),
+                ("Microsoft.XboxApp", "Xbox Console Companion", "Xbox app"),
+                ("Microsoft.XboxGameOverlay", "Xbox Game Bar", "Gaming overlay"),
+                ("Microsoft.XboxGamingOverlay", "Xbox Gaming Overlay", "Gaming overlay"),
+                ("Microsoft.XboxIdentityProvider", "Xbox Identity Provider", "Xbox sign-in"),
+                ("Microsoft.XboxSpeechToTextOverlay", "Xbox Speech To Text", "Voice transcription"),
+                ("Microsoft.YourPhone", "Phone Link", "Phone integration app"),
+                ("Microsoft.ZuneMusic", "Groove Music", "Music player"),
+                ("Microsoft.ZuneVideo", "Movies & TV", "Video player"),
+                ("Microsoft.OneDrive", "OneDrive", "Cloud storage (use with caution)"),
+            };
+
+            foreach (var (package, display, description) in commonApps)
+            {
+                WindowsApps.Add(new WindowsApp
+                {
+                    PackageName = package,
+                    DisplayName = display,
+                    Description = description,
+                    IsSelected = false
+                });
             }
         }
 
@@ -1421,6 +1617,204 @@ namespace WinImagePrep.ViewModels
 
         #endregion
 
+        #region Menu Commands
+
+        private void SaveConfiguration()
+        {
+            var dialog = new SaveFileDialog
+            {
+                Filter = "Configuration Files (*.wip)|*.wip|All Files (*.*)|*.*",
+                Title = "Save Configuration",
+                FileName = "WinImagePrep_Config.wip"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var config = new
+                    {
+                        IsoPath = SelectedIsoPath,
+                        DriverSourcePath = SelectedDriverSourcePath,
+                        DriverSourceType = DriverSourceType.ToString(),
+                        RemoveWindowsApps = RemoveWindowsApps,
+                        SelectedApps = WindowsApps.Where(a => a.IsSelected).Select(a => a.PackageName).ToList(),
+                        SelectedEditionIndices = SelectedEditions
+                    };
+
+                    var json = System.Text.Json.JsonSerializer.Serialize(config, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(dialog.FileName, json);
+
+                    AddLog($"✓ Configuration saved: {Path.GetFileName(dialog.FileName)}");
+                    MessageBox.Show("Configuration saved successfully!", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"✗ Error saving configuration: {ex.Message}");
+                    MessageBox.Show($"Error saving configuration:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void OpenConfiguration()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Configuration Files (*.wip)|*.wip|All Files (*.*)|*.*",
+                Title = "Open Configuration"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var json = File.ReadAllText(dialog.FileName);
+                    var config = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+
+                    if (config.TryGetProperty("IsoPath", out var isoPath))
+                        SelectedIsoPath = isoPath.GetString() ?? string.Empty;
+
+                    if (config.TryGetProperty("DriverSourcePath", out var driverPath))
+                        SelectedDriverSourcePath = driverPath.GetString() ?? string.Empty;
+
+                    if (config.TryGetProperty("DriverSourceType", out var sourceType))
+                    {
+                        if (Enum.TryParse<DriverSourceType>(sourceType.GetString(), out var parsedType))
+                            DriverSourceType = parsedType;
+                    }
+
+                    if (config.TryGetProperty("RemoveWindowsApps", out var removeApps))
+                        RemoveWindowsApps = removeApps.GetBoolean();
+
+                    if (config.TryGetProperty("SelectedApps", out var selectedApps))
+                    {
+                        var appList = selectedApps.EnumerateArray().Select(e => e.GetString()).ToList();
+                        foreach (var app in WindowsApps)
+                        {
+                            app.IsSelected = appList.Contains(app.PackageName);
+                        }
+                        OnPropertyChanged(nameof(SelectedAppsCountText));
+                    }
+
+                    if (config.TryGetProperty("SelectedEditionIndices", out var editions))
+                    {
+                        SelectedEditions = editions.EnumerateArray().Select(e => e.GetInt32()).ToList();
+                    }
+
+                    AddLog($"✓ Configuration loaded: {Path.GetFileName(dialog.FileName)}");
+                    MessageBox.Show("Configuration loaded successfully!", "Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"✗ Error loading configuration: {ex.Message}");
+                    MessageBox.Show($"Error loading configuration:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExitApplication()
+        {
+            Application.Current.Shutdown();
+        }
+
+        private void OpenDocumentation()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://github.com/andy-kemp/Win11ImagePrep/blob/main/README.md",
+                    UseShellExecute = true
+                });
+                AddLog("✓ Opened documentation in browser");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error opening documentation: {ex.Message}");
+                MessageBox.Show("Could not open documentation. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep", 
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void ShowHowToUse()
+        {
+            var howToMessage = @"Quick Start Guide:
+
+1. Select Windows ISO
+   • Click 'Browse...' next to 'Select Windows ISO'
+   • Choose your Windows 11 ISO file
+
+2. Select Driver Source
+   • Choose MSI File, Folder, or ZIP
+   • Click 'Browse...' to select your drivers
+
+3. Remove Windows Apps (Optional)
+   • Check 'Remove Windows apps from image'
+   • Click 'Select Apps to Remove...'
+   • Choose which apps to remove
+
+4. Prepare Image
+   • Click 'Prepare Image with Drivers'
+   • Wait for the process to complete (20-60 minutes)
+
+5. Create USB
+   • Select a USB drive (14GB+ recommended)
+   • Click 'Create USB' to write the prepared image
+
+For detailed documentation, visit:
+https://github.com/andy-kemp/Win11ImagePrep";
+
+            MessageBox.Show(howToMessage, "How to Use", MessageBoxButton.OK, MessageBoxImage.Information);
+            AddLog("✓ Displayed how-to guide");
+        }
+
+        private void OpenSupport()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://github.com/andy-kemp/Win11ImagePrep/issues",
+                    UseShellExecute = true
+                });
+                AddLog("✓ Opened support page in browser");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error opening support page: {ex.Message}");
+                MessageBox.Show("Could not open support page. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/issues", 
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void CheckForUpdates()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://github.com/andy-kemp/Win11ImagePrep/releases/latest",
+                    UseShellExecute = true
+                });
+                AddLog("✓ Opened releases page to check for updates");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error opening releases page: {ex.Message}");
+                MessageBox.Show("Could not open releases page. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/releases", 
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void ShowAbout()
+        {
+            var aboutDialog = new AboutDialog();
+            aboutDialog.ShowDialog();
+            AddLog("✓ Displayed About dialog");
+        }
+
+        #endregion
+
         #region Helpers
 
         public async Task CheckForExistingWorkAsync()
@@ -1592,6 +1986,34 @@ namespace WinImagePrep.ViewModels
             field = value;
             OnPropertyChanged(propertyName);
             return true;
+        }
+
+        #endregion
+
+        #region Cancellation and Disposal
+
+        public void CancelOperation()
+        {
+            if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
+            {
+                AddLog("⚠ Cancelling operation...");
+                _cancellationTokenSource.Cancel();
+
+                // Give processes a moment to respond to cancellation
+                Task.Run(async () =>
+                {
+                    await Task.Delay(1000);
+                    try
+                    {
+                        CleanupHelper.CleanupMountedImages();
+                        AddLog("✓ Cleanup completed after cancellation");
+                    }
+                    catch (Exception ex)
+                    {
+                        AddLog($"✗ Cleanup warning: {ex.Message}");
+                    }
+                });
+            }
         }
 
         #endregion

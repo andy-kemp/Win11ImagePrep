@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Windows Image Preparation Tool"
         Height="400" 
-        Width="600"
+        Width="650"
         WindowStyle="None"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
@@ -50,18 +50,19 @@
 
                 <!-- Version -->
                 <TextBlock x:Name="txtVersion"
-                          Text="Version 3.0.0" 
+                          Text="Version 4.0.4" 
                           FontSize="16" 
                           Foreground="#666666"
                           TextAlignment="Center"
                           Margin="0,0,0,5"/>
 
                 <!-- Subtitle -->
-                <TextBlock Text="Preparing Windows installation media with drivers" 
-                          FontSize="14" 
+                <TextBlock Text="Driver injection + Windows app removal" 
+                          FontSize="13" 
                           Foreground="#999999"
                           TextAlignment="Center"
                           TextWrapping="Wrap"
+                          MaxWidth="550"
                           Margin="20,10,20,0"/>
             </StackPanel>
 

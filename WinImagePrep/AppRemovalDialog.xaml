@@ -1,0 +1,149 @@
+<Window x:Class="WinImagePrep.AppRemovalDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Select Windows Apps to Remove"
+        Height="600" 
+        Width="700"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ResizeMode="CanResize"
+        Background="#F5F5F5">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" 
+                   Text="Select Windows Apps to Remove"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   Margin="0,0,0,10"/>
+
+        <!-- Description -->
+        <TextBlock Grid.Row="1" 
+                   Text="Choose which built-in Windows apps should be removed from the installation image. Selected apps will be permanently removed before creating the bootable USB."
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,15"
+                   Foreground="#555555"/>
+
+        <!-- Apps List -->
+        <Border Grid.Row="2" 
+                BorderBrush="#0078D4" 
+                BorderThickness="2"
+                Background="White"
+                Margin="0,0,0,15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header with Select All -->
+                <Border Grid.Row="0" 
+                        Background="#0078D4" 
+                        Padding="10,5">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <CheckBox x:Name="chkSelectAll"
+                                  Grid.Column="0"
+                                  Content="Select All"
+                                  Foreground="White"
+                                  FontWeight="SemiBold"
+                                  VerticalAlignment="Center"
+                                  Checked="SelectAll_Checked"
+                                  Unchecked="SelectAll_Unchecked"/>
+
+                        <TextBlock Grid.Column="2"
+                                   x:Name="txtSelectedCount"
+                                   Foreground="White"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Scrollable App List -->
+                <ScrollViewer Grid.Row="1" 
+                              VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="lstApps" Margin="10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="#E0E0E0" 
+                                        BorderThickness="0,0,0,1" 
+                                        Padding="5">
+                                    <CheckBox IsChecked="{Binding IsSelected}"
+                                              Checked="AppCheckBox_Changed"
+                                              Unchecked="AppCheckBox_Changed">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DisplayName}" 
+                                                       FontWeight="SemiBold" 
+                                                       FontSize="13"/>
+                                            <TextBlock Text="{Binding Description}" 
+                                                       Foreground="Gray" 
+                                                       FontSize="11"
+                                                       Margin="0,2,0,0"/>
+                                            <TextBlock Text="{Binding PackageName}" 
+                                                       Foreground="DarkGray" 
+                                                       FontSize="10"
+                                                       FontStyle="Italic"
+                                                       Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </CheckBox>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Warning -->
+        <Border Grid.Row="3" 
+                Background="#FFF4CE" 
+                BorderBrush="#E81123"
+                BorderThickness="1"
+                Padding="10"
+                Margin="0,0,0,15">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="⚠" 
+                           FontSize="16" 
+                           Foreground="#E81123"
+                           Margin="0,0,10,0"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="Warning: Removing some apps may affect Windows functionality. OneDrive removal should be used with caution. Changes are permanent after image creation."
+                           TextWrapping="Wrap"
+                           Foreground="#333333"
+                           FontSize="11"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="4" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="OK" 
+                    Width="100" 
+                    Height="30"
+                    Margin="0,0,10,0"
+                    Background="#0078D4"
+                    Foreground="White"
+                    FontWeight="SemiBold"
+                    Click="OK_Click"/>
+            <Button Content="Cancel" 
+                    Width="100" 
+                    Height="30"
+                    Background="#E0E0E0"
+                    Click="Cancel_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

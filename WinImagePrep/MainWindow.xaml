@@ -4,14 +4,57 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Windows Image Preparation Tool V3" 
+        Title="Windows Image Preparation Tool V4"
         Width="920" 
-        SizeToContent="Height"
+        Height="880"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
+        MinWidth="920"
+        MinHeight="600"
         Background="White">
 
-    <Grid Margin="15">
+    <DockPanel>
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Save Configuration..." Command="{Binding SaveConfigCommand}" ToolTip="Save current settings to file"/>
+                <MenuItem Header="_Open Configuration..." Command="{Binding OpenConfigCommand}" ToolTip="Load settings from file"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" ToolTip="Close the application"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_Documentation" Command="{Binding OpenDocumentationCommand}" ToolTip="View online documentation">
+                    <MenuItem.Icon>
+                        <TextBlock Text="📖" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_How to Use" Command="{Binding ShowHowToUseCommand}" ToolTip="Quick start guide">
+                    <MenuItem.Icon>
+                        <TextBlock Text="❓" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_Support / Report Issue" Command="{Binding OpenSupportCommand}" ToolTip="Get help or report issues">
+                    <MenuItem.Icon>
+                        <TextBlock Text="💬" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Check for _Updates" Command="{Binding CheckUpdatesCommand}" ToolTip="Check for new versions">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🔄" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}" ToolTip="About this application">
+                    <MenuItem.Icon>
+                        <TextBlock Text="ℹ" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <!-- Main Content -->
+        <Grid Margin="15" DockPanel.Dock="Top">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <!-- Title -->
@@ -19,6 +62,8 @@
             <!-- ISO -->
             <RowDefinition Height="Auto"/>
             <!-- MSI -->
+            <RowDefinition Height="Auto"/>
+            <!-- Windows Apps Removal -->
             <RowDefinition Height="Auto"/>
             <!-- Action Buttons -->
             <RowDefinition Height="Auto"/>
@@ -111,8 +156,35 @@
             </StackPanel>
         </StackPanel>
 
+        <!-- Windows Apps Removal Button -->
+        <StackPanel Grid.Row="3" Orientation="Vertical" Margin="0,5,0,10">
+            <TextBlock Text="3. Remove Windows Apps (Optional):" 
+                       FontWeight="Bold"
+                       Margin="0,0,0,5"/>
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Remove Windows apps from image" 
+                          IsChecked="{Binding RemoveWindowsApps}"
+                          VerticalAlignment="Center"
+                          Margin="0,0,15,0"
+                          Width="220"/>
+                <Button Content="Select Apps to Remove..." 
+                        Command="{Binding SelectAppsToRemoveCommand}"
+                        Width="180" 
+                        Height="28"
+                        Background="#0078D4"
+                        Foreground="White"
+                        FontWeight="SemiBold"
+                        ToolTip="Choose which Windows apps to remove from the image"/>
+                <TextBlock Text="{Binding SelectedAppsCountText}" 
+                           VerticalAlignment="Center" 
+                           Margin="10,0,0,0"
+                           Foreground="#0078D4"
+                           FontWeight="SemiBold"/>
+            </StackPanel>
+        </StackPanel>
+
         <!-- Main Action Buttons -->
-        <StackPanel Grid.Row="3" 
+        <StackPanel Grid.Row="4"
                     Orientation="Horizontal" 
                     Margin="0,10,0,10" 
                     HorizontalAlignment="Center">
@@ -150,14 +222,14 @@
         </StackPanel>
 
         <!-- USB Selection -->
-        <Grid Grid.Row="4" Margin="0,10,0,10">
+        <Grid Grid.Row="5" Margin="0,10,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <TextBlock Grid.Column="0"
-                       Text="3. Select USB Drive:" 
+                       Text="4. Select USB Drive:" 
                        VerticalAlignment="Center" 
                        Width="180" 
                        FontWeight="Bold"/>
@@ -187,7 +259,7 @@
         </Grid>
 
         <!-- USB Drive Information -->
-        <Border Grid.Row="5" 
+        <Border Grid.Row="6"
                 BorderBrush="#0078D4" 
                 BorderThickness="1" 
                 Background="#F0F0F0" 
@@ -203,7 +275,7 @@
         </Border>
 
         <!-- Warning Banner -->
-        <Border Grid.Row="6" 
+        <Border Grid.Row="7"
                 BorderBrush="#E81123" 
                 BorderThickness="2" 
                 Background="#FFF4CE" 
@@ -218,7 +290,7 @@
         </Border>
 
         <!-- Overall Progress -->
-        <GroupBox Grid.Row="7" Header="Overall Progress" Padding="10" Margin="0,0,0,5">
+        <GroupBox Grid.Row="8" Header="Overall Progress" Padding="10" Margin="0,0,0,5">
             <StackPanel>
                 <TextBlock Text="{Binding OverallProgressText}" 
                            FontWeight="SemiBold" 
@@ -238,7 +310,7 @@
         </GroupBox>
 
         <!-- Current Operation Progress -->
-        <GroupBox Grid.Row="8" Header="Current Operation" Padding="10" Margin="0,0,0,10">
+        <GroupBox Grid.Row="9" Header="Current Operation" Padding="10" Margin="0,0,0,10">
             <StackPanel>
                 <TextBlock Text="{Binding CurrentOperationText}" 
                            FontWeight="SemiBold" 
@@ -253,7 +325,7 @@
         </GroupBox>
 
         <!-- Operation Log (Collapsible) -->
-        <Expander Grid.Row="9" 
+        <Expander Grid.Row="10"
                   Header="Operation Log" 
                   IsExpanded="True"
                   Margin="0,0,0,0">
@@ -281,4 +353,5 @@
             </ListBox>
         </Expander>
     </Grid>
+    </DockPanel>
 </Window>

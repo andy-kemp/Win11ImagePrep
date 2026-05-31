@@ -1,0 +1,134 @@
+<Window x:Class="WinImagePrep.AboutDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="About Windows Image Preparation Tool"
+        Height="550" 
+        Width="500"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Background="White">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header with Logo -->
+        <Border Grid.Row="0" Background="#0078D4" Padding="20">
+            <StackPanel HorizontalAlignment="Center">
+                <Image Source="app.ico" 
+                       Width="80" 
+                       Height="80"
+                       Margin="0,0,0,15"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                <TextBlock Text="Windows Image Preparation Tool" 
+                          FontSize="20" 
+                          FontWeight="Bold"
+                          Foreground="White"
+                          TextAlignment="Center"/>
+                <TextBlock x:Name="txtVersion"
+                          Text="Version 4.0.2" 
+                          FontSize="14" 
+                          Foreground="#E0E0E0"
+                          TextAlignment="Center"
+                          Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
+            <StackPanel>
+                <!-- Description -->
+                <TextBlock Text="A professional WPF application for preparing Windows 11 installation images with injected drivers, removing unwanted Windows apps, and creating bootable USB drives."
+                          TextWrapping="Wrap"
+                          FontSize="13"
+                          Margin="0,0,0,20"
+                          Foreground="#333333"/>
+
+                <!-- Key Features -->
+                <TextBlock Text="Key Features:" 
+                          FontSize="14" 
+                          FontWeight="Bold"
+                          Margin="0,0,0,10"
+                          Foreground="#0078D4"/>
+                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#555555" Margin="0,0,0,15">
+                    • Driver injection into Windows ISO images<LineBreak/>
+                    • Remove built-in Windows apps before deployment<LineBreak/>
+                    • Windows edition selection and control<LineBreak/>
+                    • Create UEFI-compatible bootable USB drives<LineBreak/>
+                    • Support for Surface and other MSI driver packages<LineBreak/>
+                    • Real-time progress tracking and logging
+                </TextBlock>
+
+                <!-- Copyright -->
+                <TextBlock Text="Copyright © 2024 WinImagePrep" 
+                          FontSize="12"
+                          Margin="0,0,0,5"
+                          Foreground="#666666"/>
+
+                <!-- License -->
+                <TextBlock Text="License:" 
+                          FontSize="13" 
+                          FontWeight="Bold"
+                          Margin="0,10,0,5"
+                          Foreground="#0078D4"/>
+                <TextBlock Text="MIT License - Free and open source" 
+                          FontSize="12"
+                          Margin="0,0,0,15"
+                          Foreground="#666666"/>
+
+                <!-- Technology Stack -->
+                <TextBlock Text="Technology:" 
+                          FontSize="13" 
+                          FontWeight="Bold"
+                          Margin="0,0,0,5"
+                          Foreground="#0078D4"/>
+                <TextBlock FontSize="12" Foreground="#666666" Margin="0,0,0,15">
+                    • .NET 8.0 / WPF<LineBreak/>
+                    • MVVM Architecture<LineBreak/>
+                    • DISM Integration<LineBreak/>
+                    • Windows PowerShell
+                </TextBlock>
+
+                <!-- Links -->
+                <TextBlock Text="Links:" 
+                          FontSize="13" 
+                          FontWeight="Bold"
+                          Margin="0,0,0,5"
+                          Foreground="#0078D4"/>
+                <StackPanel Margin="0,0,0,10">
+                    <TextBlock>
+                        <Hyperlink NavigateUri="https://github.com/andy-kemp/Win11ImagePrep" RequestNavigate="Hyperlink_RequestNavigate">
+                            <Run Text="🔗 GitHub Repository"/>
+                        </Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,5,0,0">
+                        <Hyperlink NavigateUri="https://github.com/andy-kemp/Win11ImagePrep/issues" RequestNavigate="Hyperlink_RequestNavigate">
+                            <Run Text="🐛 Report Issues"/>
+                        </Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,5,0,0">
+                        <Hyperlink NavigateUri="https://github.com/andy-kemp/Win11ImagePrep/blob/main/CHANGELOG.md" RequestNavigate="Hyperlink_RequestNavigate">
+                            <Run Text="📋 View Changelog"/>
+                        </Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Close Button -->
+        <Border Grid.Row="2" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Background="#F5F5F5" Padding="20">
+            <Button Content="Close" 
+                    Width="100" 
+                    Height="32"
+                    HorizontalAlignment="Center"
+                    Background="#0078D4"
+                    Foreground="White"
+                    FontWeight="SemiBold"
+                    Click="Close_Click"/>
+        </Border>
+    </Grid>
+</Window>

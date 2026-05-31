@@ -59,18 +59,14 @@ namespace WinImagePrep
 
         private void LogItem_Loaded(object sender, RoutedEventArgs e)
         {
-            // Auto-scroll to the latest log entry only if we're already near the bottom
+            // Auto-scroll to the latest log entry
             if (sender is ListBoxItem item && item.Parent is ListBox listBox)
             {
                 var scrollViewer = FindScrollViewer(listBox);
                 if (scrollViewer != null)
                 {
-                    // Only auto-scroll if user is already at or near the bottom (within 50 pixels)
-                    var distanceFromBottom = scrollViewer.ScrollableHeight - scrollViewer.VerticalOffset;
-                    if (distanceFromBottom < 50)
-                    {
-                        scrollViewer.ScrollToEnd();
-                    }
+                    // Always scroll to the end to show the latest log entry
+                    scrollViewer.ScrollToEnd();
                 }
             }
         }
@@ -88,6 +84,45 @@ namespace WinImagePrep
                     return result;
             }
             return null;
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            // Check if an operation is in progress
+            if (_viewModel != null && _viewModel.IsProcessing)
+            {
+                var result = MessageBox.Show(
+                    "An operation is currently in progress.\n\n" +
+                    "Closing now will:\n" +
+                    "• Cancel the current operation\n" +
+                    "• Terminate any running DISM processes\n" +
+                    "• Clean up mounted images\n" +
+                    "• May leave temporary files\n\n" +
+                    "Are you sure you want to close?",
+                    "Operation In Progress",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning,
+                    MessageBoxResult.No);
+
+                if (result == MessageBoxResult.No)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                // User confirmed - cancel the operation
+                try
+                {
+                    _viewModel.CancelOperation();
+                    Logger.Info("Operation cancelled by user closing window");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"Error cancelling operation: {ex.Message}");
+                }
+            }
+
+            base.OnClosing(e);
         }
 
         protected override void OnClosed(EventArgs e)

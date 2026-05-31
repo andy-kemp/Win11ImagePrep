@@ -505,5 +505,218 @@ namespace WinImagePrep.Services
 
             return mountedPaths;
         }
+
+        /// <summary>
+        /// Get list of provisioned appx packages from a mounted image
+        /// </summary>
+        public async Task<List<string>> GetProvisionedAppsAsync(
+            string mountPath,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            var apps = new List<string>();
+
+            try
+            {
+                progress?.Report("Getting list of provisioned apps...");
+
+                var arguments = $"/Image:\"{mountPath}\" /Get-ProvisionedAppxPackages";
+                var result = await ProcessHelper.ExecuteProcessAsync(_dismPath, arguments, cancellationToken);
+
+                if (result.Success)
+                {
+                    var lines = result.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lines)
+                    {
+                        if (line.Contains("DisplayName :"))
+                        {
+                            var packageName = line.Split(new[] { ':' }, 2)[1].Trim();
+                            apps.Add(packageName);
+                        }
+                    }
+                    progress?.Report($"Found {apps.Count} provisioned apps");
+                }
+                else
+                {
+                    progress?.Report($"Failed to get provisioned apps: {result.Error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error getting provisioned apps: {ex.Message}");
+            }
+
+            return apps;
+        }
+
+        /// <summary>
+        /// Remove a provisioned appx package from a mounted image
+        /// </summary>
+        public async Task<bool> RemoveProvisionedAppAsync(
+            string mountPath,
+            string packageName,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                progress?.Report($"Removing {packageName}...");
+
+                var arguments = $"/Image:\"{mountPath}\" /Remove-ProvisionedAppxPackage /PackageName:\"{packageName}\"";
+                var result = await ProcessHelper.ExecuteProcessAsync(_dismPath, arguments, cancellationToken);
+
+                if (result.Success)
+                {
+                    progress?.Report($"✓ Removed {packageName}");
+                    return true;
+                }
+                else
+                {
+                    // Check if it's just a warning or the package doesn't exist
+                    if (result.Output.Contains("completed successfully") || 
+                        result.Output.Contains("was not found") ||
+                        result.ExitCode == unchecked((int)0x80070490)) // Package not found error code
+                    {
+                        progress?.Report($"⚠ {packageName} - not found or already removed");
+                        return true; // Not a fatal error
+                    }
+
+                    progress?.Report($"✗ Failed to remove {packageName}: {result.Error}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error removing app: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Remove multiple provisioned appx packages from a mounted image
+        /// </summary>
+        public async Task<int> RemoveProvisionedAppsAsync(
+            string mountPath,
+            List<string> packageNames,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            int removedCount = 0;
+
+            try
+            {
+                progress?.Report($"Removing {packageNames.Count} provisioned app(s)...");
+
+                foreach (var packageName in packageNames)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+
+                    var success = await RemoveProvisionedAppAsync(mountPath, packageName, progress, cancellationToken);
+                    if (success)
+                        removedCount++;
+                }
+
+                progress?.Report($"✓ Removed {removedCount} of {packageNames.Count} app(s)");
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error removing apps: {ex.Message}");
+            }
+
+            return removedCount;
+        }
+
+        /// <summary>
+        /// Delete a Windows edition from a WIM file
+        /// </summary>
+        public async Task<bool> DeleteWimEditionAsync(
+            string wimPath,
+            int imageIndex,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                progress?.Report($"Deleting Windows edition (Index {imageIndex})...");
+
+                var arguments = $"/Delete-Image /ImageFile:\"{wimPath}\" /Index:{imageIndex}";
+                var result = await ProcessHelper.ExecuteProcessAsync(_dismPath, arguments, cancellationToken);
+
+                if (result.Success)
+                {
+                    progress?.Report($"✓ Edition deleted successfully");
+                    return true;
+                }
+                else
+                {
+                    progress?.Report($"✗ Failed to delete edition: {result.Error}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error deleting edition: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Delete unselected Windows editions from install.wim
+        /// </summary>
+        public async Task<int> DeleteUnselectedEditionsAsync(
+            string wimPath,
+            List<int> selectedEditionIndices,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            int deletedCount = 0;
+
+            try
+            {
+                // Get all editions first
+                var allEditions = await GetWimInfoAsync(wimPath, cancellationToken);
+
+                if (!allEditions.Any())
+                {
+                    progress?.Report("⚠ No editions found in WIM file");
+                    return 0;
+                }
+
+                // Find editions to delete (those NOT selected)
+                var editionsToDelete = allEditions
+                    .Where(e => !selectedEditionIndices.Contains(e.ImageIndex))
+                    .OrderByDescending(e => e.ImageIndex) // Delete from highest index to lowest to avoid index shifting
+                    .ToList();
+
+                if (!editionsToDelete.Any())
+                {
+                    progress?.Report("ℹ All editions are selected, none will be deleted");
+                    return 0;
+                }
+
+                progress?.Report($"Found {editionsToDelete.Count} edition(s) to delete from install.wim");
+
+                foreach (var edition in editionsToDelete)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+
+                    progress?.Report($"Deleting: {edition.ImageName} (Index {edition.ImageIndex})...");
+                    var success = await DeleteWimEditionAsync(wimPath, edition.ImageIndex, progress, cancellationToken);
+
+                    if (success)
+                        deletedCount++;
+                }
+
+                progress?.Report($"✓ Deleted {deletedCount} of {editionsToDelete.Count} edition(s)");
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error deleting editions: {ex.Message}");
+            }
+
+            return deletedCount;
+        }
     }
 }
