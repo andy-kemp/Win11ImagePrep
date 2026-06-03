@@ -1,134 +1,181 @@
 <Window x:Class="WinImagePrep.AboutDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="About Windows Image Preparation Tool"
+        Title="About WinImagePrep"
         Height="550" 
-        Width="500"
+        Width="550"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         Background="White">
 
-    <Grid>
+    <Window.Resources>
+        <Style x:Key="TitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+
+        <Style x:Key="VersionStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#7F8C8D"/>
+            <Setter Property="Margin" Value="0,0,0,20"/>
+        </Style>
+
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#34495E"/>
+            <Setter Property="Margin" Value="0,15,0,8"/>
+        </Style>
+
+        <Style x:Key="BodyTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#34495E"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+
+        <Style x:Key="LinkStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#0078D4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="TextDecorations" Value="Underline"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+
+        <Style x:Key="PathBoxStyle" TargetType="Border">
+            <Setter Property="Background" Value="#F8F9FA"/>
+            <Setter Property="BorderBrush" Value="#DEE2E6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="0,5,0,15"/>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="25,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#106EBE"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="#6C757D"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#5A6268"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="30">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header with Logo -->
-        <Border Grid.Row="0" Background="#0078D4" Padding="20">
-            <StackPanel HorizontalAlignment="Center">
-                <Image Source="app.ico" 
-                       Width="80" 
-                       Height="80"
-                       Margin="0,0,0,15"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
-                <TextBlock Text="Windows Image Preparation Tool" 
-                          FontSize="20" 
-                          FontWeight="Bold"
-                          Foreground="White"
-                          TextAlignment="Center"/>
-                <TextBlock x:Name="txtVersion"
-                          Text="Version 4.0.2" 
-                          FontSize="14" 
-                          Foreground="#E0E0E0"
-                          TextAlignment="Center"
-                          Margin="0,5,0,0"/>
-            </StackPanel>
-        </Border>
+        <!-- Header -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+            <TextBlock Text="WinImagePrep" Style="{StaticResource TitleStyle}" HorizontalAlignment="Center"/>
+            <TextBlock Text="Version 4.3.0" Style="{StaticResource VersionStyle}" HorizontalAlignment="Center"/>
+        </StackPanel>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <!-- Description -->
-                <TextBlock Text="A professional WPF application for preparing Windows 11 installation images with injected drivers, removing unwanted Windows apps, and creating bootable USB drives."
-                          TextWrapping="Wrap"
-                          FontSize="13"
-                          Margin="0,0,0,20"
-                          Foreground="#333333"/>
-
-                <!-- Key Features -->
-                <TextBlock Text="Key Features:" 
-                          FontSize="14" 
-                          FontWeight="Bold"
-                          Margin="0,0,0,10"
-                          Foreground="#0078D4"/>
-                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#555555" Margin="0,0,0,15">
-                    • Driver injection into Windows ISO images<LineBreak/>
-                    • Remove built-in Windows apps before deployment<LineBreak/>
-                    • Windows edition selection and control<LineBreak/>
-                    • Create UEFI-compatible bootable USB drives<LineBreak/>
-                    • Support for Surface and other MSI driver packages<LineBreak/>
-                    • Real-time progress tracking and logging
+                <TextBlock Style="{StaticResource BodyTextStyle}" FontWeight="SemiBold" TextAlignment="Center">
+                    Create customized Windows 11 installation media with integrated drivers.
                 </TextBlock>
+
+                <!-- Developer -->
+                <TextBlock Text="Developed By" Style="{StaticResource SectionTitleStyle}"/>
+                <TextBlock Style="{StaticResource BodyTextStyle}">
+                    Andy Kemp Consulting Ltd
+                </TextBlock>
+
+                <!-- Website -->
+                <TextBlock Text="Website" Style="{StaticResource SectionTitleStyle}"/>
+                <TextBlock Text="https://www.andykemp.com" 
+                           Style="{StaticResource LinkStyle}"
+                           MouseLeftButtonDown="WebsiteLink_Click"/>
+
+                <!-- Documentation -->
+                <TextBlock Text="Documentation" Style="{StaticResource SectionTitleStyle}"/>
+                <TextBlock Text="https://docs.andykemp.com/win11-image-prep/" 
+                           Style="{StaticResource LinkStyle}"
+                           MouseLeftButtonDown="DocumentationLink_Click"/>
+
+                <!-- Working Folder -->
+                <TextBlock Text="Working Folder" Style="{StaticResource SectionTitleStyle}"/>
+                <Border Style="{StaticResource PathBoxStyle}">
+                    <TextBlock Text="{Binding WorkingFolder}" 
+                               FontFamily="Consolas" 
+                               FontSize="11" 
+                               Foreground="#495057"
+                               TextWrapping="Wrap"/>
+                </Border>
 
                 <!-- Copyright -->
-                <TextBlock Text="Copyright © 2024 WinImagePrep" 
-                          FontSize="12"
-                          Margin="0,0,0,5"
-                          Foreground="#666666"/>
-
-                <!-- License -->
-                <TextBlock Text="License:" 
-                          FontSize="13" 
-                          FontWeight="Bold"
-                          Margin="0,10,0,5"
-                          Foreground="#0078D4"/>
-                <TextBlock Text="MIT License - Free and open source" 
-                          FontSize="12"
-                          Margin="0,0,0,15"
-                          Foreground="#666666"/>
-
-                <!-- Technology Stack -->
-                <TextBlock Text="Technology:" 
-                          FontSize="13" 
-                          FontWeight="Bold"
-                          Margin="0,0,0,5"
-                          Foreground="#0078D4"/>
-                <TextBlock FontSize="12" Foreground="#666666" Margin="0,0,0,15">
-                    • .NET 8.0 / WPF<LineBreak/>
-                    • MVVM Architecture<LineBreak/>
-                    • DISM Integration<LineBreak/>
-                    • Windows PowerShell
+                <TextBlock Style="{StaticResource BodyTextStyle}" 
+                           FontSize="11" 
+                           Foreground="#7F8C8D"
+                           TextAlignment="Center"
+                           Margin="0,20,0,0">
+                    © 2025 Andy Kemp Consulting Ltd. All rights reserved.
                 </TextBlock>
-
-                <!-- Links -->
-                <TextBlock Text="Links:" 
-                          FontSize="13" 
-                          FontWeight="Bold"
-                          Margin="0,0,0,5"
-                          Foreground="#0078D4"/>
-                <StackPanel Margin="0,0,0,10">
-                    <TextBlock>
-                        <Hyperlink NavigateUri="https://github.com/andy-kemp/Win11ImagePrep" RequestNavigate="Hyperlink_RequestNavigate">
-                            <Run Text="🔗 GitHub Repository"/>
-                        </Hyperlink>
-                    </TextBlock>
-                    <TextBlock Margin="0,5,0,0">
-                        <Hyperlink NavigateUri="https://github.com/andy-kemp/Win11ImagePrep/issues" RequestNavigate="Hyperlink_RequestNavigate">
-                            <Run Text="🐛 Report Issues"/>
-                        </Hyperlink>
-                    </TextBlock>
-                    <TextBlock Margin="0,5,0,0">
-                        <Hyperlink NavigateUri="https://github.com/andy-kemp/Win11ImagePrep/blob/main/CHANGELOG.md" RequestNavigate="Hyperlink_RequestNavigate">
-                            <Run Text="📋 View Changelog"/>
-                        </Hyperlink>
-                    </TextBlock>
-                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Close Button -->
-        <Border Grid.Row="2" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Background="#F5F5F5" Padding="20">
-            <Button Content="Close" 
-                    Width="100" 
-                    Height="32"
-                    HorizontalAlignment="Center"
-                    Background="#0078D4"
-                    Foreground="White"
-                    FontWeight="SemiBold"
-                    Click="Close_Click"/>
-        </Border>
+        <!-- Action Buttons -->
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="1"
+                    Content="Open Website"
+                    Click="OpenWebsite_Click"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="0,0,10,0"/>
+
+            <Button Grid.Column="2"
+                    Content="Open Documentation"
+                    Click="OpenDocumentation_Click"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="0,0,10,0"/>
+
+            <Button Grid.Column="3"
+                    Content="Close"
+                    Click="Close_Click"
+                    Style="{StaticResource PrimaryButtonStyle}"/>
+        </Grid>
     </Grid>
 </Window>

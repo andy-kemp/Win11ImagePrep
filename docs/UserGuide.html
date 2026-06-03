@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WinImagePrep User Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        header {
+            background: linear-gradient(135deg, #0078D4 0%, #106EBE 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #0078D4;
+            border-bottom: 2px solid #0078D4;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+        h3 {
+            color: #106EBE;
+            margin-top: 25px;
+        }
+        .section {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background-color: #fff4e5;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border-left: 4px solid #0078D4;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding-left: 0;
+        }
+        .steps li {
+            counter-increment: step-counter;
+            margin-bottom: 25px;
+            padding-left: 50px;
+            position: relative;
+        }
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #0078D4;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        a {
+            color: #0078D4;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>WinImagePrep</h1>
+        <p style="font-size: 1.2em; margin: 0;">User Guide - Quick Start</p>
+    </header>
+
+    <div class="section">
+        <h2>What WinImagePrep Does</h2>
+        <p>WinImagePrep is a professional tool for creating customized Windows 11 installation media. It allows you to:</p>
+        <ul>
+            <li><strong>Extract and validate</strong> Windows 11 ISO files</li>
+            <li><strong>Extract drivers</strong> from MSI packages, ZIP archives, or folders</li>
+            <li><strong>Inject drivers</strong> into Windows installation images</li>
+            <li><strong>Remove unwanted apps</strong> (Microsoft Teams, Xbox, OneDrive, etc.)</li>
+            <li><strong>Select Windows editions</strong> to include in the final image</li>
+            <li><strong>Create bootable USB drives</strong> ready for installation</li>
+            <li><strong>Save customized images</strong> for reuse or deployment</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Requirements</h2>
+        <div class="info">
+            <strong>Before you begin, ensure you have:</strong>
+            <ul>
+                <li><strong>Administrator privileges</strong> – Required for mounting images and creating bootable media</li>
+                <li><strong>25 GB free disk space</strong> – On the working drive (default: <code>C:\ProgramData\Win11ImagePrep</code>)</li>
+                <li><strong>Windows 11 ISO file</strong> – Official Windows 11 installation media</li>
+                <li><strong>Driver packages</strong> (optional) – MSI files, extracted folders, or ZIP archives</li>
+                <li><strong>USB drive</strong> (for bootable media) – 14 GB or larger, will be completely erased</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Recommended Workflow</h2>
+        <ol class="steps">
+            <li>
+                <h3>Select Windows 11 ISO</h3>
+                <p>Click <strong>Browse</strong> next to "Select Windows ISO" and choose your Windows 11 installation ISO file.</p>
+                <p>Optionally click <strong>Verify ISO</strong> to validate the file structure.</p>
+            </li>
+            <li>
+                <h3>Select Driver Source (Optional)</h3>
+                <p>Choose the driver source type:</p>
+                <ul>
+                    <li><strong>MSI File</strong> – For Surface or OEM driver packages</li>
+                    <li><strong>Folder</strong> – For pre-extracted driver folders</li>
+                    <li><strong>ZIP File</strong> – For compressed driver archives</li>
+                </ul>
+                <p>Click <strong>Browse</strong> to select your driver source.</p>
+            </li>
+            <li>
+                <h3>Remove Unwanted Windows Apps (Optional)</h3>
+                <p>Check the box <strong>"Remove Windows apps from image"</strong>.</p>
+                <p><strong>NEW in v4.3.0:</strong> Click the green <strong>"Load Apps from ISO"</strong> button to scan your ISO and discover all ~47 provisioned apps actually present in the image. This ensures accurate app names (e.g., MSTeams vs MicrosoftTeams).</p>
+                <p>Then click <strong>"Select Apps to Remove..."</strong> to choose which apps to exclude.</p>
+                <p><strong>Automated workflow:</strong> If you skip loading apps manually, the tool will automatically prompt you to scan the ISO when you start the preparation process!</p>
+                <p>Common choices include Microsoft Teams, Xbox apps, Mail/Calendar, and OneDrive.</p>
+            </li>
+            <li>
+                <h3>Select Windows Editions (Optional)</h3>
+                <p>Click <strong>Select Editions...</strong> to choose which Windows 11 editions to include in your final image (Home, Pro, Education, etc.).</p>
+            </li>
+            <li>
+                <h3>Prepare the Image</h3>
+                <p>Click <strong>Prepare Image with Drivers</strong>.</p>
+                <p>This process typically takes <strong>20-60 minutes</strong> depending on your system and options selected.</p>
+                <p>Monitor progress in the log window at the bottom of the application.</p>
+            </li>
+            <li>
+                <h3>Create Bootable USB (Optional)</h3>
+                <p>Once preparation is complete, select a USB drive from the dropdown.</p>
+                <div class="warning">
+                    <strong>⚠ Warning:</strong> All data on the selected USB drive will be <strong>permanently erased</strong>.
+                </div>
+                <p>Click <strong>Create USB</strong> to write the prepared image to your USB drive.</p>
+            </li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Changing Storage Locations</h2>
+        <p>By default, WinImagePrep stores temporary and output files in <code>C:\ProgramData\Win11ImagePrep</code>.</p>
+        <p>To change this location:</p>
+        <ol>
+            <li>Go to <strong>Tools > Options</strong></li>
+            <li>Update the <strong>Working Folder</strong> path</li>
+            <li>Click <strong>Validate</strong> to ensure the folder is suitable</li>
+            <li>Click <strong>Save</strong> to apply changes</li>
+            <li>Restart the application for changes to take full effect</li>
+        </ol>
+        <div class="info">
+            <strong>Storage Requirements:</strong> The working folder must be on a local fixed disk with at least 25 GB of free space. Network drives, USB drives, and OneDrive-synced folders are not supported.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Troubleshooting & Logs</h2>
+        <h3>Check the Log Window</h3>
+        <p>The bottom section of the main window displays real-time operation logs. Review these messages if an operation fails.</p>
+
+        <h3>Review Log Files</h3>
+        <p>Detailed logs are saved to:</p>
+        <p><code>C:\ProgramData\Win11ImagePrep\Logs\WinImagePrep_YYYY-MM-DD.log</code></p>
+        <p>(Or your custom working folder if changed)</p>
+
+        <h3>Cleanup & Repair</h3>
+        <p>If the application crashes or an operation is interrupted:</p>
+        <ol>
+            <li>Click <strong>Repair & Cleanup</strong> in the main window</li>
+            <li>This will unmount any stuck WIM images and clean temporary files</li>
+        </ol>
+
+        <h3>Common Issues</h3>
+        <ul>
+            <li><strong>Access Denied</strong> – Run the application as Administrator</li>
+            <li><strong>Disk Space Errors</strong> – Ensure at least 25 GB free on the working drive</li>
+            <li><strong>USB Creation Fails</strong> – Close any File Explorer windows viewing the USB drive</li>
+            <li><strong>Mount Errors</strong> – Use Repair & Cleanup to unmount stuck images</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Safety Warnings</h2>
+        <div class="warning">
+            <h3>⚠ Important Safety Information</h3>
+            <ul>
+                <li><strong>USB Drive Formatting:</strong> Creating bootable USB media will <strong>permanently erase all data</strong> on the selected USB drive. Back up any important files before proceeding.</li>
+                <li><strong>Administrator Rights:</strong> Many operations require administrator privileges. You will be prompted if elevated permissions are needed.</li>
+                <li><strong>Processing Time:</strong> Image preparation can take 30-60 minutes or more. Do not interrupt the process or shut down your computer.</li>
+                <li><strong>Disk Space:</strong> Ensure sufficient free disk space (25 GB minimum) before starting operations.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Additional Resources</h2>
+        <ul>
+            <li><strong>Online Documentation:</strong> <a href="https://tools.andykemp.com/winimageprep" target="_blank">https://tools.andykemp.com/winimageprep</a></li>
+            <li><strong>GitHub Repository:</strong> <a href="https://github.com/andy-kemp/Win11ImagePrep" target="_blank">https://github.com/andy-kemp/Win11ImagePrep</a></li>
+            <li><strong>Report Issues:</strong> <a href="https://github.com/andy-kemp/Win11ImagePrep/issues" target="_blank">GitHub Issues</a></li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p><strong>WinImagePrep v4.1.1</strong></p>
+        <p>Developed by <strong>Andy Kemp Consulting Ltd</strong></p>
+        <p>© 2025 Andy Kemp Consulting Ltd. All rights reserved.</p>
+    </div>
+</body>
+</html>

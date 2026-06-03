@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Specialized;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,6 +21,9 @@ namespace WinImagePrep
                 _viewModel = new MainViewModel();
                 DataContext = _viewModel;
 
+                // Subscribe to log entries changes for auto-scroll
+                _viewModel.LogEntries.CollectionChanged += LogEntries_CollectionChanged;
+
                 // Run cleanup in background after window is loaded
                 Loaded += MainWindow_Loaded;
             }
@@ -31,6 +35,18 @@ namespace WinImagePrep
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 throw;
+            }
+        }
+
+        private void LogEntries_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            // Auto-scroll to bottom when new log entries are added
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    LogScrollViewer?.ScrollToEnd();
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
         }
 
@@ -55,35 +71,6 @@ namespace WinImagePrep
             {
                 await _viewModel.CheckForExistingWorkAsync();
             }
-        }
-
-        private void LogItem_Loaded(object sender, RoutedEventArgs e)
-        {
-            // Auto-scroll to the latest log entry
-            if (sender is ListBoxItem item && item.Parent is ListBox listBox)
-            {
-                var scrollViewer = FindScrollViewer(listBox);
-                if (scrollViewer != null)
-                {
-                    // Always scroll to the end to show the latest log entry
-                    scrollViewer.ScrollToEnd();
-                }
-            }
-        }
-
-        private ScrollViewer? FindScrollViewer(DependencyObject parent)
-        {
-            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
-                if (child is ScrollViewer scrollViewer)
-                    return scrollViewer;
-
-                var result = FindScrollViewer(child);
-                if (result != null)
-                    return result;
-            }
-            return null;
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

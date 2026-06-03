@@ -1,10 +1,10 @@
 # Windows 11 Image & USB Creator
 
-A professional WPF application for preparing Windows 11 installation images with injected drivers, removing unwanted Windows apps, and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages and streamlined Windows app configurations, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
+A professional WPF application for preparing Windows 11 installation images with injected drivers, dynamic app discovery and removal, and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages and streamlined Windows app configurations, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
 
-![Version](https://img.shields.io/badge/version-4.0.4-blue.svg)
+![Version](https://img.shields.io/badge/version-4.3.0-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![License](https://img.shields.io/badge/license-Proprietary-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue.svg)
 
 ---
@@ -15,10 +15,11 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 
 ### Key Benefits
 - **Native Windows Application**: Full .NET 8 WPF application with modern UI
+- **Dynamic App Discovery**: Scan ISO to discover all ~47 provisioned apps actually present in your image
+- **Automated Workflow**: Intelligent prompts guide you through app removal process
 - **One-time setup**: Create a single USB with all drivers pre-installed and unwanted apps removed
 - **Zero-touch installation**: No need to install drivers or remove apps post-Windows setup
 - **Time-saving**: Eliminates manual driver installation and app removal on multiple devices
-- **App Removal**: Remove unwanted Windows apps (Xbox, Cortana, OneDrive, Teams, etc.) before deployment
 - **UEFI compatible**: Creates FAT32 bootable USB drives with proper partitioning
 - **Edition control**: Choose which Windows editions to include and suppress installation prompts
 - **Graphical interface**: Professional WPF UI with real-time progress tracking
@@ -28,36 +29,69 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 
 ## ✨ Features
 
-### Version 4.0.4 (Latest)
-- ✅ **Operation Close Protection** - Warning dialog when closing during active operations
-  - Prevents accidental process termination
-  - Automatically cancels operations and cleans up DISM processes
-  - User confirmation required to close during processing
+### Version 4.3.0 (Latest) - January 2025
+- ✨ **NEW: Dynamic App Discovery from ISO**
+  - Scan install.wim to discover all ~47 provisioned apps actually in your image
+  - Handles package name variants correctly (MSTeams vs MicrosoftTeams)
+  - Works with all Windows 11 editions and builds
+  - Full package name resolution for reliable removal
+
+- ✨ **NEW: Automated App Loading Workflow**
+  - Intelligent auto-prompt when "Remove Windows apps" is enabled
+  - Automatically offers to scan ISO and select apps
+  - No more manual steps - just check the box and go!
+  - Graceful fallback to default app list if needed
+
+- ✨ **NEW: Enhanced App Removal**
+  - Dual-mode removal: Full package names (fast) or pattern matching (legacy)
+  - Created ProvisionedApp model with DisplayName, PackageName, Version, PublisherId
+  - Green "Load Apps from ISO" button for manual discovery
+  - Backward compatible with existing configurations
+
+### Version 4.2.1 - Startup & Settings Improvements
+- ✅ **Startup & First-Run Improvements**
+  - Fixed first-run window display and activation
+  - Improved splash screen timing and lifecycle
+  - Enhanced wizard visibility
+
+- ✅ **Storage & Path Updates**
+  - Changed default working folder to `C:\ProgramData\Win11ImagePrep`
+  - Centralized application data storage
+  - Updated documentation
+
+- ✅ **Reset & Troubleshooting**
+  - "Reset to Defaults" functionality
+  - Settings reset for troubleshooting
+  - Better error handling during startup
+
+### Core Features
 - ✅ **Windows App Removal** - Remove built-in Windows apps before image creation
+  - Dynamic app discovery from ISO (NEW in 4.3.0)
   - Popup dialog with selectable app list (Xbox, OneDrive, Cortana, Teams, etc.)
   - Live counter showing selected apps
   - Select All/None functionality
   - Integration with DISM for provisioned app package removal
+
 - ✅ **Windows Edition Control** - Choose which editions to keep in install.wim
   - Multi-select edition picker dialog
   - Automatic deletion of unselected editions
   - Reduces Windows installation prompts by limiting edition choices
+
 - ✅ **Native Windows Application** - Full .NET 8 WPF desktop application
 - ✅ **MVVM Architecture** - Clean separation of concerns with ViewModels and Services
 - ✅ **Startup Splash Screen** - Branded splash screen during application initialization
 - ✅ **Administrator Privilege Checking** - Automatic detection and restart with elevation
 - ✅ **Modern UI** - Professional WPF interface with Material Design inspired controls
 - ✅ **Real-time Progress Tracking** - Live operation log with detailed status updates
-- ✅ **Smart Directory Management** - Separate persistent and temporary file locations:
-  - `C:\WinImagePrep\SavedImages\` - Persistent saved image outputs
-  - `C:\WinImagePrep\Logs\` - Application logs
-  - `C:\WinImagePrep\Temp\` - Temporary working files (auto-cleanup)
+- ✅ **Smart Directory Management** - Persistent and temporary file locations:
+  - `C:\ProgramData\Win11ImagePrep\` - Application settings and configuration
+  - `C:\ProgramData\Win11ImagePrep\Temp\` - Temporary working files (auto-cleanup)
 - ✅ **Enhanced DISM Logging** - Detailed command execution and error reporting
 - ✅ **Robust ISO Mounting** - Persistent ISO mount with drive verification
 - ✅ **Process Management** - Clean shutdown with proper resource cleanup
 - ✅ **USB Drive Detection** - Automatic USB drive enumeration and validation
 - ✅ **Error Recovery** - Comprehensive error handling and cleanup
-- ✅ **Single-file Executable** - Standalone WinImagePrepV4.exe with no dependencies
+- ✅ **Single-file Executable** - Standalone WinImagePrep.exe with no dependencies
 
 ### Core Functionality
 - **Multiple injection points**: Drivers injected into:
@@ -66,7 +100,7 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
   - Windows Recovery Environment (WinRE)
   - All Windows 11 editions in install.wim
 - **Windows customization**:
-  - Remove unwanted Windows apps (Xbox, OneDrive, Cortana, Microsoft Teams, etc.)
+  - Dynamically discover and remove provisioned Windows apps
   - Select which Windows editions to include (Pro, Enterprise, etc.)
   - Streamline installation by removing unused editions
 - **Four creation modes**:

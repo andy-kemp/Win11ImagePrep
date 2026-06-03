@@ -1,26 +1,59 @@
 using System;
 using System.IO;
+using WinImagePrep.Models;
+using WinImagePrep.Services;
 
 namespace WinImagePrep.Helpers
 {
     public static class Logger
     {
-        private static readonly string LogDirectory = Path.Combine(@"C:\WinImagePrep", "Logs");
-        private static readonly string LogFilePath = Path.Combine(LogDirectory, $"WinImagePrep_{DateTime.Now:yyyyMMdd}.log");
+        private static string? _logDirectory;
+        private static string? _logFilePath;
         private static readonly object _lock = new object();
 
-        static Logger()
+        // Lazy initialization - uses settings if available, falls back to default
+        private static string LogDirectory
         {
-            try
+            get
             {
-                if (!Directory.Exists(LogDirectory))
+                if (_logDirectory == null)
                 {
-                    Directory.CreateDirectory(LogDirectory);
+                    try
+                    {
+                        var settingsService = new SettingsService();
+                        _logDirectory = settingsService.CurrentSettings.LogsDirectory;
+                    }
+                    catch
+                    {
+                        // Fallback to default if settings not available
+                        _logDirectory = Path.Combine(AppSettings.DefaultWorkingRoot, "Logs");
+                    }
+
+                    try
+                    {
+                        if (!Directory.Exists(_logDirectory))
+                        {
+                            Directory.CreateDirectory(_logDirectory);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore initialization errors
+                    }
                 }
+                return _logDirectory;
             }
-            catch
+        }
+
+        private static string LogFilePath
+        {
+            get
             {
-                // Ignore initialization errors
+                if (_logFilePath == null)
+                {
+                    _logFilePath = Path.Combine(LogDirectory, $"WinImagePrep_{DateTime.Now:yyyyMMdd}.log");
+                }
+                return _logFilePath;
             }
         }
 

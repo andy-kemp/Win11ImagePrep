@@ -8,18 +8,18 @@
 	<Nullable>enable</Nullable>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
 	<ApplicationIcon>app.ico</ApplicationIcon>
-	<AssemblyName>WinImagePrep4-3</AssemblyName>
+	<AssemblyName>WinImagePrep</AssemblyName>
 	<RootNamespace>WinImagePrep</RootNamespace>
-	<Version>4.0.4</Version>
-	<Authors>WinImagePrep</Authors>
-	<Company>WinImagePrep</Company>
-	<Product>Windows Image Preparation Tool V4</Product>
-	<Description>Windows ISO preparation tool with driver injection and app removal for Surface and other devices</Description>
-	<Copyright>Copyright © 2024</Copyright>
-  </PropertyGroup>
+	<Version>4.3.0</Version>
+	<AssemblyVersion>4.3.0.0</AssemblyVersion>
+	<FileVersion>4.3.0.0</FileVersion>
+	<Authors>Andy Kemp Consulting Ltd</Authors>
+	<Company>Andy Kemp Consulting Ltd</Company>
+	<Product>WinImagePrep</Product>
+	<Description>Create customized Windows 11 installation media with integrated drivers</Description>
+	<Copyright>Copyright © 2025 Andy Kemp Consulting Ltd</Copyright>
 
-  <!-- Self-contained single-file publish configuration -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Standalone'">
+	<!-- Standalone EXE Publishing -->
 	<PublishSingleFile>true</PublishSingleFile>
 	<SelfContained>true</SelfContained>
 	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -37,6 +37,19 @@
 
   <ItemGroup>
 	<Resource Include="app.ico" />
+  </ItemGroup>
+
+  <!-- Include documentation files in publish output -->
+  <ItemGroup>
+	<None Include="..\docs\UserGuide.html" Link="docs\UserGuide.html">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+	<None Include="..\docs\ReleaseNotes.txt" Link="docs\ReleaseNotes.txt">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+	<None Include="..\docs\LICENSE.txt" Link="docs\LICENSE.txt">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
   </ItemGroup>
 
 </Project>

@@ -29,7 +29,12 @@ namespace WinImagePrep.ViewModels
 
         public MainViewModel()
         {
-            _config = new AppConfiguration();
+            // Load settings and create configuration
+            var settingsService = new SettingsService();
+            // Settings are already loaded by App.xaml.cs, so just use current settings
+            var settings = settingsService.CurrentSettings;
+            _config = new AppConfiguration(settings);
+
             _isoService = new IsoService();
             _driverService = new DriverService();
             _dismService = new DismService();
@@ -42,6 +47,7 @@ namespace WinImagePrep.ViewModels
             BrowseDriverSourceCommand = new RelayCommand(BrowseDriverSource);
             SelectEditionsCommand = new RelayCommand(SelectEditions, () => !string.IsNullOrEmpty(SelectedIsoPath));
             SelectAppsToRemoveCommand = new RelayCommand(SelectAppsToRemove);
+            LoadAppsFromIsoCommand = new RelayCommand(async () => await LoadAppsFromIsoAsync(), () => !string.IsNullOrEmpty(SelectedIsoPath) && !IsProcessing);
             InjectDriversCommand = new RelayCommand(async () => await InjectDriversAsync(), CanExecuteInject);
             CreateUsbFromIsoCommand = new RelayCommand(async () => await CreateUsbFromIsoAsync(), CanCreateUsbFromIso);
             CreateUsbCommand = new RelayCommand(async () => await CreateUsbAsync(), CanCreateUsb);
@@ -53,10 +59,12 @@ namespace WinImagePrep.ViewModels
             SaveConfigCommand = new RelayCommand(SaveConfiguration);
             OpenConfigCommand = new RelayCommand(OpenConfiguration);
             ExitCommand = new RelayCommand(ExitApplication);
-            OpenDocumentationCommand = new RelayCommand(OpenDocumentation);
-            ShowHowToUseCommand = new RelayCommand(ShowHowToUse);
-            OpenSupportCommand = new RelayCommand(OpenSupport);
-            CheckUpdatesCommand = new RelayCommand(CheckForUpdates);
+            OpenOptionsCommand = new RelayCommand(OpenOptions);
+            OpenUserGuideCommand = new RelayCommand(OpenUserGuide);
+            OpenOnlineDocumentationCommand = new RelayCommand(OpenOnlineDocumentation);
+            OpenGitHubReadmeCommand = new RelayCommand(OpenGitHubReadme);
+            OpenReportIssueCommand = new RelayCommand(OpenReportIssue);
+            OpenReleaseNotesCommand = new RelayCommand(OpenReleaseNotes);
             ShowAboutCommand = new RelayCommand(ShowAbout);
 
             // Initialize collections
@@ -262,6 +270,7 @@ namespace WinImagePrep.ViewModels
         public ICommand BrowseDriverSourceCommand { get; }
         public ICommand SelectEditionsCommand { get; }
         public ICommand SelectAppsToRemoveCommand { get; }
+        public ICommand LoadAppsFromIsoCommand { get; }
         public ICommand InjectDriversCommand { get; }
         public ICommand CreateUsbFromIsoCommand { get; }
         public ICommand CreateUsbCommand { get; }
@@ -273,10 +282,12 @@ namespace WinImagePrep.ViewModels
         public ICommand SaveConfigCommand { get; }
         public ICommand OpenConfigCommand { get; }
         public ICommand ExitCommand { get; }
-        public ICommand OpenDocumentationCommand { get; }
-        public ICommand ShowHowToUseCommand { get; }
-        public ICommand OpenSupportCommand { get; }
-        public ICommand CheckUpdatesCommand { get; }
+        public ICommand OpenOptionsCommand { get; }
+        public ICommand OpenUserGuideCommand { get; }
+        public ICommand OpenOnlineDocumentationCommand { get; }
+        public ICommand OpenGitHubReadmeCommand { get; }
+        public ICommand OpenReportIssueCommand { get; }
+        public ICommand OpenReleaseNotesCommand { get; }
         public ICommand ShowAboutCommand { get; }
 
         #endregion
@@ -460,6 +471,211 @@ namespace WinImagePrep.ViewModels
             }
         }
 
+        private async Task LoadAppsFromIsoAsync()
+        {
+            if (string.IsNullOrEmpty(SelectedIsoPath))
+            {
+                MessageBox.Show("Please select a Windows ISO first.", "No ISO Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!File.Exists(SelectedIsoPath))
+            {
+                MessageBox.Show("The selected ISO file does not exist.", "File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                IsProcessing = true;
+                AddLog("Loading apps from ISO...");
+                OverallProgressText = "Loading apps from ISO";
+                OverallProgress = 0;
+
+                string? mountedDriveLetter = null;
+                string? tempMountPath = null;
+
+                try
+                {
+                    // Step 1: Mount the ISO
+                    AddLog("Mounting ISO...");
+                    OverallProgress = 10;
+                    mountedDriveLetter = await _isoService.MountIsoAsync(SelectedIsoPath, new Progress<string>(AddLog), _cancellationTokenSource?.Token ?? default);
+
+                    if (string.IsNullOrEmpty(mountedDriveLetter))
+                    {
+                        AddLog("✗ Failed to mount ISO");
+                        MessageBox.Show("Failed to mount ISO file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    AddLog($"✓ ISO mounted to {mountedDriveLetter}:");
+                    OverallProgress = 20;
+
+                    // Step 2: Locate install.wim
+                    var installWimPath = Path.Combine($"{mountedDriveLetter}:\\", "sources", "install.wim");
+                    if (!File.Exists(installWimPath))
+                    {
+                        installWimPath = Path.Combine($"{mountedDriveLetter}:\\", "sources", "install.esd");
+                        if (!File.Exists(installWimPath))
+                        {
+                            AddLog("✗ install.wim/install.esd not found in ISO");
+                            MessageBox.Show("Could not find install.wim or install.esd in the ISO.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+                    }
+
+                    AddLog($"Found image: {Path.GetFileName(installWimPath)}");
+                    OverallProgress = 30;
+
+                    // Step 3: Get editions to find index 1
+                    AddLog("Reading Windows editions...");
+                    var editions = await _dismService.GetWimInfoAsync(installWimPath, _cancellationTokenSource?.Token ?? default);
+
+                    if (!editions.Any())
+                    {
+                        AddLog("✗ No Windows editions found in image");
+                        MessageBox.Show("No Windows editions found in the image file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var firstEdition = editions.First();
+                    AddLog($"Using edition: {firstEdition.ImageName} (Index {firstEdition.ImageIndex})");
+                    OverallProgress = 40;
+
+                    // Step 4: Create temp mount directory
+                    tempMountPath = Path.Combine(_config.TempBaseDirectory, $"mount_{Guid.NewGuid():N}");
+                    Directory.CreateDirectory(tempMountPath);
+                    AddLog($"Created temp mount point: {tempMountPath}");
+                    OverallProgress = 50;
+
+                    // Step 5: Mount the WIM
+                    AddLog($"Mounting Windows image (this may take a minute)...");
+                    var mountSuccess = await _dismService.MountWimAsync(
+                        installWimPath,
+                        firstEdition.ImageIndex,
+                        tempMountPath,
+                        new Progress<string>(AddLog),
+                        _cancellationTokenSource?.Token ?? default);
+
+                    if (!mountSuccess)
+                    {
+                        AddLog("✗ Failed to mount Windows image");
+                        MessageBox.Show("Failed to mount the Windows image.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    AddLog("✓ Windows image mounted");
+                    OverallProgress = 70;
+
+                    // Step 6: Get provisioned apps from mounted image
+                    AddLog("Scanning for provisioned apps...");
+                    var provisionedApps = await _dismService.GetProvisionedAppsDetailedAsync(
+                        tempMountPath,
+                        new Progress<string>(AddLog),
+                        _cancellationTokenSource?.Token ?? default);
+
+                    if (!provisionedApps.Any())
+                    {
+                        AddLog("⚠ No provisioned apps found in image");
+                        MessageBox.Show("No provisioned apps were found in the Windows image.", "No Apps Found", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
+                    AddLog($"✓ Found {provisionedApps.Count} provisioned app(s)");
+                    OverallProgress = 90;
+
+                    // Step 7: Populate WindowsApps collection
+                    WindowsApps.Clear();
+
+                    foreach (var app in provisionedApps.OrderBy(a => a.DisplayName))
+                    {
+                        // Create a friendly display name from the package display name
+                        var displayName = app.DisplayName;
+                        var shortName = displayName;
+
+                        // Try to make it more readable - remove publisher prefix if present
+                        if (displayName.Contains('.'))
+                        {
+                            var parts = displayName.Split('.');
+                            if (parts.Length >= 2)
+                            {
+                                // Use last meaningful part (e.g., "Microsoft.WindowsCalculator" -> "WindowsCalculator")
+                                shortName = parts[parts.Length - 1];
+                            }
+                        }
+
+                        WindowsApps.Add(new WindowsApp
+                        {
+                            PackageName = app.PackageName,  // Full package name for removal
+                            DisplayName = shortName,         // Friendly name for UI
+                            Description = $"{app.DisplayName} (v{app.Version})",
+                            IsSelected = false
+                        });
+                    }
+
+                    AddLog($"✓ Loaded {WindowsApps.Count} apps into selection list");
+                    OnPropertyChanged(nameof(SelectedAppsCountText));
+                    OverallProgress = 100;
+
+                    MessageBox.Show(
+                        $"Successfully loaded {WindowsApps.Count} provisioned apps from the ISO.\n\n" +
+                        "You can now select which apps to remove using the 'Select Apps to Remove...' button.",
+                        "Apps Loaded",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                finally
+                {
+                    // Step 8: Cleanup - unmount WIM
+                    if (!string.IsNullOrEmpty(tempMountPath) && Directory.Exists(tempMountPath))
+                    {
+                        try
+                        {
+                            AddLog("Unmounting Windows image...");
+                            await _dismService.UnmountWimAsync(
+                                tempMountPath, 
+                                commit: false, 
+                                new Progress<string>(AddLog), 
+                                _cancellationTokenSource?.Token ?? default,
+                                deleteMountDirectory: true);
+                            AddLog("✓ Windows image unmounted");
+                        }
+                        catch (Exception ex)
+                        {
+                            AddLog($"⚠ Cleanup warning: {ex.Message}");
+                        }
+                    }
+
+                    // Step 9: Dismount ISO
+                    if (!string.IsNullOrEmpty(mountedDriveLetter))
+                    {
+                        try
+                        {
+                            AddLog("Dismounting ISO...");
+                            await _isoService.DismountIsoAsync(SelectedIsoPath);
+                            AddLog("✓ ISO dismounted");
+                        }
+                        catch (Exception ex)
+                        {
+                            AddLog($"⚠ ISO dismount warning: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error loading apps: {ex.Message}");
+                MessageBox.Show($"An error occurred while loading apps from the ISO:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsProcessing = false;
+                OverallProgressText = string.Empty;
+                OverallProgress = 0;
+            }
+        }
+
         private bool CanExecuteInject()
         {
             return !IsProcessing &&
@@ -582,6 +798,161 @@ namespace WinImagePrep.ViewModels
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 return;
+            }
+
+            // Auto-prompt for app loading if Windows app removal is enabled
+            if (RemoveWindowsApps)
+            {
+                // Check if user has already loaded apps from ISO or selected apps
+                var hasSelectedApps = WindowsApps.Any(app => app.IsSelected);
+                var hasIsoApps = WindowsApps.Any(app => app.PackageName.Contains("_") && app.PackageName.Split('_').Length >= 3);
+
+                if (!hasSelectedApps && !hasIsoApps)
+                {
+                    // User has "Remove Windows apps" checked but hasn't loaded or selected any apps
+                    var loadAppsResult = MessageBox.Show(
+                        "Windows app removal is enabled, but no apps have been loaded from the ISO.\n\n" +
+                        "Would you like to scan the ISO and load all provisioned apps now?\n\n" +
+                        "• Click 'Yes' to scan the ISO for apps (recommended)\n" +
+                        "• Click 'No' to use the default app list\n" +
+                        "• Click 'Cancel' to abort and select apps manually",
+                        "Load Apps from ISO?",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (loadAppsResult == MessageBoxResult.Cancel)
+                    {
+                        AddLog("Image preparation cancelled - user will select apps manually.");
+                        return;
+                    }
+                    else if (loadAppsResult == MessageBoxResult.Yes)
+                    {
+                        AddLog("Loading apps from ISO...");
+                        try
+                        {
+                            await LoadAppsFromIsoAsync();
+
+                            // After loading, open the app selection dialog
+                            if (WindowsApps.Any())
+                            {
+                                AddLog("Opening app selection dialog...");
+                                var appDialog = new AppRemovalDialog(WindowsApps);
+                                if (appDialog.ShowDialog() == true)
+                                {
+                                    // Update the main collection with selections
+                                    for (int i = 0; i < WindowsApps.Count && i < appDialog.WindowsApps.Count; i++)
+                                    {
+                                        WindowsApps[i].IsSelected = appDialog.WindowsApps[i].IsSelected;
+                                    }
+                                    OnPropertyChanged(nameof(SelectedAppsCountText));
+
+                                    var selectedCount = WindowsApps.Count(a => a.IsSelected);
+                                    AddLog($"User selected {selectedCount} app(s) for removal");
+
+                                    if (selectedCount == 0)
+                                    {
+                                        var proceedResult = MessageBox.Show(
+                                            "No apps were selected for removal.\n\n" +
+                                            "Do you want to continue without removing any apps?",
+                                            "No Apps Selected",
+                                            MessageBoxButton.YesNo,
+                                            MessageBoxImage.Question);
+
+                                        if (proceedResult != MessageBoxResult.Yes)
+                                        {
+                                            AddLog("Image preparation cancelled - no apps selected.");
+                                            return;
+                                        }
+                                        else
+                                        {
+                                            // User wants to continue without removing apps
+                                            RemoveWindowsApps = false;
+                                            AddLog("Continuing without app removal.");
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    AddLog("App selection cancelled by user.");
+                                    return;
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            AddLog($"✗ Failed to load apps from ISO: {ex.Message}");
+                            var continueResult = MessageBox.Show(
+                                $"Failed to load apps from ISO:\n\n{ex.Message}\n\n" +
+                                "Do you want to continue with the default app list?",
+                                "App Loading Failed",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Warning);
+
+                            if (continueResult != MessageBoxResult.Yes)
+                            {
+                                AddLog("Image preparation cancelled.");
+                                return;
+                            }
+                            else
+                            {
+                                AddLog("Continuing with default app list.");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // User chose No - use default list
+                        AddLog("Using default app list.");
+                    }
+                }
+                else if (hasIsoApps && !hasSelectedApps)
+                {
+                    // Apps were loaded but none selected - offer to open selection dialog
+                    var selectResult = MessageBox.Show(
+                        $"You have loaded {WindowsApps.Count} apps from the ISO, but none are selected for removal.\n\n" +
+                        "Would you like to select apps now?",
+                        "Select Apps?",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (selectResult == MessageBoxResult.Cancel)
+                    {
+                        AddLog("Image preparation cancelled.");
+                        return;
+                    }
+                    else if (selectResult == MessageBoxResult.Yes)
+                    {
+                        var appDialog = new AppRemovalDialog(WindowsApps);
+                        if (appDialog.ShowDialog() == true)
+                        {
+                            for (int i = 0; i < WindowsApps.Count && i < appDialog.WindowsApps.Count; i++)
+                            {
+                                WindowsApps[i].IsSelected = appDialog.WindowsApps[i].IsSelected;
+                            }
+                            OnPropertyChanged(nameof(SelectedAppsCountText));
+
+                            var selectedCount = WindowsApps.Count(a => a.IsSelected);
+                            AddLog($"User selected {selectedCount} app(s) for removal");
+
+                            if (selectedCount == 0)
+                            {
+                                RemoveWindowsApps = false;
+                                AddLog("No apps selected - continuing without app removal.");
+                            }
+                        }
+                        else
+                        {
+                            AddLog("App selection cancelled by user.");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        // User chose No - disable app removal
+                        RemoveWindowsApps = false;
+                        AddLog("Continuing without app removal.");
+                    }
+                }
             }
 
             _cancellationTokenSource = new CancellationTokenSource();
@@ -1095,7 +1466,8 @@ namespace WinImagePrep.ViewModels
             // Predefined list of common Windows apps that users might want to remove
             var commonApps = new List<(string package, string display, string description)>
             {
-                ("MicrosoftTeams", "Microsoft Teams (Consumer)", "Chat and collaboration app"),
+                ("MicrosoftTeams", "Microsoft Teams (Consumer)", "Teams consumer edition"),
+                ("MSTeams", "Microsoft Teams (Work/School)", "Teams enterprise/work edition"),
                 ("Microsoft.549981C3F5F10", "Cortana", "Digital assistant"),
                 ("Microsoft.BingNews", "Microsoft News", "News and weather app"),
                 ("Microsoft.BingWeather", "Weather", "Weather app"),
@@ -1717,58 +2089,90 @@ namespace WinImagePrep.ViewModels
             Application.Current.Shutdown();
         }
 
-        private void OpenDocumentation()
+        private void OpenUserGuide()
+        {
+            try
+            {
+                var userGuidePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "docs", "UserGuide.html");
+
+                if (File.Exists(userGuidePath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = userGuidePath,
+                        UseShellExecute = true
+                    });
+                    AddLog("✓ Opened local user guide");
+                }
+                else
+                {
+                    // Fallback to online documentation
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "https://docs.andykemp.com/win11-image-prep/",
+                        UseShellExecute = true
+                    });
+                    AddLog("✓ Opened online documentation (local guide not found)");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error opening user guide: {ex.Message}");
+                MessageBox.Show(
+                    $"Could not open User Guide.\n\nVisit: https://docs.andykemp.com/win11-image-prep/",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        private void OpenOnlineDocumentation()
         {
             try
             {
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = "https://github.com/andy-kemp/Win11ImagePrep/blob/main/README.md",
+                    FileName = "https://docs.andykemp.com/win11-image-prep/",
                     UseShellExecute = true
                 });
-                AddLog("✓ Opened documentation in browser");
+                AddLog("✓ Opened online documentation");
             }
             catch (Exception ex)
             {
                 AddLog($"✗ Error opening documentation: {ex.Message}");
-                MessageBox.Show("Could not open documentation. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(
+                    "Could not open documentation. Please visit:\nhttps://docs.andykemp.com/win11-image-prep/",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
         }
 
-        private void ShowHowToUse()
+        private void OpenGitHubReadme()
         {
-            var howToMessage = @"Quick Start Guide:
-
-1. Select Windows ISO
-   • Click 'Browse...' next to 'Select Windows ISO'
-   • Choose your Windows 11 ISO file
-
-2. Select Driver Source
-   • Choose MSI File, Folder, or ZIP
-   • Click 'Browse...' to select your drivers
-
-3. Remove Windows Apps (Optional)
-   • Check 'Remove Windows apps from image'
-   • Click 'Select Apps to Remove...'
-   • Choose which apps to remove
-
-4. Prepare Image
-   • Click 'Prepare Image with Drivers'
-   • Wait for the process to complete (20-60 minutes)
-
-5. Create USB
-   • Select a USB drive (14GB+ recommended)
-   • Click 'Create USB' to write the prepared image
-
-For detailed documentation, visit:
-https://github.com/andy-kemp/Win11ImagePrep";
-
-            MessageBox.Show(howToMessage, "How to Use", MessageBoxButton.OK, MessageBoxImage.Information);
-            AddLog("✓ Displayed how-to guide");
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://github.com/andy-kemp/Win11ImagePrep/tree/main/WinImagePrep",
+                    UseShellExecute = true
+                });
+                AddLog("✓ Opened GitHub README");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error opening GitHub README: {ex.Message}");
+                MessageBox.Show(
+                    "Could not open GitHub README. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/tree/main/WinImagePrep",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
-        private void OpenSupport()
+
+
+        private void OpenReportIssue()
         {
             try
             {
@@ -1777,40 +2181,109 @@ https://github.com/andy-kemp/Win11ImagePrep";
                     FileName = "https://github.com/andy-kemp/Win11ImagePrep/issues",
                     UseShellExecute = true
                 });
-                AddLog("✓ Opened support page in browser");
+                AddLog("✓ Opened GitHub issues page");
             }
             catch (Exception ex)
             {
-                AddLog($"✗ Error opening support page: {ex.Message}");
-                MessageBox.Show("Could not open support page. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/issues", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AddLog($"✗ Error opening issues page: {ex.Message}");
+                MessageBox.Show(
+                    "Could not open issues page. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/issues",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
         }
 
-        private void CheckForUpdates()
+        private void OpenReleaseNotes()
         {
             try
             {
-                Process.Start(new ProcessStartInfo
+                var releaseNotesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "docs", "ReleaseNotes.txt");
+
+                if (File.Exists(releaseNotesPath))
                 {
-                    FileName = "https://github.com/andy-kemp/Win11ImagePrep/releases/latest",
-                    UseShellExecute = true
-                });
-                AddLog("✓ Opened releases page to check for updates");
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = releaseNotesPath,
+                        UseShellExecute = true
+                    });
+                    AddLog("✓ Opened release notes");
+                }
+                else
+                {
+                    AddLog("ℹ Release notes file not found");
+                    MessageBox.Show(
+                        "Release notes file not found.\n\nFor the latest changes, visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/releases",
+                        "Release Notes",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
-                AddLog($"✗ Error opening releases page: {ex.Message}");
-                MessageBox.Show("Could not open releases page. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/releases", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AddLog($"✗ Error opening release notes: {ex.Message}");
+                MessageBox.Show(
+                    $"Could not open release notes: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
         }
 
         private void ShowAbout()
         {
-            var aboutDialog = new AboutDialog();
-            aboutDialog.ShowDialog();
-            AddLog("✓ Displayed About dialog");
+            try
+            {
+                var settingsService = new SettingsService();
+                var aboutDialog = new AboutDialog(settingsService);
+                aboutDialog.ShowDialog();
+                AddLog("✓ Displayed About dialog");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error showing About dialog: {ex.Message}");
+            }
+        }
+
+        private void OpenOptions()
+        {
+            try
+            {
+                // Create settings service
+                var settingsService = new SettingsService();
+
+                // Create OptionsViewModel
+                var optionsViewModel = new OptionsViewModel(settingsService);
+
+                // Create and show Options window
+                var optionsWindow = new OptionsWindow(optionsViewModel);
+                var result = optionsWindow.ShowDialog();
+
+                if (result == true)
+                {
+                    // Settings were saved, reload configuration
+                    AddLog("✓ Settings updated successfully");
+                    AddLog($"ℹ New working folder: {settingsService.CurrentSettings.WorkingRoot}");
+                    AddLog("⚠ Some settings will take effect after restarting the application");
+
+                    MessageBox.Show(
+                        "Settings have been saved.\n\n" +
+                        "Some changes (like working folder location) will take effect after restarting the application.\n\n" +
+                        "Consider restarting the application now if you changed the working folder.",
+                        "Settings Saved",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                else
+                {
+                    AddLog("ℹ Settings dialog cancelled");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error opening options: {ex.Message}");
+                MessageBox.Show($"Error opening options: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         #endregion

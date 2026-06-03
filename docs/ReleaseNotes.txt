@@ -1,0 +1,196 @@
+================================================================================
+WinImagePrep - Release Notes
+================================================================================
+
+Version 4.3.0 - Dynamic App Discovery & Automated Workflow
+Release Date: January 2025
+Publisher: Andy Kemp Consulting Ltd
+
+================================================================================
+OVERVIEW
+================================================================================
+
+WinImagePrep is a professional Windows 11 image preparation tool built with
+native C# and WPF using .NET 8. It enables IT professionals and power users
+to create customized Windows 11 installation media with integrated drivers,
+removed unwanted apps, and bootable USB creation.
+
+================================================================================
+VERSION 4.3.0 - NEW IN THIS RELEASE
+================================================================================
+
+DYNAMIC APP DISCOVERY FROM ISO:
+
+  * NEW "Load Apps from ISO" feature scans install.wim for actual provisioned apps
+  * Discovers all ~47 apps present in the Windows image (not just a hardcoded list)
+  * Handles variant package names correctly (e.g., MSTeams vs MicrosoftTeams)
+  * Works with all Windows 11 editions and builds
+  * Full package name resolution for reliable app removal
+
+AUTOMATED WORKFLOW IMPROVEMENTS:
+
+  * Intelligent auto-prompt: When "Remove Windows apps" is checked and you click
+    "Prepare Image with Drivers", the app now automatically offers to:
+    - Scan the ISO and load all apps
+    - Open the app selection dialog
+    - Guide you through the removal process
+  * No more manual steps - just check the box and go!
+  * Graceful fallback to default app list if ISO scanning fails
+  * Smart detection of whether apps have already been loaded
+
+APP REMOVAL ENHANCEMENTS:
+
+  * Created ProvisionedApp model with DisplayName, PackageName, Version, PublisherId
+  * New GetProvisionedAppsDetailedAsync() method for comprehensive app metadata
+  * Dual-mode removal logic:
+    - Full package names (from ISO scan) used directly - faster, no re-scanning
+    - Partial names (legacy hardcoded list) trigger pattern matching
+  * Backward compatible with existing configurations
+
+USER EXPERIENCE:
+
+  * Green "Load Apps from ISO" button for manual discovery
+  * Automatic prompts guide users through the process
+  * Clear messaging about app loading status
+  * Option to continue without app removal if no apps selected
+
+================================================================================
+VERSION 4.2.1 - PREVIOUS RELEASE
+================================================================================
+
+STARTUP & FIRST-RUN IMPROVEMENTS:
+
+  * Fixed first-run window display and activation issues
+  * Corrected application shutdown mode for proper window lifecycle
+  * Improved splash screen timing and window ownership handling
+  * Enhanced first-run wizard visibility and user interaction flow
+
+STORAGE & PATH UPDATES:
+
+  * Changed default working folder from C:\Win11ImagePrep to C:\ProgramData\Win11ImagePrep
+  * All application data now centralized under C:\ProgramData\Win11ImagePrep
+  * Updated documentation to reflect new default storage location
+  * Settings and working files in consistent parent directory
+
+RESET & TROUBLESHOOTING:
+
+  * Added "Reset to Defaults" functionality for troubleshooting
+  * Settings reset capability to restore first-run experience
+  * Better error handling and logging during startup sequence
+  * Comprehensive diagnostic messages for startup failures
+
+================================================================================
+VERSION 4.1.1 - PREVIOUS RELEASE
+================================================================================
+
+PUBLIC RELEASE ENHANCEMENTS:
+
+  * Professional branding and UI polish for Andy Kemp Consulting Ltd
+  * First-run welcome wizard with system requirements and safety information
+  * Comprehensive local HTML user guide with quick-start workflow
+  * Professional About dialog with company information and working folder
+  * Updated Help menu with User Guide, Online Documentation, and GitHub links
+  * Release notes and local documentation integration
+
+SETTINGS & CONFIGURATION:
+
+  * JSON-based application settings system (C:\ProgramData\Win11ImagePrep)
+  * Configurable working folder with validation and disk space checking
+  * Auto cleanup mounted images on errors or application exit
+  * Check for updates preference
+  * Persistent log level configuration (Minimal, Information, Verbose)
+  * Options dialog for easy configuration management
+
+BUG FIXES:
+
+  * Fixed Teams removal to match full provisioned package names
+  * Added MSTeams (enterprise/work-school) alongside MicrosoftTeams (consumer)
+  * Improved app removal reliability with DISM full-name matching
+
+================================================================================
+VERSION 4.0.2 - EARLIER RELEASE
+================================================================================
+
+FEATURES:
+
+  * Native C# WPF application built on .NET 8
+  * MVVM architecture with clean separation of concerns
+  * ISO extraction and validation for Windows 11 installation media
+  * Driver MSI extraction with cabinet file support
+  * Driver injection into boot.wim and install.wim images
+  * Windows edition selection and filtering
+  * Windows app removal (Teams, Xbox, OneDrive, etc.)
+  * Multiple driver source types: MSI, Folder, ZIP
+  * Bootable UEFI USB creation with GPT partitioning
+  * Saved image management and reuse
+  * Real-time progress tracking and operation logging
+  * Cancellation support for long-running operations
+  * Automatic cleanup and error recovery
+  * File-based and UI-based logging system
+
+TECHNICAL STACK:
+
+  * .NET 8.0 / WPF desktop application
+  * MVVM design pattern with data binding
+  * DISM (Deployment Image Servicing and Management) integration
+  * Windows PowerShell automation for USB creation
+  * Cabinet file extraction for driver MSI packages
+  * Async/await for responsive UI during long operations
+
+================================================================================
+SYSTEM REQUIREMENTS
+================================================================================
+
+  Operating System:  Windows 10 version 1809 or later, Windows 11
+  Privileges:        Administrator rights required for DISM and USB operations
+  Disk Space:        25 GB minimum free space on working drive
+  Memory:            4 GB RAM recommended
+  .NET Runtime:      Bundled with standalone EXE (no separate install needed)
+
+================================================================================
+KNOWN LIMITATIONS
+================================================================================
+
+  * Some operations require administrator privileges and will prompt if needed
+  * Processing time for image preparation: 20-60 minutes depending on system
+  * USB drive creation permanently erases all data on target drive
+  * Network drives and OneDrive-synced folders are not supported for working folder
+  * Windows 11 ISO required (Windows 10 not officially supported)
+
+================================================================================
+SUPPORT & DOCUMENTATION
+================================================================================
+
+  Website:            https://tools.andykemp.com
+  Documentation:      https://tools.andykemp.com/winimageprep
+  GitHub Repository:  https://github.com/andy-kemp/Win11ImagePrep
+  Report Issues:      https://github.com/andy-kemp/Win11ImagePrep/issues
+  User Guide:         Local docs/UserGuide.html (included with installation)
+
+================================================================================
+COPYRIGHT & LICENSE
+================================================================================
+
+  Copyright © 2025 Andy Kemp Consulting Ltd. All rights reserved.
+
+  This software is provided "as is" without warranty of any kind, express or
+  implied. Use at your own risk. Always back up important data before using
+  disk imaging or USB creation features.
+
+================================================================================
+DEVELOPER NOTES
+================================================================================
+
+  WinImagePrep is designed for:
+
+  * IT professionals deploying custom Windows 11 images
+  * System builders creating driver-integrated installation media
+  * Power users preparing Surface or OEM-specific Windows installations
+  * Corporate environments requiring app-free Windows deployments
+
+  The application automates DISM and PowerShell workflows while providing
+  real-time feedback and robust error handling.
+
+================================================================================
+END OF RELEASE NOTES
+================================================================================

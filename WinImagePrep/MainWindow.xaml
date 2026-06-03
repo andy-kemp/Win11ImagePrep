@@ -4,13 +4,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Windows Image Preparation Tool V4"
+        Title="WinImagePrep v4.3.0"
         Width="920" 
-        Height="880"
+        Height="950"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="920"
-        MinHeight="600"
+        MinHeight="700"
         Background="White">
 
     <DockPanel>
@@ -22,30 +22,42 @@
                 <Separator/>
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" ToolTip="Close the application"/>
             </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem Header="_Options..." Command="{Binding OpenOptionsCommand}" ToolTip="Configure application settings">
+                    <MenuItem.Icon>
+                        <TextBlock Text="⚙" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
             <MenuItem Header="_Help">
-                <MenuItem Header="_Documentation" Command="{Binding OpenDocumentationCommand}" ToolTip="View online documentation">
+                <MenuItem Header="_User Guide" Command="{Binding OpenUserGuideCommand}" ToolTip="Open local user guide">
+                    <MenuItem.Icon>
+                        <TextBlock Text="📘" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Online Documentation" Command="{Binding OpenOnlineDocumentationCommand}" ToolTip="View online documentation at docs.andykemp.com">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🌐" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_GitHub README" Command="{Binding OpenGitHubReadmeCommand}" ToolTip="View project README on GitHub">
                     <MenuItem.Icon>
                         <TextBlock Text="📖" FontSize="14"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_How to Use" Command="{Binding ShowHowToUseCommand}" ToolTip="Quick start guide">
+                <Separator/>
+                <MenuItem Header="_Report Issue" Command="{Binding OpenReportIssueCommand}" ToolTip="Report bugs or request features on GitHub">
                     <MenuItem.Icon>
-                        <TextBlock Text="❓" FontSize="14"/>
+                        <TextBlock Text="🐛" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Release _Notes" Command="{Binding OpenReleaseNotesCommand}" ToolTip="View release notes">
+                    <MenuItem.Icon>
+                        <TextBlock Text="📋" FontSize="14"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="_Support / Report Issue" Command="{Binding OpenSupportCommand}" ToolTip="Get help or report issues">
-                    <MenuItem.Icon>
-                        <TextBlock Text="💬" FontSize="14"/>
-                    </MenuItem.Icon>
-                </MenuItem>
-                <MenuItem Header="Check for _Updates" Command="{Binding CheckUpdatesCommand}" ToolTip="Check for new versions">
-                    <MenuItem.Icon>
-                        <TextBlock Text="🔄" FontSize="14"/>
-                    </MenuItem.Icon>
-                </MenuItem>
-                <Separator/>
-                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}" ToolTip="About this application">
+                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}" ToolTip="About WinImagePrep">
                     <MenuItem.Icon>
                         <TextBlock Text="ℹ" FontSize="14"/>
                     </MenuItem.Icon>
@@ -76,8 +88,8 @@
             <!-- Overall Progress -->
             <RowDefinition Height="Auto"/>
             <!-- Current Operation Progress -->
-            <RowDefinition Height="Auto"/>
-            <!-- Operation Log -->
+            <RowDefinition Height="*" MinHeight="220"/>
+            <!-- Operation Log - grows to fill remaining space -->
         </Grid.RowDefinitions>
 
         <!-- Title -->
@@ -167,6 +179,15 @@
                           VerticalAlignment="Center"
                           Margin="0,0,15,0"
                           Width="220"/>
+                <Button Content="Load Apps from ISO" 
+                        Command="{Binding LoadAppsFromIsoCommand}"
+                        Width="150" 
+                        Height="28"
+                        Background="#28A745"
+                        Foreground="White"
+                        FontWeight="SemiBold"
+                        Margin="0,0,5,0"
+                        ToolTip="Scan the ISO and load all provisioned apps into the selection list"/>
                 <Button Content="Select Apps to Remove..." 
                         Command="{Binding SelectAppsToRemoveCommand}"
                         Width="180" 
@@ -328,29 +349,33 @@
         <Expander Grid.Row="10"
                   Header="Operation Log" 
                   IsExpanded="True"
-                  Margin="0,0,0,0">
-            <ListBox ItemsSource="{Binding LogEntries}"
-                     Background="Black"
-                     Foreground="Lime"
-                     FontWeight="Bold"
-                     FontSize="12"
-                     FontFamily="Consolas"
-                     BorderThickness="1"
-                     BorderBrush="#0078D4"
-                     Height="200"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     ScrollViewer.HorizontalScrollBarVisibility="Auto">
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="Foreground" Value="Lime"/>
-                        <Setter Property="Padding" Value="2"/>
-                        <Setter Property="Margin" Value="0"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <EventSetter Event="Loaded" Handler="LogItem_Loaded"/>
-                    </Style>
-                </ListBox.ItemContainerStyle>
-            </ListBox>
+                  Margin="0,0,0,15">
+            <Border BorderThickness="1"
+                    BorderBrush="#0078D4"
+                    Background="Black"
+                    Padding="0"
+                    Margin="0,5,0,0">
+                <ScrollViewer x:Name="LogScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Auto"
+                              MaxHeight="280"
+                              Padding="0,0,2,2">
+                    <ItemsControl ItemsSource="{Binding LogEntries}"
+                                  x:Name="LogItemsControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           Foreground="Lime"
+                                           FontWeight="Bold"
+                                           FontSize="12"
+                                           FontFamily="Consolas"
+                                           Padding="2"
+                                           Margin="0"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
         </Expander>
     </Grid>
     </DockPanel>

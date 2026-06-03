@@ -550,6 +550,100 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// Get detailed list of provisioned appx packages from a mounted image
+        /// Returns both DisplayName and full PackageName for each app
+        /// </summary>
+        public async Task<List<ProvisionedApp>> GetProvisionedAppsDetailedAsync(
+            string mountPath,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            var apps = new List<ProvisionedApp>();
+
+            try
+            {
+                progress?.Report("Scanning provisioned apps in image...");
+
+                var arguments = $"/Image:\"{mountPath}\" /Get-ProvisionedAppxPackages";
+                var result = await ProcessHelper.ExecuteProcessAsync(_dismPath, arguments, cancellationToken);
+
+                if (result.Success)
+                {
+                    var lines = result.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    string? currentDisplayName = null;
+                    string? currentPackageName = null;
+                    string? currentVersion = null;
+                    string? currentPublisherId = null;
+
+                    foreach (var line in lines)
+                    {
+                        if (line.Contains("DisplayName :"))
+                        {
+                            currentDisplayName = line.Split(new[] { ':' }, 2)[1].Trim();
+                        }
+                        else if (line.Contains("Version :"))
+                        {
+                            currentVersion = line.Split(new[] { ':' }, 2)[1].Trim();
+                        }
+                        else if (line.Contains("PackageName :"))
+                        {
+                            currentPackageName = line.Split(new[] { ':' }, 2)[1].Trim();
+                        }
+                        else if (line.Contains("PublisherId :"))
+                        {
+                            currentPublisherId = line.Split(new[] { ':' }, 2)[1].Trim();
+                        }
+
+                        // When we hit a blank line or "Regions", we've finished one app entry
+                        if ((string.IsNullOrWhiteSpace(line) || line.Contains("Regions :")) &&
+                            !string.IsNullOrEmpty(currentDisplayName) &&
+                            !string.IsNullOrEmpty(currentPackageName))
+                        {
+                            apps.Add(new ProvisionedApp
+                            {
+                                DisplayName = currentDisplayName,
+                                PackageName = currentPackageName,
+                                Version = currentVersion ?? string.Empty,
+                                PublisherId = currentPublisherId ?? string.Empty
+                            });
+
+                            // Reset for next app
+                            currentDisplayName = null;
+                            currentPackageName = null;
+                            currentVersion = null;
+                            currentPublisherId = null;
+                        }
+                    }
+
+                    // Handle last entry if file doesn't end with blank line
+                    if (!string.IsNullOrEmpty(currentDisplayName) && !string.IsNullOrEmpty(currentPackageName))
+                    {
+                        apps.Add(new ProvisionedApp
+                        {
+                            DisplayName = currentDisplayName,
+                            PackageName = currentPackageName,
+                            Version = currentVersion ?? string.Empty,
+                            PublisherId = currentPublisherId ?? string.Empty
+                        });
+                    }
+
+                    progress?.Report($"Found {apps.Count} provisioned apps in image");
+                }
+                else
+                {
+                    progress?.Report($"Failed to get provisioned apps: {result.Error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error getting provisioned apps: {ex.Message}");
+            }
+
+            return apps;
+        }
+
+        /// <summary>
         /// Remove a provisioned appx package from a mounted image
         /// </summary>
         public async Task<bool> RemoveProvisionedAppAsync(
@@ -605,19 +699,82 @@ namespace WinImagePrep.Services
 
             try
             {
-                progress?.Report($"Removing {packageNames.Count} provisioned app(s)...");
+                progress?.Report($"Processing {packageNames.Count} app(s) for removal...");
 
-                foreach (var packageName in packageNames)
+                // Separate full package names from partial names
+                // Full package names contain version numbers like "_11.2210.0.0_"
+                var fullPackageNames = packageNames.Where(name => name.Contains("_") && name.Split('_').Length >= 3).ToList();
+                var partialNames = packageNames.Except(fullPackageNames).ToList();
+
+                var packagesToRemove = new List<string>();
+
+                // If we have full package names, use them directly (from ISO scan)
+                if (fullPackageNames.Any())
+                {
+                    progress?.Report($"Using {fullPackageNames.Count} full package name(s) from ISO scan");
+                    packagesToRemove.AddRange(fullPackageNames);
+                }
+
+                // For partial names, we need to scan and match (legacy mode)
+                if (partialNames.Any())
+                {
+                    progress?.Report($"Scanning image for {partialNames.Count} app pattern(s)...");
+
+                    // Get all provisioned apps from the image
+                    var allProvisionedApps = await GetProvisionedAppxPackagesAsync(mountPath, progress, cancellationToken);
+
+                    if (!allProvisionedApps.Any())
+                    {
+                        progress?.Report("⚠ No provisioned apps found in image for pattern matching");
+                    }
+                    else
+                    {
+                        progress?.Report($"Found {allProvisionedApps.Count} provisioned app(s) in image");
+                        progress?.Report($"Matching against {partialNames.Count} pattern(s)...");
+
+                        // Match short names to full package names
+                        foreach (var shortName in partialNames)
+                        {
+                            // Find all packages that contain this short name (case-insensitive)
+                            var matches = allProvisionedApps
+                                .Where(pkg => pkg.IndexOf(shortName, StringComparison.OrdinalIgnoreCase) >= 0)
+                                .ToList();
+
+                            if (matches.Any())
+                            {
+                                packagesToRemove.AddRange(matches);
+                                progress?.Report($"  '{shortName}' matched {matches.Count} package(s)");
+                            }
+                            else
+                            {
+                                progress?.Report($"  '{shortName}' - no matches found");
+                            }
+                        }
+                    }
+                }
+
+                if (!packagesToRemove.Any())
+                {
+                    progress?.Report("⚠ No packages found to remove");
+                    return 0;
+                }
+
+                // Remove duplicates
+                packagesToRemove = packagesToRemove.Distinct().ToList();
+                progress?.Report($"Removing {packagesToRemove.Count} unique package(s)...");
+
+                // Remove each matched package
+                foreach (var fullPackageName in packagesToRemove)
                 {
                     if (cancellationToken.IsCancellationRequested)
                         break;
 
-                    var success = await RemoveProvisionedAppAsync(mountPath, packageName, progress, cancellationToken);
+                    var success = await RemoveProvisionedAppAsync(mountPath, fullPackageName, progress, cancellationToken);
                     if (success)
                         removedCount++;
                 }
 
-                progress?.Report($"✓ Removed {removedCount} of {packageNames.Count} app(s)");
+                progress?.Report($"✓ Removed {removedCount} of {packagesToRemove.Count} app(s)");
             }
             catch (Exception ex)
             {
@@ -625,6 +782,43 @@ namespace WinImagePrep.Services
             }
 
             return removedCount;
+        }
+
+        /// <summary>
+        /// Get list of full provisioned appx package names from a mounted image
+        /// </summary>
+        private async Task<List<string>> GetProvisionedAppxPackagesAsync(
+            string mountPath,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            var packages = new List<string>();
+
+            try
+            {
+                var arguments = $"/Image:\"{mountPath}\" /Get-ProvisionedAppxPackages";
+                var result = await ProcessHelper.ExecuteProcessAsync(_dismPath, arguments, cancellationToken);
+
+                if (result.Success)
+                {
+                    var lines = result.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lines)
+                    {
+                        // Look for PackageName (full name with version) instead of DisplayName
+                        if (line.Contains("PackageName :"))
+                        {
+                            var packageName = line.Split(new[] { ':' }, 2)[1].Trim();
+                            packages.Add(packageName);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error getting package list: {ex.Message}");
+            }
+
+            return packages;
         }
 
         /// <summary>

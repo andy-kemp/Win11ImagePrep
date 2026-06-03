@@ -1,0 +1,213 @@
+<Window x:Class="WinImagePrep.FirstRunWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Welcome to WinImagePrep"
+        Width="650" 
+        Height="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="White"
+        ShowInTaskbar="True"
+        Topmost="True"
+        WindowStyle="SingleBorderWindow">
+
+    <Window.Resources>
+        <!-- Title Style -->
+        <Style x:Key="TitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+        </Style>
+
+        <!-- Section Title Style -->
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Margin" Value="0,15,0,10"/>
+        </Style>
+
+        <!-- Body Text Style -->
+        <Style x:Key="BodyTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#34495E"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <!-- Button Style -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="25,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#106EBE"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="#6C757D"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#5A6268"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="InfoBoxStyle" TargetType="Border">
+            <Setter Property="Background" Value="#E7F3FF"/>
+            <Setter Property="BorderBrush" Value="#B3D9FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="Margin" Value="0,10,0,10"/>
+        </Style>
+
+        <Style x:Key="WarningBoxStyle" TargetType="Border">
+            <Setter Property="Background" Value="#FFF4E5"/>
+            <Setter Property="BorderBrush" Value="#FFD699"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="Margin" Value="0,10,0,10"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="Welcome to WinImagePrep" Style="{StaticResource TitleStyle}"/>
+            <TextBlock Style="{StaticResource BodyTextStyle}">
+                <Run FontWeight="SemiBold">Create customized Windows 11 installation media with integrated drivers.</Run>
+            </TextBlock>
+        </StackPanel>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- What it does -->
+                <TextBlock Text="What WinImagePrep Does" Style="{StaticResource SectionTitleStyle}"/>
+                <TextBlock Style="{StaticResource BodyTextStyle}">
+                    WinImagePrep helps you prepare Windows 11 installation media by:
+                </TextBlock>
+                <TextBlock Style="{StaticResource BodyTextStyle}" Margin="20,0,0,10">
+                    • Extracting Windows 11 ISO files<LineBreak/>
+                    • Extracting drivers from MSI packages<LineBreak/>
+                    • Injecting drivers into Windows images<LineBreak/>
+                    • Removing unwanted Windows apps<LineBreak/>
+                    • Creating bootable USB installation media<LineBreak/>
+                    • Saving customized images for reuse
+                </TextBlock>
+
+                <!-- Requirements -->
+                <TextBlock Text="Requirements" Style="{StaticResource SectionTitleStyle}"/>
+                <Border Style="{StaticResource InfoBoxStyle}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource BodyTextStyle}" Margin="0">
+                            <Run FontWeight="SemiBold">✓ Administrator Privileges:</Run> Required for mounting images and creating bootable media<LineBreak/>
+                            <Run FontWeight="SemiBold">✓ Disk Space:</Run> At least 25 GB free on the working drive<LineBreak/>
+                            <Run FontWeight="SemiBold">✓ Windows ISO:</Run> A Windows 11 installation ISO file<LineBreak/>
+                            <Run FontWeight="SemiBold">✓ Drivers (Optional):</Run> Driver MSI packages or extracted driver folders
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Working Folder -->
+                <TextBlock Text="Working Folder" Style="{StaticResource SectionTitleStyle}"/>
+                <TextBlock Style="{StaticResource BodyTextStyle}">
+                    All temporary and output files will be stored in:
+                </TextBlock>
+                <Border Background="#F8F9FA" 
+                        BorderBrush="#DEE2E6" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="12"
+                        Margin="0,5,0,10">
+                    <TextBlock Text="{Binding WorkingFolder}" 
+                               FontFamily="Consolas" 
+                               FontSize="12" 
+                               Foreground="#495057"/>
+                </Border>
+                <TextBlock Style="{StaticResource BodyTextStyle}" FontSize="11" Foreground="#6C757D">
+                    You can change this location later via Tools > Options.
+                </TextBlock>
+
+                <!-- Important Notes -->
+                <TextBlock Text="Important Safety Notes" Style="{StaticResource SectionTitleStyle}"/>
+                <Border Style="{StaticResource WarningBoxStyle}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource BodyTextStyle}" Margin="0">
+                            <Run FontWeight="SemiBold">⚠ USB Drive Warning:</Run> Creating bootable USB media will completely erase all data on the selected USB drive.<LineBreak/><LineBreak/>
+                            <Run FontWeight="SemiBold">⚠ Administrator Rights:</Run> Some operations require administrator privileges to function correctly.<LineBreak/><LineBreak/>
+                            <Run FontWeight="SemiBold">⚠ Processing Time:</Run> Image preparation can take 30-60 minutes or more depending on your system.
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Getting Started -->
+                <TextBlock Text="Getting Started" Style="{StaticResource SectionTitleStyle}"/>
+                <TextBlock Style="{StaticResource BodyTextStyle}">
+                    Click <Run FontWeight="SemiBold">Continue</Run> to start using WinImagePrep, or open the User Guide for detailed instructions.
+                </TextBlock>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Action Buttons -->
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0"
+                    Content="Open User Guide"
+                    Command="{Binding OpenUserGuideCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="20,10"
+                    Margin="0,0,10,0"/>
+
+            <Button Grid.Column="2"
+                    Content="Open Options"
+                    Command="{Binding OpenOptionsCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Padding="20,10"
+                    Margin="0,0,10,0"/>
+
+            <Button Grid.Column="3"
+                    Content="Continue"
+                    Click="Continue_Click"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Padding="30,10"/>
+        </Grid>
+    </Grid>
+</Window>
