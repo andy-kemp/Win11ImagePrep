@@ -503,72 +503,49 @@ namespace WinImagePrep.ViewModels
                 OverallProgressText = "Loading apps from ISO";
                 OverallProgress = 0;
 
-                string? mountedDriveLetter = null;
+                string? tempIsoExtractPath = null;
                 string? tempMountPath = null;
 
                 try
                 {
-                    // Step 1: Mount the ISO
-                    AddLog("Mounting ISO...");
-                    OverallProgress = 10;
-                    mountedDriveLetter = await _isoService.MountIsoAsync(SelectedIsoPath, new Progress<string>(AddLog), _cancellationTokenSource?.Token ?? default);
+                    // Step 1: Extract ISO to temp folder (DISM cannot mount WIM from read-only ISO)
+                    tempIsoExtractPath = Path.Combine(_config.TempBaseDirectory, $"iso_extract_{Guid.NewGuid():N}");
+                    Directory.CreateDirectory(tempIsoExtractPath);
+                    AddLog($"Created temp ISO extract folder: {tempIsoExtractPath}");
+                    OverallProgress = 5;
 
-                    if (string.IsNullOrEmpty(mountedDriveLetter))
+                    AddLog("Extracting ISO contents (this may take a few minutes)...");
+                    var extractSuccess = await _isoService.ExtractIsoAsync(
+                        SelectedIsoPath,
+                        tempIsoExtractPath,
+                        new Progress<string>(AddLog),
+                        _cancellationTokenSource?.Token ?? default);
+
+                    if (!extractSuccess)
                     {
-                        AddLog("✗ Failed to mount ISO");
-                        MessageBox.Show("Failed to mount ISO file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        AddLog("✗ Failed to extract ISO");
+                        MessageBox.Show("Failed to extract ISO contents.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
-                    AddLog($"✓ ISO mounted to {mountedDriveLetter}:");
-                    OverallProgress = 20;
+                    AddLog("✓ ISO extracted successfully");
+                    OverallProgress = 30;
 
-                    // Step 2: Locate install.wim
-                    var installWimPath = Path.Combine($"{mountedDriveLetter}:\\", "sources", "install.wim");
+                    // Step 2: Locate install.wim in extracted folder
+                    var installWimPath = Path.Combine(tempIsoExtractPath, "sources", "install.wim");
                     if (!File.Exists(installWimPath))
                     {
-                        installWimPath = Path.Combine($"{mountedDriveLetter}:\\", "sources", "install.esd");
+                        installWimPath = Path.Combine(tempIsoExtractPath, "sources", "install.esd");
                         if (!File.Exists(installWimPath))
                         {
-                            AddLog("✗ install.wim/install.esd not found in ISO");
+                            AddLog("✗ install.wim/install.esd not found in extracted ISO");
                             MessageBox.Show("Could not find install.wim or install.esd in the ISO.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
                     }
 
                     AddLog($"Found image: {Path.GetFileName(installWimPath)}");
-                    OverallProgress = 30;
-
-                    // Step 2.5: Verify file access and permissions
-                    AddLog($"Verifying file access to: {installWimPath}");
-                    try
-                    {
-                        // Check if file is readable
-                        using (var testStream = File.OpenRead(installWimPath))
-                        {
-                            AddLog($"✓ File is readable (Size: {testStream.Length:N0} bytes)");
-                        }
-                    }
-                    catch (UnauthorizedAccessException ex)
-                    {
-                        AddLog($"✗ ERROR: Access denied to WIM file");
-                        AddLog($"  Details: {ex.Message}");
-                        MessageBox.Show(
-                            $"Access denied to the Windows image file.\n\n" +
-                            $"Please ensure:\n" +
-                            $"1. You are running as Administrator\n" +
-                            $"2. Antivirus is not blocking the file\n" +
-                            $"3. The ISO is not locked by another process\n\n" +
-                            $"Path: {installWimPath}",
-                            "Access Denied", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        AddLog($"✗ ERROR: Cannot read WIM file: {ex.Message}");
-                        MessageBox.Show($"Cannot access the Windows image file:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
+                    OverallProgress = 35;
 
                     // Step 3: Get editions to find index 1
                     AddLog("Reading Windows editions...");
@@ -589,7 +566,7 @@ namespace WinImagePrep.ViewModels
                     tempMountPath = Path.Combine(_config.TempBaseDirectory, $"mount_{Guid.NewGuid():N}");
                     Directory.CreateDirectory(tempMountPath);
                     AddLog($"Created temp mount point: {tempMountPath}");
-                    OverallProgress = 50;
+                    OverallProgress = 45;
 
                     // Step 5: Mount the WIM
                     AddLog($"Mounting Windows image (this may take a minute)...");
@@ -689,18 +666,19 @@ namespace WinImagePrep.ViewModels
                         }
                     }
 
-                    // Step 9: Dismount ISO
-                    if (!string.IsNullOrEmpty(mountedDriveLetter))
+                    // Step 9: Clean up extracted ISO folder
+                    if (!string.IsNullOrEmpty(tempIsoExtractPath) && Directory.Exists(tempIsoExtractPath))
                     {
                         try
                         {
-                            AddLog("Dismounting ISO...");
-                            await _isoService.DismountIsoAsync(SelectedIsoPath);
-                            AddLog("✓ ISO dismounted");
+                            AddLog("Cleaning up extracted ISO files...");
+                            FileSystemHelper.DeleteDirectoryContents(tempIsoExtractPath);
+                            Directory.Delete(tempIsoExtractPath);
+                            AddLog("✓ Temporary files cleaned up");
                         }
                         catch (Exception ex)
                         {
-                            AddLog($"⚠ ISO dismount warning: {ex.Message}");
+                            AddLog($"⚠ Cleanup warning: {ex.Message}");
                         }
                     }
                 }
