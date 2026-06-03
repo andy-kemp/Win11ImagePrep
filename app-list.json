@@ -1,0 +1,197 @@
+[
+  {
+    "packageName": "Clipchamp.Clipchamp",
+    "displayName": "Clipchamp",
+    "description": "Video editor"
+  },
+  {
+    "packageName": "Microsoft.549981C3F5F10",
+    "displayName": "Cortana",
+    "description": "Digital assistant"
+  },
+  {
+    "packageName": "Microsoft.BingNews",
+    "displayName": "Bing News",
+    "description": "News application"
+  },
+  {
+    "packageName": "Microsoft.BingWeather",
+    "displayName": "Weather",
+    "description": "Weather application"
+  },
+  {
+    "packageName": "Microsoft.GamingApp",
+    "displayName": "Xbox",
+    "description": "Gaming application"
+  },
+  {
+    "packageName": "Microsoft.GetHelp",
+    "displayName": "Get Help",
+    "description": "Help application"
+  },
+  {
+    "packageName": "Microsoft.Getstarted",
+    "displayName": "Get Started / Tips",
+    "description": "Getting started application"
+  },
+  {
+    "packageName": "Microsoft.MicrosoftOfficeHub",
+    "displayName": "Office Hub",
+    "description": "Office application hub"
+  },
+  {
+    "packageName": "Microsoft.MicrosoftSolitaireCollection",
+    "displayName": "Solitaire Collection",
+    "description": "Solitaire games"
+  },
+  {
+    "packageName": "Microsoft.MicrosoftStickyNotes",
+    "displayName": "Sticky Notes",
+    "description": "Note-taking application"
+  },
+  {
+    "packageName": "Microsoft.People",
+    "displayName": "People",
+    "description": "Contacts application"
+  },
+  {
+    "packageName": "Microsoft.PowerAutomateDesktop",
+    "displayName": "Power Automate",
+    "description": "Automation application"
+  },
+  {
+    "packageName": "Microsoft.ScreenSketch",
+    "displayName": "Snipping Tool",
+    "description": "Screenshot application"
+  },
+  {
+    "packageName": "Microsoft.Todos",
+    "displayName": "Microsoft To Do",
+    "description": "Task management"
+  },
+  {
+    "packageName": "Microsoft.Windows.Photos",
+    "displayName": "Photos",
+    "description": "Photo viewer/editor"
+  },
+  {
+    "packageName": "Microsoft.WindowsAlarms",
+    "displayName": "Alarms & Clock",
+    "description": "Clock and alarm application"
+  },
+  {
+    "packageName": "Microsoft.WindowsCalculator",
+    "displayName": "Calculator",
+    "description": "Calculator application"
+  },
+  {
+    "packageName": "Microsoft.WindowsCamera",
+    "displayName": "Camera",
+    "description": "Camera application"
+  },
+  {
+    "packageName": "microsoft.windowscommunicationsapps",
+    "displayName": "Mail and Calendar",
+    "description": "Email and calendar"
+  },
+  {
+    "packageName": "Microsoft.WindowsFeedbackHub",
+    "displayName": "Feedback Hub",
+    "description": "Windows feedback"
+  },
+  {
+    "packageName": "Microsoft.WindowsMaps",
+    "displayName": "Maps",
+    "description": "Maps application"
+  },
+  {
+    "packageName": "Microsoft.WindowsSoundRecorder",
+    "displayName": "Voice Recorder",
+    "description": "Audio recording"
+  },
+  {
+    "packageName": "Microsoft.Xbox.TCUI",
+    "displayName": "Xbox TCUI",
+    "description": "Xbox UI component"
+  },
+  {
+    "packageName": "Microsoft.XboxGameOverlay",
+    "displayName": "Xbox Game Overlay",
+    "description": "Xbox gaming overlay"
+  },
+  {
+    "packageName": "Microsoft.XboxGamingOverlay",
+    "displayName": "Xbox Gaming Overlay",
+    "description": "Xbox gaming features"
+  },
+  {
+    "packageName": "Microsoft.XboxIdentityProvider",
+    "displayName": "Xbox Identity Provider",
+    "description": "Xbox identity service"
+  },
+  {
+    "packageName": "Microsoft.XboxSpeechToTextOverlay",
+    "displayName": "Xbox Speech to Text",
+    "description": "Xbox speech features"
+  },
+  {
+    "packageName": "Microsoft.YourPhone",
+    "displayName": "Phone Link",
+    "description": "Phone integration"
+  },
+  {
+    "packageName": "Microsoft.ZuneMusic",
+    "displayName": "Groove Music / Media Player",
+    "description": "Music player"
+  },
+  {
+    "packageName": "Microsoft.ZuneVideo",
+    "displayName": "Movies & TV",
+    "description": "Video player"
+  },
+  {
+    "packageName": "MicrosoftCorporationII.QuickAssist",
+    "displayName": "Quick Assist",
+    "description": "Remote assistance"
+  },
+  {
+    "packageName": "MicrosoftTeams",
+    "displayName": "Microsoft Teams",
+    "description": "Collaboration application"
+  },
+  {
+    "packageName": "MSTeams",
+    "displayName": "Microsoft Teams (New)",
+    "description": "Collaboration application (new version)"
+  },
+  {
+    "packageName": "Microsoft.OneDriveSync",
+    "displayName": "OneDrive",
+    "description": "Cloud storage sync"
+  },
+  {
+    "packageName": "Microsoft.OutlookForWindows",
+    "displayName": "Outlook (new)",
+    "description": "Email client"
+  },
+  {
+    "packageName": "Microsoft.Paint",
+    "displayName": "Paint",
+    "description": "Image editor"
+  },
+  {
+    "packageName": "Microsoft.SkypeApp",
+    "displayName": "Skype",
+    "description": "Communication application"
+  },
+  {
+    "packageName": "Microsoft.Whiteboard",
+    "displayName": "Whiteboard",
+    "description": "Digital whiteboard"
+  },
+  {
+    "packageName": "Microsoft.WindowsStore",
+    "displayName": "Microsoft Store",
+    "description": "App store (be careful removing this)"
+  }
+]

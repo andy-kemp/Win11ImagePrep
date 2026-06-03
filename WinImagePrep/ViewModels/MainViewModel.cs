@@ -24,6 +24,7 @@ namespace WinImagePrep.ViewModels
         private readonly DriverService _driverService;
         private readonly DismService _dismService;
         private readonly UsbService _usbService;
+        private readonly AppListService _appListService;
         private CancellationTokenSource? _cancellationTokenSource;
         private bool _disposed;
 
@@ -39,6 +40,7 @@ namespace WinImagePrep.ViewModels
             _driverService = new DriverService();
             _dismService = new DismService();
             _usbService = new UsbService();
+            _appListService = new AppListService();
 
             // Initialize commands
             BrowseIsoCommand = new RelayCommand(BrowseIso);
@@ -47,7 +49,8 @@ namespace WinImagePrep.ViewModels
             BrowseDriverSourceCommand = new RelayCommand(BrowseDriverSource);
             SelectEditionsCommand = new RelayCommand(SelectEditions, () => !string.IsNullOrEmpty(SelectedIsoPath));
             SelectAppsToRemoveCommand = new RelayCommand(SelectAppsToRemove);
-            LoadAppsFromIsoCommand = new RelayCommand(async () => await LoadAppsFromIsoAsync(), () => !string.IsNullOrEmpty(SelectedIsoPath) && !IsProcessing);
+            LoadAppsCommand = new RelayCommand(async () => await LoadAppsAsync(), () => !IsProcessing);
+            ScanAppsFromIsoCommand = new RelayCommand(async () => await ScanAppsFromIsoAsync(), () => !string.IsNullOrEmpty(SelectedIsoPath) && !IsProcessing);
             InjectDriversCommand = new RelayCommand(async () => await InjectDriversAsync(), CanExecuteInject);
             CreateUsbFromIsoCommand = new RelayCommand(async () => await CreateUsbFromIsoAsync(), CanCreateUsbFromIso);
             CreateUsbCommand = new RelayCommand(async () => await CreateUsbAsync(), CanCreateUsb);
@@ -270,7 +273,8 @@ namespace WinImagePrep.ViewModels
         public ICommand BrowseDriverSourceCommand { get; }
         public ICommand SelectEditionsCommand { get; }
         public ICommand SelectAppsToRemoveCommand { get; }
-        public ICommand LoadAppsFromIsoCommand { get; }
+        public ICommand LoadAppsCommand { get; }
+        public ICommand ScanAppsFromIsoCommand { get; }
         public ICommand InjectDriversCommand { get; }
         public ICommand CreateUsbFromIsoCommand { get; }
         public ICommand CreateUsbCommand { get; }
@@ -471,7 +475,64 @@ namespace WinImagePrep.ViewModels
             }
         }
 
-        private async Task LoadAppsFromIsoAsync()
+        /// <summary>
+        /// Load app list from GitHub/cache (fast method)
+        /// </summary>
+        private async Task LoadAppsAsync()
+        {
+            try
+            {
+                IsProcessing = true;
+                AddLog("Loading Windows app list...");
+
+                var apps = await _appListService.LoadAppListAsync(
+                    new Progress<string>(AddLog),
+                    _cancellationTokenSource?.Token ?? default);
+
+                if (apps.Any())
+                {
+                    WindowsApps.Clear();
+                    foreach (var app in apps.OrderBy(a => a.DisplayName))
+                    {
+                        WindowsApps.Add(app);
+                    }
+
+                    AddLog($"✓ Loaded {WindowsApps.Count} apps");
+                    MessageBox.Show(
+                        $"Loaded {WindowsApps.Count} Windows apps.\n\n" +
+                        $"Select the apps you want to remove, then prepare your image.",
+                        "Apps Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    AddLog("⚠ No apps loaded - you can scan from ISO instead");
+                    var result = MessageBox.Show(
+                        "No app list available from GitHub or cache.\n\n" +
+                        "Would you like to scan apps directly from your ISO?\n" +
+                        "(This will take 5-10 minutes)",
+                        "No App List", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        await ScanAppsFromIsoAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error loading apps: {ex.Message}");
+                MessageBox.Show($"Error loading app list:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsProcessing = false;
+            }
+        }
+
+        /// <summary>
+        /// Scan apps from ISO (slow method - extracts and mounts)
+        /// </summary>
+        private async Task ScanAppsFromIsoAsync()
         {
             // Step 0: Verify admin rights
             if (!AdminHelper.IsRunningAsAdministrator())
@@ -636,6 +697,17 @@ namespace WinImagePrep.ViewModels
                     AddLog($"✓ Loaded {WindowsApps.Count} apps into selection list");
                     OnPropertyChanged(nameof(SelectedAppsCountText));
                     OverallProgress = 100;
+
+                    // Save scanned apps to cache for future use
+                    try
+                    {
+                        await _appListService.SaveScannedAppsAsync(WindowsApps.ToList());
+                        AddLog("✓ Saved app list to cache");
+                    }
+                    catch (Exception ex)
+                    {
+                        AddLog($"⚠ Cache save warning: {ex.Message}");
+                    }
 
                     MessageBox.Show(
                         $"Successfully loaded {WindowsApps.Count} provisioned apps from the ISO.\n\n" +
@@ -847,10 +919,10 @@ namespace WinImagePrep.ViewModels
                     }
                     else if (loadAppsResult == MessageBoxResult.Yes)
                     {
-                        AddLog("Loading apps from ISO...");
+                        AddLog("Loading apps automatically...");
                         try
                         {
-                            await LoadAppsFromIsoAsync();
+                            await LoadAppsAsync();
 
                             // After loading, open the app selection dialog
                             if (WindowsApps.Any())
