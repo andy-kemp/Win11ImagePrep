@@ -2,7 +2,7 @@
 
 A professional WPF application for preparing Windows 11 installation images with injected drivers, dynamic app discovery and removal, and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages and streamlined Windows app configurations, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
 
-![Version](https://img.shields.io/badge/version-4.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-4.4.1-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Proprietary-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue.svg)
@@ -29,20 +29,39 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 
 ## ✨ Features
 
-### Version 4.3.0 (Latest) - January 2025
-- ✨ **NEW: Dynamic App Discovery from ISO**
+### Version 4.4.1 (Latest) - June 2026
+- ✨ **NEW: Auto-Update System**
+  - Check for updates via Tools menu
+  - Automatic download and installation from GitHub
+  - Elevated updater with backup and rollback
+  - Seamless version tracking with version.json
+
+- ✨ **NEW: Grouped Multi-Architecture App Support**
+  - Apps grouped by display name across x64 and ARM64
+  - One Teams entry removes correct architecture-specific packages
+  - Smart removal: only removes packages present in current image
+  - Merged app list with 79 packages (47 x64 + 45 ARM64)
+
+- ✨ **GitHub-Hosted App List**
+  - Runtime app list loaded from GitHub
+  - Cache fallback for offline scenarios
+  - Easy maintainer updates via ISO scan scripts
+  - Supports both x64 and ARM64 Windows images
+
+### Version 4.3.0 - January 2025
+- ✨ **Dynamic App Discovery from ISO**
   - Scan install.wim to discover all ~47 provisioned apps actually in your image
   - Handles package name variants correctly (MSTeams vs MicrosoftTeams)
   - Works with all Windows 11 editions and builds
   - Full package name resolution for reliable removal
 
-- ✨ **NEW: Automated App Loading Workflow**
+- ✨ **Automated App Loading Workflow**
   - Intelligent auto-prompt when "Remove Windows apps" is enabled
   - Automatically offers to scan ISO and select apps
   - No more manual steps - just check the box and go!
   - Graceful fallback to default app list if needed
 
-- ✨ **NEW: Enhanced App Removal**
+- ✨ **Enhanced App Removal**
   - Dual-mode removal: Full package names (fast) or pattern matching (legacy)
   - Created ProvisionedApp model with DisplayName, PackageName, Version, PublisherId
   - Green "Load Apps from ISO" button for manual discovery
