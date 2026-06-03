@@ -1,5 +1,5 @@
 {
-  "version": "4.4.1",
+  "version": "4.4.2",
   "releaseDate": "2026-06-03",
-  "releaseNotes": "Test release for auto-update verification"
+  "releaseNotes": "Fixed About dialog to show dynamic version from assembly"
 }

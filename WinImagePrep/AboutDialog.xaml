@@ -101,7 +101,7 @@
         <!-- Header -->
         <StackPanel Grid.Row="0" HorizontalAlignment="Center">
             <TextBlock Text="WinImagePrep" Style="{StaticResource TitleStyle}" HorizontalAlignment="Center"/>
-            <TextBlock Text="Version 4.3.1" Style="{StaticResource VersionStyle}" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding Version}" Style="{StaticResource VersionStyle}" HorizontalAlignment="Center"/>
         </StackPanel>
 
         <!-- Content -->
