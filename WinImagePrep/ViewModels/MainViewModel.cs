@@ -473,6 +473,17 @@ namespace WinImagePrep.ViewModels
 
         private async Task LoadAppsFromIsoAsync()
         {
+            // Step 0: Verify admin rights
+            if (!AdminHelper.IsRunningAsAdministrator())
+            {
+                AddLog("✗ ERROR: Administrator privileges required");
+                MessageBox.Show(
+                    "This operation requires administrator privileges.\n\n" +
+                    "Please restart the application as Administrator.",
+                    "Administrator Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             if (string.IsNullOrEmpty(SelectedIsoPath))
             {
                 MessageBox.Show("Please select a Windows ISO first.", "No ISO Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -527,6 +538,37 @@ namespace WinImagePrep.ViewModels
 
                     AddLog($"Found image: {Path.GetFileName(installWimPath)}");
                     OverallProgress = 30;
+
+                    // Step 2.5: Verify file access and permissions
+                    AddLog($"Verifying file access to: {installWimPath}");
+                    try
+                    {
+                        // Check if file is readable
+                        using (var testStream = File.OpenRead(installWimPath))
+                        {
+                            AddLog($"✓ File is readable (Size: {testStream.Length:N0} bytes)");
+                        }
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        AddLog($"✗ ERROR: Access denied to WIM file");
+                        AddLog($"  Details: {ex.Message}");
+                        MessageBox.Show(
+                            $"Access denied to the Windows image file.\n\n" +
+                            $"Please ensure:\n" +
+                            $"1. You are running as Administrator\n" +
+                            $"2. Antivirus is not blocking the file\n" +
+                            $"3. The ISO is not locked by another process\n\n" +
+                            $"Path: {installWimPath}",
+                            "Access Denied", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        AddLog($"✗ ERROR: Cannot read WIM file: {ex.Message}");
+                        MessageBox.Show($"Cannot access the Windows image file:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
 
                     // Step 3: Get editions to find index 1
                     AddLog("Reading Windows editions...");
