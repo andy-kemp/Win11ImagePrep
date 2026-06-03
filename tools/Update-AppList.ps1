@@ -40,10 +40,41 @@ param(
 	[switch]$MergeWithExisting
 )
 
+# Global error handling
+$ErrorActionPreference = "Stop"
+$tempRoot = $null
+
+# Cleanup function
+function Cleanup {
+	if ($tempRoot -and (Test-Path $tempRoot)) {
+		Write-Host "`nCleaning up temp files..." -ForegroundColor Yellow
+		try {
+			dism /Unmount-Wim /MountDir:"$tempMount" /Discard 2>&1 | Out-Null
+		} catch {}
+		Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+	}
+}
+
+# Trap errors
+trap {
+	Write-Host "`n========================================" -ForegroundColor Red
+	Write-Host "ERROR OCCURRED!" -ForegroundColor Red
+	Write-Host "========================================" -ForegroundColor Red
+	Write-Host $_.Exception.Message -ForegroundColor Red
+	Write-Host "`nStack Trace:" -ForegroundColor Yellow
+	Write-Host $_.ScriptStackTrace -ForegroundColor Gray
+	Cleanup
+	Write-Host "`nPress Enter to close..." -ForegroundColor Yellow
+	Read-Host
+	exit 1
+}
+
 # Check for admin privileges
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
 	Write-Error "This script requires Administrator privileges. Please run as Administrator."
+	Write-Host "`nPress Enter to close..." -ForegroundColor Yellow
+	Read-Host
 	exit 1
 }
 
@@ -70,8 +101,12 @@ $tempRoot = "$env:TEMP\WinAppListGen_$([guid]::NewGuid().ToString('N'))"
 $tempExtract = Join-Path $tempRoot "extract"
 $tempMount = Join-Path $tempRoot "mount"
 
-New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
-New-Item -ItemType Directory -Path $tempMount -Force | Out-Null
+try {
+	New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
+	New-Item -ItemType Directory -Path $tempMount -Force | Out-Null
+} catch {
+	throw "Failed to create temp directories: $_"
+}
 
 Write-Host "[2/7] Extracting ISO contents to temp folder..." -ForegroundColor Yellow
 Write-Host "      This may take 3-5 minutes..." -ForegroundColor Gray
@@ -93,9 +128,8 @@ $robocopyArgs = @(
 $robocopyResult = Start-Process -FilePath "robocopy.exe" -ArgumentList $robocopyArgs -Wait -NoNewWindow -PassThru
 
 if ($robocopyResult.ExitCode -ge 8) {
-	Write-Error "Failed to extract ISO contents (robocopy exit code: $($robocopyResult.ExitCode))"
 	Dismount-DiskImage -ImagePath $IsoPath | Out-Null
-	exit 1
+	throw "Failed to extract ISO contents (robocopy exit code: $($robocopyResult.ExitCode))"
 }
 
 Write-Host "      ✓ ISO extracted" -ForegroundColor Green
@@ -111,9 +145,8 @@ $wimPath = Join-Path $tempExtract "sources\install.wim"
 if (-not (Test-Path $wimPath)) {
 	$wimPath = Join-Path $tempExtract "sources\install.esd"
 	if (-not (Test-Path $wimPath)) {
-		Write-Error "install.wim or install.esd not found in ISO."
-		Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
-		exit 1
+		Cleanup
+		throw "install.wim or install.esd not found in ISO."
 	}
 }
 Write-Host "      ✓ Found: $(Split-Path $wimPath -Leaf)" -ForegroundColor Green
@@ -127,9 +160,8 @@ Write-Host "      ✓ Using Index $imageIndex" -ForegroundColor Green
 Write-Host "[6/7] Mounting Windows image (this may take 2-3 minutes)..." -ForegroundColor Yellow
 $dismMount = dism /Mount-Wim /WimFile:"$wimPath" /Index:$imageIndex /MountDir:"$tempMount" /ReadOnly
 if ($LASTEXITCODE -ne 0) {
-	Write-Error "Failed to mount WIM image."
-	Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
-	exit 1
+	Cleanup
+	throw "Failed to mount WIM image (DISM exit code: $LASTEXITCODE)"
 }
 Write-Host "      ✓ Image mounted" -ForegroundColor Green
 
@@ -172,8 +204,7 @@ Write-Host "      ✓ Found $($apps.Count) provisioned apps" -ForegroundColor Gr
 # Step 7: Unmount and cleanup
 Write-Host ""
 Write-Host "Cleaning up..." -ForegroundColor Yellow
-dism /Unmount-Wim /MountDir:"$tempMount" /Discard | Out-Null
-Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+Cleanup
 Write-Host "✓ Cleanup complete" -ForegroundColor Green
 
 # Step 8: Generate JSON
@@ -241,3 +272,5 @@ Write-Host "     git add app-list.json" -ForegroundColor DarkGray
 Write-Host "     git commit -m `"Update app list from [ISO name]`"" -ForegroundColor DarkGray
 Write-Host "     git push origin main" -ForegroundColor DarkGray
 Write-Host ""
+Write-Host "Press Enter to close..." -ForegroundColor Yellow
+Read-Host
