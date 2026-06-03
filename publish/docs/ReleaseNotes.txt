@@ -2,7 +2,7 @@
 WinImagePrep - Release Notes
 ================================================================================
 
-Version 4.2.1 - Startup & Settings Improvements
+Version 4.3.0 - Dynamic App Discovery & Automated Workflow
 Release Date: January 2025
 Publisher: Andy Kemp Consulting Ltd
 
@@ -16,7 +16,46 @@ to create customized Windows 11 installation media with integrated drivers,
 removed unwanted apps, and bootable USB creation.
 
 ================================================================================
-VERSION 4.2.1 - NEW IN THIS RELEASE
+VERSION 4.3.0 - NEW IN THIS RELEASE
+================================================================================
+
+DYNAMIC APP DISCOVERY FROM ISO:
+
+  * NEW "Load Apps from ISO" feature scans install.wim for actual provisioned apps
+  * Discovers all ~47 apps present in the Windows image (not just a hardcoded list)
+  * Handles variant package names correctly (e.g., MSTeams vs MicrosoftTeams)
+  * Works with all Windows 11 editions and builds
+  * Full package name resolution for reliable app removal
+
+AUTOMATED WORKFLOW IMPROVEMENTS:
+
+  * Intelligent auto-prompt: When "Remove Windows apps" is checked and you click
+    "Prepare Image with Drivers", the app now automatically offers to:
+    - Scan the ISO and load all apps
+    - Open the app selection dialog
+    - Guide you through the removal process
+  * No more manual steps - just check the box and go!
+  * Graceful fallback to default app list if ISO scanning fails
+  * Smart detection of whether apps have already been loaded
+
+APP REMOVAL ENHANCEMENTS:
+
+  * Created ProvisionedApp model with DisplayName, PackageName, Version, PublisherId
+  * New GetProvisionedAppsDetailedAsync() method for comprehensive app metadata
+  * Dual-mode removal logic:
+    - Full package names (from ISO scan) used directly - faster, no re-scanning
+    - Partial names (legacy hardcoded list) trigger pattern matching
+  * Backward compatible with existing configurations
+
+USER EXPERIENCE:
+
+  * Green "Load Apps from ISO" button for manual discovery
+  * Automatic prompts guide users through the process
+  * Clear messaging about app loading status
+  * Option to continue without app removal if no apps selected
+
+================================================================================
+VERSION 4.2.1 - PREVIOUS RELEASE
 ================================================================================
 
 STARTUP & FIRST-RUN IMPROVEMENTS:
