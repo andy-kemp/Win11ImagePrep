@@ -1389,10 +1389,15 @@ namespace WinImagePrep.ViewModels
                 // Remove Windows apps if option is enabled
                 if (RemoveWindowsApps)
                 {
-                    var appsToRemove = WindowsApps.Where(app => app.IsSelected).Select(app => app.PackageName).ToList();
+                    // Collect all package names from selected apps (flattening multi-architecture entries)
+                    var appsToRemove = WindowsApps
+                        .Where(app => app.IsSelected)
+                        .SelectMany(app => app.PackageNames.Any() ? app.PackageNames : new List<string> { app.PackageName })
+                        .ToList();
+
                     if (appsToRemove.Any())
                     {
-                        AddLog($"Removing {appsToRemove.Count} Windows app(s) from {editionName}...");
+                        AddLog($"Removing {appsToRemove.Count} Windows app package(s) from {editionName}...");
                         CurrentOperationText = $"Removing Windows apps from {editionName}...";
                         CurrentOperationProgress = 50;
 

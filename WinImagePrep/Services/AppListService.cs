@@ -104,13 +104,16 @@ namespace WinImagePrep.Services
                 PropertyNameCaseInsensitive = true
             });
 
-            return appDtos?.Select(dto => new WindowsApp
+            var apps = appDtos?.Select(dto => new WindowsApp
             {
                 PackageName = dto.PackageName ?? string.Empty,
                 DisplayName = dto.DisplayName ?? string.Empty,
                 Description = dto.Description ?? string.Empty,
                 IsSelected = false
-            }).ToList();
+            }).ToList() ?? new List<WindowsApp>();
+
+            // Group by display name to consolidate multi-architecture apps
+            return GroupAppsByDisplayName(apps);
         }
 
         /// <summary>
@@ -127,13 +130,16 @@ namespace WinImagePrep.Services
                 PropertyNameCaseInsensitive = true
             });
 
-            return appDtos?.Select(dto => new WindowsApp
+            var apps = appDtos?.Select(dto => new WindowsApp
             {
                 PackageName = dto.PackageName ?? string.Empty,
                 DisplayName = dto.DisplayName ?? string.Empty,
                 Description = dto.Description ?? string.Empty,
                 IsSelected = false
-            }).ToList();
+            }).ToList() ?? new List<WindowsApp>();
+
+            // Group by display name to consolidate multi-architecture apps
+            return GroupAppsByDisplayName(apps);
         }
 
         /// <summary>
@@ -173,6 +179,32 @@ namespace WinImagePrep.Services
             {
                 File.Delete(_cacheFilePath);
             }
+        }
+
+        /// <summary>
+        /// Group apps by display name to consolidate multi-architecture versions
+        /// </summary>
+        private List<WindowsApp> GroupAppsByDisplayName(List<WindowsApp> apps)
+        {
+            var grouped = apps
+                .GroupBy(app => app.DisplayName)
+                .Select(group =>
+                {
+                    var first = group.First();
+                    var allPackages = group.Select(app => app.PackageName).ToList();
+
+                    return new WindowsApp
+                    {
+                        DisplayName = first.DisplayName,
+                        Description = first.Description,
+                        PackageName = allPackages.First(), // Primary package for backward compatibility
+                        PackageNames = allPackages,
+                        IsSelected = false
+                    };
+                })
+                .ToList();
+
+            return grouped;
         }
     }
 
