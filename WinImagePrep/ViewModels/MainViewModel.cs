@@ -25,6 +25,7 @@ namespace WinImagePrep.ViewModels
         private readonly DismService _dismService;
         private readonly UsbService _usbService;
         private readonly AppListService _appListService;
+        private readonly UpdateService _updateService;
         private CancellationTokenSource? _cancellationTokenSource;
         private bool _disposed;
 
@@ -41,6 +42,7 @@ namespace WinImagePrep.ViewModels
             _dismService = new DismService();
             _usbService = new UsbService();
             _appListService = new AppListService();
+            _updateService = new UpdateService(new System.Net.Http.HttpClient());
 
             // Initialize commands
             BrowseIsoCommand = new RelayCommand(BrowseIso);
@@ -63,6 +65,7 @@ namespace WinImagePrep.ViewModels
             OpenConfigCommand = new RelayCommand(OpenConfiguration);
             ExitCommand = new RelayCommand(ExitApplication);
             OpenOptionsCommand = new RelayCommand(OpenOptions);
+            CheckForUpdatesCommand = new RelayCommand(async () => await CheckForUpdatesAsync());
             OpenUserGuideCommand = new RelayCommand(OpenUserGuide);
             OpenOnlineDocumentationCommand = new RelayCommand(OpenOnlineDocumentation);
             OpenGitHubReadmeCommand = new RelayCommand(OpenGitHubReadme);
@@ -287,6 +290,7 @@ namespace WinImagePrep.ViewModels
         public ICommand OpenConfigCommand { get; }
         public ICommand ExitCommand { get; }
         public ICommand OpenOptionsCommand { get; }
+        public ICommand CheckForUpdatesCommand { get; }
         public ICommand OpenUserGuideCommand { get; }
         public ICommand OpenOnlineDocumentationCommand { get; }
         public ICommand OpenGitHubReadmeCommand { get; }
@@ -2374,6 +2378,70 @@ namespace WinImagePrep.ViewModels
                 else
                 {
                     AddLog("ℹ Settings dialog cancelled");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Error opening options: {ex.Message}");
+                MessageBox.Show($"Error opening options: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task CheckForUpdatesAsync()
+        {
+            try
+            {
+                AddLog("Checking for updates...");
+
+                var (updateAvailable, latestVersion) = await _updateService.CheckForUpdateAsync();
+
+                if (updateAvailable && latestVersion != null)
+                {
+                    var currentVersion = _updateService.GetCurrentVersion();
+                    AddLog($"✓ Update available: v{latestVersion} (current: v{currentVersion})");
+
+                    var result = MessageBox.Show(
+                        $"A new version of WinImagePrep is available!\n\n" +
+                        $"Current version: {currentVersion}\n" +
+                        $"Latest version: {latestVersion}\n\n" +
+                        $"Would you like to download and install the update now?\n\n" +
+                        $"The application will close, download the update, and restart automatically.",
+                        "Update Available",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        AddLog("Starting update download...");
+
+                        var success = await _updateService.DownloadAndApplyUpdateAsync(
+                            new Progress<string>(msg => AddLog(msg)));
+
+                        if (success)
+                        {
+                            AddLog("Update downloaded. Application will now close and update...");
+                            // The updater script will close the app
+                            Application.Current.Shutdown();
+                        }
+                        else
+                        {
+                            AddLog("⚠ Update failed. Please download manually from GitHub.");
+                        }
+                    }
+                    else
+                    {
+                        AddLog("Update cancelled by user");
+                    }
+                }
+                else
+                {
+                    var currentVersion = _updateService.GetCurrentVersion();
+                    AddLog($"✓ You are running the latest version (v{currentVersion})");
+                    MessageBox.Show(
+                        $"You are running the latest version!\n\nCurrent version: {currentVersion}",
+                        "No Updates Available",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)

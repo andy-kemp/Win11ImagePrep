@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="WinImagePrep v4.3.1"
+        Title="WinImagePrep v4.4.0"
         Width="920"
         Height="950"
         WindowStartupLocation="CenterScreen"
@@ -23,6 +23,12 @@
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" ToolTip="Close the application"/>
             </MenuItem>
             <MenuItem Header="_Tools">
+                <MenuItem Header="_Check for Updates..." Command="{Binding CheckForUpdatesCommand}" ToolTip="Check for newer version on GitHub">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🔄" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
                 <MenuItem Header="_Options..." Command="{Binding OpenOptionsCommand}" ToolTip="Configure application settings">
                     <MenuItem.Icon>
                         <TextBlock Text="⚙" FontSize="14"/>

@@ -1,0 +1,5 @@
+{
+  "version": "4.4.0",
+  "releaseDate": "2026-06-03",
+  "releaseNotes": "Grouped multi-architecture app support (x64/ARM64) and merged app list with 79 packages"
+}
