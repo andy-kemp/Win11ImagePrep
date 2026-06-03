@@ -1,227 +1,397 @@
-﻿[
-    {
-        "packageName":  "Microsoft.ApplicationCompatibilityEnhancements_1.2511.9.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "ApplicationCompatibilityEnhancements",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.AV1VideoExtension_2.0.7.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "AV1VideoExtension",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.AVCEncoderVideoExtension_1.1.23.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "AVCEncoderVideoExtension",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.BingNews_4.11.6001.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "BingNews",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.BingSearch_2022.1.43.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "BingSearch",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.BingWeather_4.54.63038.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "BingWeather",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Clipchamp.Clipchamp_4.4.10720.0_neutral_~_yxz26nhyzhsrt",
-        "displayName":  "Clipchamp",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "MicrosoftWindows.CrossDevice_1.26012.79.0_neutral_~_cw5n1h2txyewy",
-        "displayName":  "CrossDevice",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.DesktopAppInstaller_2025.926.104.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "DesktopAppInstaller",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.Windows.DevHome_0.100.128.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "DevHome",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.GetHelp_10.2407.40222.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "GetHelp",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.HEIFImageExtension_1.2.29.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "HEIFImageExtension",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.HEVCVideoExtension_2.4.43.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "HEVCVideoExtension",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.MicrosoftOfficeHub_19.2506.56051.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "MicrosoftOfficeHub",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.MicrosoftSolitaireCollection_4.24.12040.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "MicrosoftSolitaireCollection",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.MicrosoftStickyNotes_6.1.5.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "MicrosoftStickyNotes",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.MPEG2VideoExtension_1.2.13.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "MPEG2VideoExtension",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "MSTeams_1.0.0.1_arm64__8wekyb3d8bbwe",
-        "displayName":  "MSTeams",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.OutlookForWindows_1.0.0.0_neutral__8wekyb3d8bbwe",
-        "displayName":  "OutlookForWindows",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.Paint_11.2412.295.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "Paint",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.Windows.Photos_24.24070.23002.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "Photos",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "MicrosoftCorporationII.QuickAssist_2026.209.1114.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "QuickAssist",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.RawImageExtension_2.5.7.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "RawImageExtension",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.ScreenSketch_2022.2307.61.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "ScreenSketch",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.SecHealthUI_1000.26100.8457.0_arm64__8wekyb3d8bbwe",
-        "displayName":  "SecHealthUI",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.StorePurchaseApp_22509.1400.2.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "StorePurchaseApp",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.Xbox.TCUI_1.23.28005.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "TCUI",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.Todos_2.153.5851.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "Todos",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.VP9VideoExtensions_1.2.12.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "VP9VideoExtensions",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "MicrosoftWindows.Client.WebExperience_525.31002.150.9_neutral_~_cw5n1h2txyewy",
-        "displayName":  "WebExperience",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WebMediaExtensions_2.1.23.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WebMediaExtensions",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WebpImageExtension_1.2.14.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WebpImageExtension",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WindowsAlarms_2021.2512.0.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WindowsAlarms",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WindowsCalculator_2021.2502.2.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WindowsCalculator",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WindowsCamera_2022.2510.2.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WindowsCamera",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WindowsFeedbackHub_2025.1216.1830.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WindowsFeedbackHub",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WindowsNotepad_11.2501.31.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WindowsNotepad",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WindowsSoundRecorder_2021.2512.0.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WindowsSoundRecorder",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WindowsStore_22506.1400.2.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WindowsStore",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.WindowsTerminal_3001.23.20211.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "WindowsTerminal",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.XboxGamingOverlay_7.325.7221.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "XboxGamingOverlay",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.XboxIdentityProvider_12.130.2510.6003_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "XboxIdentityProvider",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.XboxSpeechToTextOverlay_1.123.11001.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "XboxSpeechToTextOverlay",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.YourPhone_1.26012.102.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "YourPhone",
-        "description":  "Windows provisioned app"
-    },
-    {
-        "packageName":  "Microsoft.ZuneMusic_11.2512.10.0_neutral_~_8wekyb3d8bbwe",
-        "displayName":  "ZuneMusic",
-        "description":  "Windows provisioned app"
-    }
+[
+  {
+    "packageName": "Microsoft.ApplicationCompatibilityEnhancements_1.2401.10.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "ApplicationCompatibilityEnhancements",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.ApplicationCompatibilityEnhancements_1.2511.9.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "ApplicationCompatibilityEnhancements",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.AV1VideoExtension_2.0.4.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "AV1VideoExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.AV1VideoExtension_2.0.7.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "AV1VideoExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.AVCEncoderVideoExtension_1.1.19.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "AVCEncoderVideoExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.AVCEncoderVideoExtension_1.1.23.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "AVCEncoderVideoExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.BingNews_4.1.24002.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "BingNews",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.BingNews_4.11.6001.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "BingNews",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.BingSearch_2022.1.43.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "BingSearch",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.BingSearch_2022.1.33.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "BingSearch",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.BingWeather_4.54.63038.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "BingWeather",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.BingWeather_4.54.63017.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "BingWeather",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Clipchamp.Clipchamp_4.3.10120.0_neutral_~_yxz26nhyzhsrt",
+    "displayName": "Clipchamp",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Clipchamp.Clipchamp_4.4.10720.0_neutral_~_yxz26nhyzhsrt",
+    "displayName": "Clipchamp",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "MicrosoftWindows.CrossDevice_1.26012.79.0_neutral_~_cw5n1h2txyewy",
+    "displayName": "CrossDevice",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "MicrosoftWindows.CrossDevice_1.25062.28.0_neutral_~_cw5n1h2txyewy",
+    "displayName": "CrossDevice",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.DesktopAppInstaller_2025.926.104.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "DesktopAppInstaller",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.Windows.DevHome_0.1701.597.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "DevHome",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.Windows.DevHome_0.100.128.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "DevHome",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.GamingApp_2025.523.601.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "GamingApp",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.GetHelp_10.2407.22193.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "GetHelp",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.GetHelp_10.2407.40222.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "GetHelp",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.HEIFImageExtension_1.2.29.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "HEIFImageExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.HEIFImageExtension_1.2.23.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "HEIFImageExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.HEVCVideoExtension_2.4.43.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "HEVCVideoExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.HEVCVideoExtension_2.4.25.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "HEVCVideoExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.MicrosoftOfficeHub_19.2506.56051.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "MicrosoftOfficeHub",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.MicrosoftSolitaireCollection_4.22.3190.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "MicrosoftSolitaireCollection",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.MicrosoftSolitaireCollection_4.24.12040.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "MicrosoftSolitaireCollection",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.MicrosoftStickyNotes_6.1.5.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "MicrosoftStickyNotes",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.MPEG2VideoExtension_1.2.13.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "MPEG2VideoExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "MSTeams_1.0.0.1_arm64__8wekyb3d8bbwe",
+    "displayName": "MSTeams",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "MSTeams_1.0.0.0_x64__8wekyb3d8bbwe",
+    "displayName": "MSTeams",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.OutlookForWindows_1.0.0.0_neutral__8wekyb3d8bbwe",
+    "displayName": "OutlookForWindows",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.Paint_11.2412.295.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "Paint",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.Windows.Photos_24.24070.23002.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "Photos",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.PowerAutomateDesktop_11.2506.143.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "PowerAutomateDesktop",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "MicrosoftCorporationII.QuickAssist_2026.209.1114.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "QuickAssist",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "MicrosoftCorporationII.QuickAssist_2025.331.2057.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "QuickAssist",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.RawImageExtension_2.5.7.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "RawImageExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.ScreenSketch_2022.2307.61.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "ScreenSketch",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.ScreenSketch_2022.2307.59.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "ScreenSketch",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.SecHealthUI_1000.26100.8457.0_arm64__8wekyb3d8bbwe",
+    "displayName": "SecHealthUI",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.SecHealthUI_1000.26100.7462.0_x64__8wekyb3d8bbwe",
+    "displayName": "SecHealthUI",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.StorePurchaseApp_22408.1400.1.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "StorePurchaseApp",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.StorePurchaseApp_22509.1400.2.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "StorePurchaseApp",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.Xbox.TCUI_1.23.28005.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "TCUI",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.Todos_2.120.7961.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "Todos",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.Todos_2.153.5851.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "Todos",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.VP9VideoExtensions_1.2.12.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "VP9VideoExtensions",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.VP9VideoExtensions_1.2.6.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "VP9VideoExtensions",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "MicrosoftWindows.Client.WebExperience_525.18101.90.9_neutral_~_cw5n1h2txyewy",
+    "displayName": "WebExperience",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "MicrosoftWindows.Client.WebExperience_525.31002.150.9_neutral_~_cw5n1h2txyewy",
+    "displayName": "WebExperience",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WebMediaExtensions_2.1.23.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WebMediaExtensions",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WebMediaExtensions_2.1.20.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WebMediaExtensions",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WebpImageExtension_1.2.10.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WebpImageExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WebpImageExtension_1.2.14.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WebpImageExtension",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsAlarms_2021.2503.4.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsAlarms",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsAlarms_2021.2512.0.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsAlarms",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsCalculator_2021.2502.2.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsCalculator",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsCamera_2022.2510.2.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsCamera",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsCamera_2022.2505.2.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsCamera",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsFeedbackHub_2024.125.1522.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsFeedbackHub",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsFeedbackHub_2025.1216.1830.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsFeedbackHub",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsNotepad_11.2501.31.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsNotepad",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsSoundRecorder_2021.2504.0.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsSoundRecorder",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsSoundRecorder_2021.2512.0.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsSoundRecorder",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsStore_22506.1400.2.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsStore",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsStore_22506.1400.1.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsStore",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsTerminal_3001.18.10301.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsTerminal",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.WindowsTerminal_3001.23.20211.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "WindowsTerminal",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.XboxGamingOverlay_7.325.7221.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "XboxGamingOverlay",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.XboxIdentityProvider_12.130.2510.6003_neutral_~_8wekyb3d8bbwe",
+    "displayName": "XboxIdentityProvider",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.XboxSpeechToTextOverlay_1.123.11001.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "XboxSpeechToTextOverlay",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.XboxSpeechToTextOverlay_1.117.15001.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "XboxSpeechToTextOverlay",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.YourPhone_1.26012.102.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "YourPhone",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.YourPhone_1.25062.84.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "YourPhone",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.ZuneMusic_11.2512.10.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "ZuneMusic",
+    "description": "Windows provisioned app"
+  },
+  {
+    "packageName": "Microsoft.ZuneMusic_11.2501.9.0_neutral_~_8wekyb3d8bbwe",
+    "displayName": "ZuneMusic",
+    "description": "Windows provisioned app"
+  }
 ]
