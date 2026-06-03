@@ -42,16 +42,19 @@ param(
 
 # Global error handling
 $ErrorActionPreference = "Stop"
-$tempRoot = $null
+$script:tempRoot = $null
+$script:tempMount = $null
 
 # Cleanup function
 function Cleanup {
-	if ($tempRoot -and (Test-Path $tempRoot)) {
+	if ($script:tempRoot -and (Test-Path $script:tempRoot)) {
 		Write-Host "`nCleaning up temp files..." -ForegroundColor Yellow
 		try {
-			dism /Unmount-Wim /MountDir:"$tempMount" /Discard 2>&1 | Out-Null
+			if ($script:tempMount -and (Test-Path $script:tempMount)) {
+				dism /Unmount-Wim /MountDir:"$script:tempMount" /Discard 2>&1 | Out-Null
+			}
 		} catch {}
-		Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+		Remove-Item -Path $script:tempRoot -Recurse -Force -ErrorAction SilentlyContinue
 	}
 }
 
@@ -97,9 +100,9 @@ if (-not $driveLetter) {
 Write-Host "      ✓ ISO mounted to ${driveLetter}:\" -ForegroundColor Green
 
 # Step 2: Extract ISO to temp folder
-$tempRoot = "$env:TEMP\WinAppListGen_$([guid]::NewGuid().ToString('N'))"
-$tempExtract = Join-Path $tempRoot "extract"
-$tempMount = Join-Path $tempRoot "mount"
+$script:tempRoot = "$env:TEMP\WinAppListGen_$([guid]::NewGuid().ToString('N'))"
+$tempExtract = Join-Path $script:tempRoot "extract"
+$script:tempMount = Join-Path $script:tempRoot "mount"
 
 try {
 	New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
