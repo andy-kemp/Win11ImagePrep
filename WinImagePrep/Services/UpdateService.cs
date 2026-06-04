@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using WinImagePrep.Helpers;
 
 namespace WinImagePrep.Services
 {
@@ -59,27 +60,40 @@ namespace WinImagePrep.Services
         {
             try
             {
+                Logger.Info($"Checking for updates from: {VersionCheckUrl}");
                 var response = await _httpClient.GetAsync(VersionCheckUrl, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warning($"Update check failed with status: {response.StatusCode}");
                     return (false, null);
+                }
 
                 var json = await response.Content.ReadAsStringAsync();
+                Logger.Info($"Retrieved version info: {json}");
+
                 var versionInfo = JsonSerializer.Deserialize<VersionInfo>(json, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
 
                 if (versionInfo?.Version == null)
+                {
+                    Logger.Warning("Version info is null or missing version field");
                     return (false, null);
+                }
 
                 var latestVersion = Version.Parse(versionInfo.Version);
                 var currentVersion = GetCurrentVersion();
 
+                Logger.Info($"Current version: {currentVersion}, Latest version: {latestVersion}");
+                Logger.Info($"Update available: {latestVersion > currentVersion}");
+
                 return (latestVersion > currentVersion, latestVersion);
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.Error($"Update check exception: {ex.Message}");
                 return (false, null);
             }
         }

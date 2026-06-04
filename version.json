@@ -1,5 +1,5 @@
 {
-  "version": "5.0.17",
+  "version": "5.0.18",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Test release for first-run update check validation"
+  "releaseNotes": "🔧 FIX: Simplified first-run update check - now checks immediately when Continue is clicked"
 }

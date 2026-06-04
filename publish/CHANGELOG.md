@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.18] - 2025-01-29
+
+### Fixed
+- **Simplified First-Run Update Check** - Complete redesign for reliability
+  - Update check now happens immediately when clicking Continue in first-run wizard
+  - Removed complex flag-based logic that was causing issues
+  - No more `FirstRunUpdateCheckComplete` flag - just check every time
+  - If update available, prompts immediately; if not, silently continues
+  - Added detailed debug logging to update service
+
+### Changed
+- Removed `PerformFirstRunUpdateCheckAsync()` from MainViewModel (no longer needed)
+- Update check now integrated directly into FirstRunWindow Continue button
+- Cleaner, more predictable behavior
+
+---
+
 ## [5.0.17] - 2025-01-29
 
 ### Changed
