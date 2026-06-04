@@ -2,7 +2,7 @@
 WinImagePrep - Release Notes
 ================================================================================
 
-Version 5.0.10 - Reset Config First-Run Update Check Fix
+Version 5.0.13 - CRITICAL Autopilot Enrollment Fix
 Release Date: June 2026
 Publisher: Andy Kemp Consulting Ltd
 
@@ -16,7 +16,65 @@ to create customized Windows 11 installation media with integrated drivers,
 removed unwanted apps, unattended installation, and bootable USB creation.
 
 ================================================================================
-VERSION 5.0.10 - NEW IN THIS RELEASE
+VERSION 5.0.13 - NEW IN THIS RELEASE (CRITICAL FIX)
+================================================================================
+
+🔧 CRITICAL FIX: AUTOPILOT ENROLLMENT NOW WORKS PROPERLY:
+
+  * Fixed unattended XML interfering with Autopilot enrollment
+  * Removed DisablePrivacyExperience registry key in Autopilot mode
+  * Removed HideEULAPage, NetworkLocation, and ProtectYourPC settings in Autopilot mode
+  * Removed ALL FirstLogonCommands in Autopilot mode for clean OOBE experience
+  * Company logo and enrollment screens now display properly
+  * Privacy/telemetry settings controlled by your Autopilot profile policies
+  * Non-Autopilot unattended installs unchanged - still skip all prompts
+
+🐛 FIXED: KEYBOARD/REGIONAL PROMPTS IN AUTOPILOT MODE:
+
+  * Added UILanguageFallback to windowsPE and oobeSystem passes
+  * No more keyboard layout prompts when booting from USB
+  * Works properly with en-GB and other regional ISOs
+
+🎯 USE CASE:
+
+  You have a Surface device pre-registered in Autopilot. You create a custom
+  Windows 11 USB with drivers using Autopilot Mode. Now when you boot from USB:
+  - Disk partitioning happens automatically
+  - No keyboard/regional prompts
+  - Your company logo appears during enrollment
+  - Autopilot enrollment completes properly
+  - No manual privacy/tracking prompts
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Modified UnattendedInstallService.BuildAutounattendXml() to skip OOBE
+    suppression when AutopilotMode = true
+  * Autopilot now only handles: disk partitioning, locale settings, EULA acceptance
+  * Clean OOBE preserved for proper Autopilot enrollment flow
+  * Added UILanguageFallback to both windowsPE and oobeSystem international components
+
+================================================================================
+VERSION 5.0.12 - UNATTENDED LOCALE PROMPTS FIX
+================================================================================
+
+🐛 FIXED: KEYBOARD/REGIONAL PROMPTS IN UNATTENDED INSTALLS:
+
+  * Added UILanguageFallback setting to suppress keyboard/regional prompts
+  * Ensures fully hands-off boot from USB for all regional ISOs
+
+================================================================================
+VERSION 5.0.11 - UPDATER IMPROVEMENTS
+================================================================================
+
+🐛 FIXED: UPDATER SCRIPT IMPROVEMENTS:
+
+  * Enhanced error handling and logging in PowerShell updater
+  * Added file existence validation and better error messages
+  * Automatic force-close if app doesn't exit gracefully
+  * Fixed silent update failures when running as administrator
+
+================================================================================
+VERSION 5.0.10 - RESET CONFIG FIRST-RUN UPDATE CHECK FIX
 ================================================================================
 
 🐛 FIXED: RESET TO DEFAULT NOW TRIGGERS FIRST-RUN UPDATE CHECK:

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WinImagePrep User Guide v5.0.10</title>
+    <title>WinImagePrep User Guide v5.0.13</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -280,23 +280,27 @@
         </div>
 
         <div class="new-feature">
+            <h3>🚀 Autopilot Mode (v5.0.13 - Critical Fix)</h3>
+            <p>Dedicated mode for Windows Autopilot-enrolled devices with proper enrollment support:</p>
+            <ul>
+                <li>✅ <strong>Fixed: Company logo now appears</strong> - Autopilot enrollment works properly</li>
+                <li>✅ <strong>Fixed: No keyboard/regional prompts</strong> - Fully hands-off boot from USB</li>
+                <li>✅ Auto-partitions disk (UEFI/GPT with EFI, MSR, Windows partitions)</li>
+                <li>✅ Sets locale/keyboard settings automatically</li>
+                <li>✅ Preserves OOBE for proper Autopilot enrollment flow</li>
+                <li>✅ Displays company branding and Autopilot enrollment screens</li>
+                <li>✅ No interference with Autopilot profile settings (privacy/telemetry controlled by your Intune policies)</li>
+                <li>✅ No local admin creation (Azure AD/Entra ID accounts only)</li>
+            </ul>
+            <p><strong>Note:</strong> Device hardware hash must be pre-registered in your Autopilot deployment profile for enrollment to work.</p>
+        </div>
+
+        <div class="new-feature">
             <h3>✅ Fixed: Operation Log UI (v5.0.6)</h3>
             <ul>
                 <li><strong>Scrollbar now visible</strong> - Operation log scrollbar works properly</li>
                 <li><strong>Proper collapse behavior</strong> - No empty space when log is collapsed</li>
                 <li><strong>Responsive sizing</strong> - Window resizes correctly when expanding/collapsing log</li>
-            </ul>
-        </div>
-
-        <div class="new-feature">
-            <h3>🚀 Autopilot Mode (v5.0.5)</h3>
-            <p>Dedicated mode for Windows Autopilot-enrolled devices:</p>
-            <ul>
-                <li>✅ Preserves OOBE and company branding</li>
-                <li>✅ Auto-accepts license, auto-partitions disk</li>
-                <li>✅ Skips privacy/telemetry screens (location, diagnostics, speech, inking)</li>
-                <li>✅ No local admin creation (Azure AD accounts only)</li>
-                <li>✅ Smart UI that adapts based on deployment type</li>
             </ul>
         </div>
 
@@ -306,6 +310,21 @@
                 <th>Version</th>
                 <th>Release Date</th>
                 <th>Key Features</th>
+            </tr>
+            <tr>
+                <td><strong>5.0.13</strong></td>
+                <td>June 2026</td>
+                <td><strong>CRITICAL FIX:</strong> Autopilot enrollment now works properly with company logo</td>
+            </tr>
+            <tr>
+                <td><strong>5.0.12</strong></td>
+                <td>June 2026</td>
+                <td>Fixed keyboard/regional prompts in unattended installs</td>
+            </tr>
+            <tr>
+                <td><strong>5.0.11</strong></td>
+                <td>June 2026</td>
+                <td>Improved updater script with better error handling</td>
             </tr>
             <tr>
                 <td><strong>5.0.10</strong></td>
