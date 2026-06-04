@@ -1,5 +1,5 @@
 {
-  "version": "5.0.14",
+  "version": "5.0.15",
   "releaseDate": "2026-06-05",
-  "releaseNotes": "🔧 CRITICAL FIX: Updater now works properly! Downloads EXE + docs BEFORE launching script, gives PowerShell time to start, script is much simpler and more reliable. Fixes PowerShell window flashing and cancelling."
+  "releaseNotes": "✅ Test release - No changes, testing v5.0.14 updater improvements"
 }

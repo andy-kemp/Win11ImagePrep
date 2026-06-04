@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.15] - 2026-06-05
+
+### Changed
+- **Test Release** - No functional changes
+- Version bump to test v5.0.14 updater improvements
+- Confirms updater works reliably from 5.0.14 → 5.0.15
+
+---
+
 ## [5.0.14] - 2026-06-05
 
 ### Fixed
