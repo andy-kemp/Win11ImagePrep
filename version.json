@@ -1,5 +1,5 @@
 {
-  "version": "5.0.10",
+  "version": "5.0.11",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "🐛 Fix: Reset to Default now properly clears FirstRunUpdateCheckComplete flag, ensuring first-run update check triggers after config reset. Complements the deferred update safety improvements in v5.0.9."
+  "releaseNotes": "🐛 Fix: Improved updater script with better error handling, logging, and force-close capability. Fixes issue where updates would fail silently when running as admin. Added detailed error messages and automatic process termination if app doesn't close gracefully."
 }

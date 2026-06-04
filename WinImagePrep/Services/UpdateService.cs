@@ -133,10 +133,27 @@ namespace WinImagePrep.Services
                     UseShellExecute = true
                 };
 
-                Process.Start(startInfo);
+                try
+                {
+                    var process = Process.Start(startInfo);
+                    if (process == null)
+                    {
+                        progress?.Report("Update cancelled or failed to start. UAC prompt may have been declined.");
+                        return false;
+                    }
 
-                // Signal that we should close
-                return true;
+                    // Give the process a moment to start
+                    await Task.Delay(500, cancellationToken);
+
+                    // Signal that we should close
+                    return true;
+                }
+                catch (System.ComponentModel.Win32Exception)
+                {
+                    // User cancelled UAC prompt
+                    progress?.Report("Update cancelled. Administrator permission is required.");
+                    return false;
+                }
             }
             catch (Exception ex)
             {
@@ -158,6 +175,8 @@ namespace WinImagePrep.Services
 
             return $@"
 # WinImagePrep Update Script
+$ErrorActionPreference = 'Continue'
+$Host.UI.RawUI.WindowTitle = 'WinImagePrep Updater'
 Write-Host 'WinImagePrep Updater' -ForegroundColor Cyan
 Write-Host '=====================' -ForegroundColor Cyan
 Write-Host ''
@@ -165,6 +184,24 @@ Write-Host ''
 $currentExe = '{currentExePath.Replace("'", "''")}'
 $newExe = '{newExePath.Replace("'", "''")}'
 $processName = 'WinImagePrep'
+
+# Verify files exist
+if (-not (Test-Path $currentExe)) {{
+    Write-Host ""ERROR: Current EXE not found: $currentExe"" -ForegroundColor Red
+    Read-Host 'Press Enter to exit'
+    exit 1
+}}
+
+if (-not (Test-Path $newExe)) {{
+    Write-Host ""ERROR: New EXE not found: $newExe"" -ForegroundColor Red
+    Read-Host 'Press Enter to exit'
+    exit 1
+}}
+
+Write-Host ""Current EXE: $currentExe""
+Write-Host ""New EXE: $newExe""
+Write-Host ""New EXE size: $((Get-Item $newExe).Length / 1MB) MB""
+Write-Host ''
 
 # Download documentation files
 Write-Host 'Downloading documentation...'
@@ -186,7 +223,7 @@ foreach ($doc in $docFiles) {{
         Write-Host ' Done' -ForegroundColor Green
         $docDownloadSuccess++
     }} catch {{
-        Write-Host ' Failed' -ForegroundColor Yellow
+        Write-Host "" Failed: $($_.Exception.Message)"" -ForegroundColor Yellow
         $docDownloadFailed++
     }}
 }}
@@ -206,23 +243,41 @@ while ((Get-Process -Name $processName -ErrorAction SilentlyContinue) -and ($ela
 Write-Host ''
 
 if (Get-Process -Name $processName -ErrorAction SilentlyContinue) {{
-    Write-Host 'Process did not exit in time. Please close WinImagePrep manually and try again.' -ForegroundColor Red
-    Read-Host 'Press Enter to exit'
-    exit 1
+    Write-Host 'Process did not exit in time. Attempting to force close...' -ForegroundColor Yellow
+    try {{
+        Stop-Process -Name $processName -Force -ErrorAction Stop
+        Start-Sleep -Seconds 2
+        Write-Host 'Process closed.' -ForegroundColor Green
+    }} catch {{
+        Write-Host 'Could not close process. Please close WinImagePrep manually.' -ForegroundColor Red
+        Read-Host 'Press Enter to exit'
+        exit 1
+    }}
 }}
 
 # Backup current EXE
 Write-Host 'Backing up current version...'
 $backupPath = $currentExe + '.backup'
-if (Test-Path $backupPath) {{
-    Remove-Item $backupPath -Force
+try {{
+    if (Test-Path $backupPath) {{
+        Remove-Item $backupPath -Force -ErrorAction Stop
+    }}
+    Copy-Item $currentExe $backupPath -Force -ErrorAction Stop
+    Write-Host 'Backup created.' -ForegroundColor Green
+}} catch {{
+    Write-Host ""Failed to create backup: $($_.Exception.Message)"" -ForegroundColor Red
+    Read-Host 'Press Enter to exit'
+    exit 1
 }}
-Copy-Item $currentExe $backupPath -Force
 
 # Replace with new version
 Write-Host 'Installing update...'
 try {{
-    Copy-Item $newExe $currentExe -Force
+    # Remove any existing file lock
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
+
+    Copy-Item $newExe $currentExe -Force -ErrorAction Stop
     Write-Host 'Update installed successfully!' -ForegroundColor Green
 
     # Install documentation files
@@ -237,10 +292,10 @@ try {{
     Get-ChildItem -Path $tempDocDir -File | ForEach-Object {{
         try {{
             $destPath = Join-Path $docsDir $_.Name
-            Copy-Item $_.FullName $destPath -Force
+            Copy-Item $_.FullName $destPath -Force -ErrorAction Stop
             $installedDocs++
         }} catch {{
-            Write-Host ""  Failed to copy $($_.Name)"" -ForegroundColor Yellow
+            Write-Host ""  Failed to copy $($_.Name): $($_.Exception.Message)"" -ForegroundColor Yellow
         }}
     }}
 
@@ -257,12 +312,17 @@ try {{
     Write-Host ""Installed $installedDocs documentation files"" -ForegroundColor Green
     Write-Host ''
     Write-Host 'Starting updated application...'
-    Start-Process $currentExe
+    Start-Process $currentExe -ErrorAction Stop
     Start-Sleep -Seconds 2
 }} catch {{
-    Write-Host 'Update failed! Restoring backup...' -ForegroundColor Red
-    Copy-Item $backupPath $currentExe -Force
-    Write-Host 'Backup restored.' -ForegroundColor Yellow
+    Write-Host ""Update failed: $($_.Exception.Message)"" -ForegroundColor Red
+    Write-Host 'Restoring backup...' -ForegroundColor Yellow
+    try {{
+        Copy-Item $backupPath $currentExe -Force -ErrorAction Stop
+        Write-Host 'Backup restored.' -ForegroundColor Green
+    }} catch {{
+        Write-Host ""Failed to restore backup: $($_.Exception.Message)"" -ForegroundColor Red
+    }}
     Read-Host 'Press Enter to exit'
     exit 1
 }}
@@ -273,8 +333,10 @@ Start-Sleep -Seconds 1
 Remove-Item $newExe -Force -ErrorAction SilentlyContinue
 Remove-Item $tempDocDir -Recurse -Force -ErrorAction SilentlyContinue
 
+Write-Host ''
 Write-Host 'Update complete!' -ForegroundColor Green
-Start-Sleep -Seconds 2
+Write-Host 'You can close this window.' -ForegroundColor Cyan
+Start-Sleep -Seconds 3
 ";
         }
     }

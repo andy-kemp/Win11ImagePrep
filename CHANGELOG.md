@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.11] - 2026-06-04
+
+### Fixed
+- **Updater Script Improvements** - Fixed silent update failures when running as administrator
+  - Added comprehensive error handling and logging to PowerShell updater script
+  - Added file existence validation before attempting update
+  - Improved error messages showing exact failure reasons
+  - Added automatic force-close if app doesn't exit gracefully within 30 seconds
+  - Added GC calls to release file locks before overwriting EXE
+  - Extended final message display so users can see completion status
+  - Better UAC cancellation detection and error reporting
+
+### Technical
+- Modified `UpdateService.CreateUpdaterScript()` with enhanced error handling
+- Added `$ErrorActionPreference = 'Continue'` to PowerShell script
+- Added try-catch blocks around all file operations
+- Added file size display and validation steps
+- Improved process termination logic with force-close fallback
+
+---
+
 ## [5.0.10] - 2026-06-04
 
 ### Fixed
