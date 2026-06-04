@@ -1,5 +1,5 @@
 {
-  "version": "4.4.5",
+  "version": "4.4.6",
   "releaseDate": "2026-06-03",
-  "releaseNotes": "Fixed version display to show 3-part versions (4.4.5) instead of 4-part (4.4.5.0) in update dialogs and About screen."
+  "releaseNotes": "Added persistent app selection settings - remembers which apps you want to remove across sessions. Checkbox state and app selections automatically restored on startup."
 }

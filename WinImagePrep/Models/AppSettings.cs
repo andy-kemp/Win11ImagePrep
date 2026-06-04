@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Serialization;
 
@@ -39,6 +40,16 @@ namespace WinImagePrep.Models
         /// Logging level: Minimal, Information, Verbose
         /// </summary>
         public string LogLevel { get; set; } = "Information";
+
+        /// <summary>
+        /// Whether to remove Windows apps from the image
+        /// </summary>
+        public bool RemoveWindowsApps { get; set; } = false;
+
+        /// <summary>
+        /// List of package names selected for removal (stores only package names, not full WindowsApp objects)
+        /// </summary>
+        public List<string> SelectedAppsForRemoval { get; set; } = new List<string>();
 
         // Validation constants
         public const long MinimumFreeSpaceGB = 25;
@@ -120,7 +131,9 @@ namespace WinImagePrep.Models
                 AutoCleanupMounts = this.AutoCleanupMounts,
                 CheckForUpdates = this.CheckForUpdates,
                 FirstRunComplete = this.FirstRunComplete,
-                LogLevel = this.LogLevel
+                LogLevel = this.LogLevel,
+                RemoveWindowsApps = this.RemoveWindowsApps,
+                SelectedAppsForRemoval = new List<string>(this.SelectedAppsForRemoval)
             };
         }
 

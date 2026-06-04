@@ -26,15 +26,16 @@ namespace WinImagePrep.ViewModels
         private readonly UsbService _usbService;
         private readonly AppListService _appListService;
         private readonly UpdateService _updateService;
+        private readonly SettingsService _settingsService;
         private CancellationTokenSource? _cancellationTokenSource;
         private bool _disposed;
 
         public MainViewModel()
         {
             // Load settings and create configuration
-            var settingsService = new SettingsService();
+            _settingsService = new SettingsService();
             // Settings are already loaded by App.xaml.cs, so just use current settings
-            var settings = settingsService.CurrentSettings;
+            var settings = _settingsService.CurrentSettings;
             _config = new AppConfiguration(settings);
 
             _isoService = new IsoService();
@@ -80,6 +81,9 @@ namespace WinImagePrep.ViewModels
 
             // Load initial USB drives
             RefreshUsbDrives();
+
+            // Load saved app removal settings
+            RemoveWindowsApps = settings.RemoveWindowsApps;
 
             AddLog("Windows Image Preparation Tool V4 - Ready");
             AddLog("NEW: Windows app removal + Edition selection features");
@@ -251,6 +255,10 @@ namespace WinImagePrep.ViewModels
             {
                 if (SetProperty(ref _removeWindowsApps, value))
                 {
+                    // Save to settings
+                    _settingsService.CurrentSettings.RemoveWindowsApps = value;
+                    _ = _settingsService.SaveSettingsAsync(_settingsService.CurrentSettings);
+
                     // Auto-load apps when checkbox is checked
                     if (value && WindowsApps.Count == 0)
                     {
@@ -485,6 +493,9 @@ namespace WinImagePrep.ViewModels
                     WindowsApps[i].IsSelected = dialog.WindowsApps[i].IsSelected;
                 }
 
+                // Save selections to settings
+                SaveAppSelections();
+
                 // Update the count display
                 OnPropertyChanged(nameof(SelectedAppsCountText));
 
@@ -517,6 +528,10 @@ namespace WinImagePrep.ViewModels
                     }
 
                     AddLog($"✓ Loaded {WindowsApps.Count} apps from GitHub");
+
+                    // Restore saved app selections
+                    RestoreSavedAppSelections();
+
                     AppLoadingStatusText = $"✓ {WindowsApps.Count} apps loaded";
 
                     // Trigger command re-evaluation
@@ -1583,6 +1598,68 @@ namespace WinImagePrep.ViewModels
             CleanupHelper.CleanupTemporaryFiles(_config.TempBaseDirectory);
             AddLog("✓ Cleanup complete");
             MessageBox.Show("Cleanup completed successfully.", "Cleanup", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        /// <summary>
+        /// Save currently selected apps to settings
+        /// </summary>
+        private void SaveAppSelections()
+        {
+            try
+            {
+                var selectedPackages = new List<string>();
+
+                foreach (var app in WindowsApps.Where(a => a.IsSelected))
+                {
+                    // Store all package names for this app (handles grouped apps with multiple packages)
+                    selectedPackages.AddRange(app.PackageNames);
+                }
+
+                _settingsService.CurrentSettings.SelectedAppsForRemoval = selectedPackages;
+                _ = _settingsService.SaveSettingsAsync(_settingsService.CurrentSettings);
+
+                AddLog($"✓ Saved {selectedPackages.Count} package selections");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Failed to save app selections: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Restore previously selected apps from settings
+        /// </summary>
+        private void RestoreSavedAppSelections()
+        {
+            try
+            {
+                var savedPackages = _settingsService.CurrentSettings.SelectedAppsForRemoval;
+
+                if (savedPackages == null || !savedPackages.Any())
+                    return;
+
+                int restoredCount = 0;
+
+                foreach (var app in WindowsApps)
+                {
+                    // Check if any of this app's package names are in the saved list
+                    if (app.PackageNames.Any(pkg => savedPackages.Contains(pkg)))
+                    {
+                        app.IsSelected = true;
+                        restoredCount++;
+                    }
+                }
+
+                if (restoredCount > 0)
+                {
+                    AddLog($"✓ Restored {restoredCount} saved app selections");
+                    OnPropertyChanged(nameof(SelectedAppsCountText));
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Failed to restore app selections: {ex.Message}");
+            }
         }
 
         private bool CanCreateUsb()
