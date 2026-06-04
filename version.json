@@ -1,5 +1,5 @@
 {
-  "version": "5.0.2",
+  "version": "5.0.3",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "Responsive operation log - auto-resizes with window height for smaller screens (Surface devices). Unattended install with Autopilot support."
+  "releaseNotes": "Operation log now properly collapses - no empty space when collapsed. Window auto-resizes when log is expanded/collapsed."
 }
