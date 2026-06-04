@@ -9,6 +9,75 @@ namespace WinImagePrep
     {
         public ObservableCollection<WindowsApp> WindowsApps { get; set; }
 
+        // Apps to keep as "essential" - these are useful system utilities
+        private static readonly string[] EssentialApps = new[]
+        {
+            "Calculator",
+            "Notepad",
+            "ScreenSketch", // Snipping Tool
+            "Paint",
+            "Photos",
+            "MSPaint",
+            "WindowsTerminal",
+            "WindowsNotepad",
+            "WindowsCalculator",
+            "DesktopAppInstaller", // WinGet
+            "Store", // Microsoft Store
+            "HEIFImageExtension",
+            "HEVCVideoExtension",
+            "VP9VideoExtensions",
+            "WebpImageExtension",
+            "WebMediaExtensions",
+            "RawImageExtension",
+            "AV1VideoExtension",
+            "AVCEncoderVideoExtension",
+            "MPEG2VideoExtension"
+        };
+
+        // Known bloatware/social/gaming apps
+        private static readonly string[] BloatwareKeywords = new[]
+        {
+            "Xbox",
+            "Solitaire",
+            "Candy",
+            "BingNews",
+            "BingWeather",
+            "BingSearch",
+            "GetHelp",
+            "Getstarted",
+            "Tips",
+            "Messaging",
+            "MixedReality",
+            "People",
+            "Skype",
+            "YourPhone",
+            "Phone",
+            "Zune",
+            "Music",
+            "Video",
+            "Clipchamp",
+            "Feedback",
+            "Maps",
+            "SoundRecorder",
+            "Alarms",
+            "Camera",
+            "Sticky",
+            "Wallet",
+            "Cortana",
+            "DevHome",
+            "QuickAssist",
+            "Teams", // MSTeams
+            "MicrosoftTeams",
+            "MSTeams",
+            "OneDrive",
+            "OneNote",
+            "Outlook",
+            "ToDo",
+            "PowerAutomate",
+            "Family",
+            "CrossDevice"
+        };
+
         public AppRemovalDialog(ObservableCollection<WindowsApp> apps)
         {
             InitializeComponent();
@@ -20,7 +89,8 @@ namespace WinImagePrep
                     PackageName = a.PackageName,
                     DisplayName = a.DisplayName,
                     Description = a.Description,
-                    IsSelected = a.IsSelected
+                    IsSelected = a.IsSelected,
+                    PackageNames = a.PackageNames
                 })
             );
 
@@ -68,6 +138,56 @@ namespace WinImagePrep
 
         private void AppCheckBox_Changed(object sender, RoutedEventArgs e)
         {
+            UpdateSelectedCount();
+        }
+
+        private void SelectBloatware_Click(object sender, RoutedEventArgs e)
+        {
+            // Deselect all first
+            foreach (var app in WindowsApps)
+            {
+                app.IsSelected = false;
+            }
+
+            // Select only bloatware (non-essential apps)
+            foreach (var app in WindowsApps)
+            {
+                var isEssential = EssentialApps.Any(essential =>
+                    app.DisplayName.Contains(essential, System.StringComparison.OrdinalIgnoreCase) ||
+                    app.PackageName.Contains(essential, System.StringComparison.OrdinalIgnoreCase));
+
+                if (!isEssential)
+                {
+                    // Check if it matches bloatware keywords
+                    var isBloatware = BloatwareKeywords.Any(keyword =>
+                        app.DisplayName.Contains(keyword, System.StringComparison.OrdinalIgnoreCase) ||
+                        app.PackageName.Contains(keyword, System.StringComparison.OrdinalIgnoreCase));
+
+                    if (isBloatware)
+                    {
+                        app.IsSelected = true;
+                    }
+                }
+            }
+
+            UpdateSelectedCount();
+        }
+
+        private void SelectAll_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var app in WindowsApps)
+            {
+                app.IsSelected = true;
+            }
+            UpdateSelectedCount();
+        }
+
+        private void SelectNone_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var app in WindowsApps)
+            {
+                app.IsSelected = false;
+            }
             UpdateSelectedCount();
         }
 

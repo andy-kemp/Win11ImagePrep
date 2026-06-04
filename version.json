@@ -1,5 +1,5 @@
 {
-  "version": "4.4.2",
+  "version": "4.4.3",
   "releaseDate": "2026-06-03",
-  "releaseNotes": "Fixed About dialog to show dynamic version from assembly"
+  "releaseNotes": "Quick Select presets: Remove Bloatware (keeps Calculator, Notepad, etc.) or Remove All"
 }

@@ -29,8 +29,40 @@
         <TextBlock Grid.Row="1" 
                    Text="Choose which built-in Windows apps should be removed from the installation image. Selected apps will be permanently removed before creating the bootable USB."
                    TextWrapping="Wrap"
-                   Margin="0,0,0,15"
+                   Margin="0,0,0,10"
                    Foreground="#555555"/>
+
+        <!-- Quick Select Buttons -->
+        <Border Grid.Row="1" 
+                Background="White"
+                BorderBrush="#CCCCCC"
+                BorderThickness="1"
+                Padding="10"
+                Margin="0,40,0,15"
+                CornerRadius="3">
+            <StackPanel>
+                <TextBlock Text="Quick Select Presets:" 
+                           FontWeight="SemiBold" 
+                           FontSize="12"
+                           Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="🗑️ Remove Bloatware Only" 
+                            Click="SelectBloatware_Click"
+                            Padding="10,5"
+                            Margin="0,0,10,0"
+                            ToolTip="Remove social/gaming apps, keep Windows essentials like Calculator, Notepad, Snipping Tool"/>
+                    <Button Content="❌ Remove All Optional Apps" 
+                            Click="SelectAll_Click"
+                            Padding="10,5"
+                            Margin="0,0,10,0"
+                            ToolTip="Remove everything including Calculator, Notepad, and other useful apps"/>
+                    <Button Content="🔄 Clear Selection" 
+                            Click="SelectNone_Click"
+                            Padding="10,5"
+                            ToolTip="Deselect all apps"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
 
         <!-- Apps List -->
         <Border Grid.Row="2" 
