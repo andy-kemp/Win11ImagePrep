@@ -2,7 +2,7 @@
 WinImagePrep - Release Notes
 ================================================================================
 
-Version 4.3.0 - Dynamic App Discovery & Automated Workflow
+Version 5.0.5 - Autopilot Mode
 Release Date: January 2025
 Publisher: Andy Kemp Consulting Ltd
 
@@ -13,10 +13,43 @@ OVERVIEW
 WinImagePrep is a professional Windows 11 image preparation tool built with
 native C# and WPF using .NET 8. It enables IT professionals and power users
 to create customized Windows 11 installation media with integrated drivers,
-removed unwanted apps, and bootable USB creation.
+removed unwanted apps, unattended installation, and bootable USB creation.
 
 ================================================================================
-VERSION 4.3.0 - NEW IN THIS RELEASE
+VERSION 5.0.5 - NEW IN THIS RELEASE
+================================================================================
+
+🚀 AUTOPILOT MODE - MAJOR FEATURE:
+
+  * NEW "This device is enrolled in Autopilot" checkbox in unattended config
+  * Optimized installation flow specifically for Autopilot-enrolled devices:
+    - Auto-accepts license agreement
+    - Auto-wipes and partitions disk
+    - PRESERVES OOBE for Autopilot enrollment and company branding
+    - Skips local admin account creation (Azure AD accounts only)
+    - Keeps wireless setup enabled for Azure AD join
+  * Smart UI adaptation:
+    - Hides local admin section when Autopilot mode is enabled
+    - Hides computer name section (Autopilot manages this)
+    - Hides setup experience options (forced to Autopilot-friendly defaults)
+  * Clear visual guidance with feature checklist in Autopilot section
+  * Separate behavior from standard unattended install mode
+
+🔧 UNATTENDED INSTALL IMPROVEMENTS:
+
+  * Conditional validation - admin username only required in non-Autopilot mode
+  * Autopilot mode forces sensible defaults automatically
+  * Better separation of concerns between Autopilot and silent install scenarios
+
+📖 DOCUMENTATION:
+
+  * Added comprehensive AUTOPILOT_MODE.md guide
+  * Detailed comparison table: Autopilot vs. Standard Unattended
+  * Troubleshooting section for common Autopilot issues
+  * Technical details on answer file behavior
+
+================================================================================
+VERSION 5.0.3 - RECENT IMPROVEMENTS
 ================================================================================
 
 DYNAMIC APP DISCOVERY FROM ISO:

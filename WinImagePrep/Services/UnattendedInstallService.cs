@@ -66,7 +66,9 @@ namespace WinImagePrep.Services
 
             // User data (accept EULA, etc.)
             sb.AppendLine("            <UserData>");
-            sb.AppendLine("                <AcceptEula>true</AcceptEula>");
+            sb.AppendLine($"                <AcceptEula>{config.HideEULA.ToString().ToLower()}</AcceptEula>");
+            sb.AppendLine("                <FullName>User</FullName>");
+            sb.AppendLine("                <Organization></Organization>");
             sb.AppendLine("            </UserData>");
 
             // Disk configuration - Auto-partition disk 0
@@ -181,30 +183,91 @@ namespace WinImagePrep.Services
 
             // OOBE settings
             sb.AppendLine("            <OOBE>");
-            sb.AppendLine($"            <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
-            sb.AppendLine($"                <HideWirelessSetupInOOBE>{config.HideWirelessSetup.ToString().ToLower()}</HideWirelessSetupInOOBE>");
-            sb.AppendLine("                <ProtectYourPC>3</ProtectYourPC>");
-            sb.AppendLine("            </OOBE>");
+            sb.AppendLine($"                <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
 
-            // User accounts - Local admin
-            sb.AppendLine("            <UserAccounts>");
-            sb.AppendLine("                <LocalAccounts>");
-            sb.AppendLine("                    <LocalAccount wcm:action=\"add\">");
-            sb.AppendLine($"                        <Name>{config.AdminUsername}</Name>");
-            sb.AppendLine("                        <Group>Administrators</Group>");
-            sb.AppendLine("                        <DisplayName>{config.AdminUsername}</DisplayName>");
-
-            if (!string.IsNullOrWhiteSpace(config.AdminPassword))
+            // For Autopilot: don't hide wireless setup (needed for Azure AD join)
+            if (!config.AutopilotMode)
             {
-                sb.AppendLine("                        <Password>");
-                sb.AppendLine($"                            <Value>{config.AdminPassword}</Value>");
-                sb.AppendLine("                            <PlainText>true</PlainText>");
-                sb.AppendLine("                        </Password>");
+                sb.AppendLine($"                <HideWirelessSetupInOOBE>{config.HideWirelessSetup.ToString().ToLower()}</HideWirelessSetupInOOBE>");
             }
 
-            sb.AppendLine("                    </LocalAccount>");
-            sb.AppendLine("                </LocalAccounts>");
-            sb.AppendLine("            </UserAccounts>");
+            // NetworkLocation: 1=Home, 2=Work, 3=Public (skip network location selection)
+            sb.AppendLine("                <NetworkLocation>1</NetworkLocation>");
+
+            // ProtectYourPC: 1=Recommended, 3=Not now (skip privacy/telemetry screens)
+            // For Autopilot: Let Autopilot policies control this
+            // For standard unattended: Skip these screens
+            if (!config.AutopilotMode)
+            {
+                sb.AppendLine("                <ProtectYourPC>3</ProtectYourPC>");
+            }
+
+            // Hide OOBE privacy/telemetry screens (location, diagnostics, speech, inking)
+            if (!config.AutopilotMode)
+            {
+                sb.AppendLine("                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>");
+                sb.AppendLine("                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>");
+                sb.AppendLine("                <HideLocalAccountScreen>true</HideLocalAccountScreen>");
+            }
+
+            // SkipMachineOOBE and SkipUserOOBE control whether OOBE runs
+            // For Autopilot: NEVER skip OOBE (Autopilot needs it for enrollment)
+            if (config.SkipOOBE && !config.AutopilotMode)
+            {
+                sb.AppendLine("                <SkipMachineOOBE>true</SkipMachineOOBE>");
+                sb.AppendLine("                <SkipUserOOBE>true</SkipUserOOBE>");
+            }
+
+            sb.AppendLine("            </OOBE>");
+
+            // User accounts - Only create local admin if NOT in Autopilot mode
+            if (!config.AutopilotMode)
+            {
+                sb.AppendLine("            <UserAccounts>");
+                sb.AppendLine("                <LocalAccounts>");
+                sb.AppendLine("                    <LocalAccount wcm:action=\"add\">");
+                sb.AppendLine($"                        <Name>{config.AdminUsername}</Name>");
+                sb.AppendLine("                        <Group>Administrators</Group>");
+                sb.AppendLine($"                        <DisplayName>{config.AdminUsername}</DisplayName>");
+
+                if (!string.IsNullOrWhiteSpace(config.AdminPassword))
+                {
+                    sb.AppendLine("                        <Password>");
+                    sb.AppendLine($"                            <Value>{config.AdminPassword}</Value>");
+                    sb.AppendLine("                            <PlainText>true</PlainText>");
+                    sb.AppendLine("                        </Password>");
+                }
+
+                sb.AppendLine("                    </LocalAccount>");
+                sb.AppendLine("                </LocalAccounts>");
+                sb.AppendLine("            </UserAccounts>");
+            }
+
+            // Add FirstLogonCommands to disable privacy screens via registry
+            // These are especially important for Autopilot to prevent the privacy screens
+            sb.AppendLine("            <FirstLogonCommands>");
+
+            // Disable privacy experience (location, diagnostics, speech, inking, etc.)
+            sb.AppendLine("                <SynchronousCommand wcm:action=\"add\">");
+            sb.AppendLine("                    <Order>1</Order>");
+            sb.AppendLine("                    <CommandLine>reg add HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\OOBE /v DisablePrivacyExperience /t REG_DWORD /d 1 /f</CommandLine>");
+            sb.AppendLine("                </SynchronousCommand>");
+
+            // Skip machine OOBE registry key (backup method)
+            if (!config.AutopilotMode)
+            {
+                sb.AppendLine("                <SynchronousCommand wcm:action=\"add\">");
+                sb.AppendLine("                    <Order>2</Order>");
+                sb.AppendLine("                    <CommandLine>reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\OOBE /v SkipMachineOOBE /t REG_DWORD /d 1 /f</CommandLine>");
+                sb.AppendLine("                </SynchronousCommand>");
+
+                sb.AppendLine("                <SynchronousCommand wcm:action=\"add\">");
+                sb.AppendLine("                    <Order>3</Order>");
+                sb.AppendLine("                    <CommandLine>reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\OOBE /v SkipUserOOBE /t REG_DWORD /d 1 /f</CommandLine>");
+                sb.AppendLine("                </SynchronousCommand>");
+            }
+
+            sb.AppendLine("            </FirstLogonCommands>");
 
             sb.AppendLine("        </component>");
             sb.AppendLine("    </settings>");

@@ -1,20 +1,23 @@
 # Windows 11 Image & USB Creator
 
-A professional WPF application for preparing Windows 11 installation images with injected drivers, dynamic app discovery and removal, and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages and streamlined Windows app configurations, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
+A professional WPF application for preparing Windows 11 installation images with injected drivers, dynamic app discovery and removal, unattended and Autopilot-friendly installation, and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages and streamlined Windows app configurations, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
 
-![Version](https://img.shields.io/badge/version-4.5.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.0.5-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Proprietary-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue.svg)
+![Publisher](https://img.shields.io/badge/publisher-Andy%20Kemp%20Consulting%20Ltd-blue.svg)
 
 ---
 
 ## 🎯 Overview
 
-Similar in concept to Rufus, but specialized for driver integration before deployment. This native Windows application streamlines the process of injecting hardware drivers (primarily Surface drivers from MSI packages) into Windows 11 ISO images, creating bootable USB drives with fully integrated drivers.
+**WinImagePrep** by **Andy Kemp Consulting Ltd** is a professional Windows 11 image preparation tool that goes beyond simple USB creation. Similar in concept to Rufus, but specialized for driver integration, app customization, and enterprise deployment scenarios including Windows Autopilot.
 
 ### Key Benefits
 - **Native Windows Application**: Full .NET 8 WPF application with modern UI
+- **Autopilot-Ready**: Special mode for Autopilot-enrolled devices that preserves OOBE and company branding
+- **Unattended Installation**: Fully automated Windows setup with zero user interaction
 - **Dynamic App Discovery**: Scan ISO to discover all ~47 provisioned apps actually present in your image
 - **Automated Workflow**: Intelligent prompts guide you through app removal process
 - **One-time setup**: Create a single USB with all drivers pre-installed and unwanted apps removed
@@ -23,13 +26,57 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 - **UEFI compatible**: Creates FAT32 bootable USB drives with proper partitioning
 - **Edition control**: Choose which Windows editions to include and suppress installation prompts
 - **Graphical interface**: Professional WPF UI with real-time progress tracking
+- **Auto-Update**: Built-in update mechanism with GitHub-hosted releases
 - **Splash screen**: Branded startup with initialization status
 
 ---
 
 ## ✨ Features
 
-### Version 4.5.0 (Latest) - June 2026
+### Version 5.0.5 (Latest) - June 2026
+- 🚀 **NEW: Autopilot Mode**
+  - Dedicated "This device is enrolled in Autopilot" option
+  - Preserves Windows Autopilot OOBE experience and company branding
+  - Auto-accepts license, auto-partitions disk
+  - Skips local admin creation (Azure AD accounts only)
+  - Keeps wireless setup enabled for Azure AD join
+  - Smart UI that hides irrelevant options when Autopilot is enabled
+  - Separate from standard unattended install mode
+- 🔧 **Enhanced Privacy Screen Control**
+  - Properly skips telemetry/privacy screens (location, diagnostics, speech, inking)
+  - Uses both OOBE XML settings and registry keys for reliability
+  - Conditional behavior based on Autopilot vs. standard mode
+- 📖 **Comprehensive Documentation**
+  - New AUTOPILOT_MODE.md guide with detailed scenarios
+  - Comparison tables: Autopilot vs. Standard Unattended
+  - Troubleshooting section for common deployment issues
+
+### Version 5.0.3 - June 2026
+- 🐛 **Fixed: Operation Log UI**
+  - Operation log now properly resizes with window collapse/expand
+  - No empty space when log is hidden
+  - Better experience on smaller screens (Surface devices)
+
+### Version 5.0.2 - June 2026
+- ✨ **Responsive Operation Log**
+  - Scrollbar auto-adjusts to window height
+  - Works properly on smaller Surface screens
+  - Improved layout with auto-sizing behavior
+
+### Version 5.0.1 - June 2026
+- 🐛 **Fixed: UI Layout Issues**
+  - Corrected overlapping sections in main window
+  - Better spacing and margins throughout UI
+  - Improved visual consistency
+
+### Version 5.0.0 - June 2026
+- 🚀 **Major Release: Autopilot-Friendly Unattended Installation**
+  - Redesigned unattended install feature for Windows Autopilot compatibility
+  - Edition selection only when multiple editions present in ISO
+  - Conditional OOBE behavior based on deployment scenario
+  - Professional enterprise deployment support
+
+### Version 4.5.0 - June 2026
 - ✨ **NEW: Unattended Windows Installation**
   - Fully automated Windows setup with zero user interaction
   - Automatically partitions and formats Disk 0 (EFI + MSR + NTFS)
@@ -38,66 +85,6 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
   - Creates local administrator account
   - Optional computer name and Windows edition selection
   - **WARNING**: This will wipe all data on the target disk!
-
-### Version 4.4.9 - June 2026
-- 🐛 **Fixed: Window Title Version Display**
-  - Window title now dynamically shows current version from assembly metadata
-  - Version updates automatically when app is updated via in-app updater
-  - No more stale hardcoded version in title bar
-
-### Version 4.4.8 - June 2026
-- 🔍 **Enhanced Settings Diagnostics**
-  - Added detailed logging for settings load/save operations
-  - Better error tracking for Intune-deployed installations
-  - Logs now show FirstRunComplete status and file operations
-  - Helps diagnose permissions issues on enterprise-managed devices
-
-### Version 4.4.7 - June 2026
-- 🐛 **Fixed: First-Run Loop Bug**
-  - Corrected settings persistence pattern to properly save FirstRunComplete flag
-  - Fixed settings save/clone behavior to ensure all preferences persist across restarts
-  - App no longer re-enters first-run wizard after completing it
-  - Settings now properly saved when modifying RemoveWindowsApps and app selections
-
-### Version 4.4.6 - June 2026
-- ✨ **NEW: Persistent App Selection Settings**
-  - App removal checkbox state remembered across sessions
-  - Selected apps for removal automatically restored on startup
-  - Settings saved to `C:\ProgramData\Win11ImagePrep\settings.json`
-  - No need to re-select your apps every time you open the application
-  - Works seamlessly with the auto-load feature
-
-### Version 4.4.5 - June 2026
-- 🐛 **Fixed: Version Display Format**
-  - All version displays now show clean 3-part format (e.g., "4.4.5" instead of "4.4.5.0")
-  - Consistent version formatting in About dialog, update checker, and logs
-  - Improved readability and professional appearance
-
-### Version 4.4.4 - June 2026
-- ✨ **Streamlined App Removal UX**
-  - Apps auto-load from GitHub when "Remove Windows Apps" checkbox is checked
-  - Removed manual "Load Apps" and "Scan from ISO" buttons for cleaner interface
-  - Selection panel greys out when checkbox is unchecked for clear visual feedback
-  - Status text shows loading progress: "Loading apps..." → "✓ 79 apps loaded"
-  - "Select Apps to Remove" button only enabled when apps are successfully loaded
-  - Simpler, more intuitive workflow with fewer manual steps
-
-### Version 4.4.3 - June 2026
-- ✨ **Quick Select Presets for App Removal**
-  - "Remove Bloatware Only" - Removes social/gaming apps, keeps Calculator, Notepad, Paint, Photos, Snipping Tool, etc.
-  - "Remove All Optional Apps" - Removes everything including useful utilities
-  - "Clear Selection" - Quick deselect all
-  - Smart categorization preserves Windows essentials while removing fluff
-
-### Version 4.4.2 - June 2026
-- ✨ **NEW: Auto-Update System**
-  - Check for updates via Tools menu
-  - Automatic download and installation from GitHub
-  - Elevated updater with backup and rollback
-  - Seamless version tracking with version.json
-
-- ✨ **NEW: Grouped Multi-Architecture App Support**
-  - Apps grouped by display name across x64 and ARM64
   - One Teams entry removes correct architecture-specific packages
   - Smart removal: only removes packages present in current image
   - Merged app list with 79 packages (47 x64 + 45 ARM64)
@@ -382,6 +369,169 @@ C:\WinImagePrep\
 2. Select Windows 11 ISO
 3. Select USB drive
 4. Click "Create USB from ISO" - creates standard bootable USB without driver injection
+
+---
+
+## 🚀 Unattended Installation & Autopilot
+
+### Overview
+
+WinImagePrep supports two deployment scenarios:
+1. **Autopilot Mode** - For Autopilot-enrolled devices (preserves OOBE and company branding)
+2. **Standard Unattended** - Fully silent installation with local admin account
+
+### Autopilot Mode (Recommended for Enterprise)
+
+#### When to Use Autopilot Mode
+✅ Device is enrolled in Windows Autopilot  
+✅ Want to preserve company branding during setup  
+✅ Users will sign in with Azure AD (Entra ID) accounts  
+✅ Need to reimage/refresh while keeping Autopilot enrollment  
+✅ Want automated disk setup but preserve OOBE experience  
+
+#### What Autopilot Mode Does
+- ✅ **Auto-accepts license agreement** - Skips EULA screen
+- ✅ **Auto-wipes and partitions disk** - Removes old partitions, creates fresh UEFI layout
+- ✅ **Preserves OOBE** - Shows "Let's set things up..." with your company logo
+- ✅ **Enables wireless setup** - Allows Azure AD join during OOBE
+- ✅ **Skips local admin creation** - Azure AD accounts only
+- ✅ **Skips privacy screens** - No location/diagnostics/speech/inking prompts
+- ❌ **Does NOT skip OOBE** - Company branding and Autopilot enrollment preserved
+- ❌ **Does NOT create local accounts** - Cloud-managed devices only
+
+#### How to Configure Autopilot Mode
+1. Check **"Enable Unattended Installation"** in main window
+2. Click **"Configure Unattended Settings..."**
+3. Check **"This device is enrolled in Autopilot"** ✅
+4. Configure basic settings:
+   - **Windows Edition** - Leave as auto-detect if multiple editions in ISO
+   - **UI Language** - Select language (default: en-US)
+   - **Time Zone** - Select timezone (default: GMT Standard Time)
+   - **Disk ID** - Usually 0 (first disk)
+5. Click **Save**
+6. Proceed with image preparation as normal
+
+**Note**: When Autopilot mode is enabled, the dialog hides:
+- Local Administrator Account section
+- Computer Name field
+- Setup Experience options
+
+These are automatically configured for Autopilot compatibility.
+
+#### Expected Installation Flow (Autopilot)
+1. Boot from USB drive
+2. Disk automatically wiped and partitioned
+3. Windows files copied (no prompts)
+4. System reboots
+5. **OOBE appears with company branding** 👈 Important!
+6. User connects to Wi-Fi
+7. Device contacts Azure AD and applies Autopilot profile
+8. User signs in with Azure AD credentials
+9. Apps and policies deployed via Intune
+
+### Standard Unattended Installation
+
+#### When to Use Standard Unattended
+✅ NOT an Autopilot device  
+✅ Want completely silent installation  
+✅ Need local administrator account  
+✅ Want to skip all OOBE screens  
+✅ Want to set a specific computer name  
+
+#### What Standard Unattended Does
+- ✅ **Fully automated** - Zero user interaction
+- ✅ **Auto-accepts license** - Skips EULA
+- ✅ **Auto-partitions disk** - Wipes and creates partitions
+- ✅ **Creates local admin** - Username and password you specify
+- ✅ **Skips ALL OOBE screens** - No setup experience
+- ✅ **Skips privacy screens** - Location, diagnostics, speech, inking
+- ✅ **Sets computer name** - Optional custom name
+- ✅ **Configurable wireless** - Can hide or show wireless setup
+
+#### How to Configure Standard Unattended
+1. Check **"Enable Unattended Installation"** in main window
+2. Click **"Configure Unattended Settings..."**
+3. **Leave "This device is enrolled in Autopilot" UNCHECKED** ❌
+4. Configure all settings:
+   - **Windows Edition** - Specific edition or auto-detect
+   - **UI Language** - Select language
+   - **Time Zone** - Select timezone
+   - **Administrator Username** - Local admin username
+   - **Administrator Password** - Local admin password
+   - **Computer Name** - Optional (leave blank for random)
+   - **Disk ID** - Usually 0
+   - **Auto-partition disk** - Recommended ✅
+   - **Hide EULA** - Recommended ✅
+   - **Hide wireless setup** - Optional
+   - **Skip OOBE** - Recommended for silent install ✅
+5. Click **Save**
+6. **Acknowledge the data destruction warning** ⚠️
+7. Proceed with image preparation
+
+#### Expected Installation Flow (Standard)
+1. Boot from USB drive
+2. Disk automatically wiped and partitioned
+3. Windows files copied (no prompts)
+4. System reboots
+5. **Desktop appears immediately** - No OOBE, no setup screens
+6. Local admin automatically logged in
+7. Ready to use or join domain manually
+
+### ⚠️ Important Warnings
+
+#### Autopilot Mode
+- Disk will be **completely wiped** during installation
+- All existing data will be **permanently deleted**
+- Autopilot enrollment must already exist in Azure AD
+- Company branding requires Autopilot profile configuration in Intune
+- Users MUST have Azure AD accounts to sign in
+
+#### Standard Unattended
+- Disk will be **completely wiped** during installation
+- All existing data will be **permanently deleted**  
+- Installation proceeds **without any confirmation**
+- Ensure you have the correct disk ID (usually 0)
+- Local admin password stored in plain text in answer file
+- Answer file is visible on USB drive root as `autounattend.xml`
+
+### Comparison Table
+
+| Feature | Autopilot Mode | Standard Unattended |
+|---------|---------------|---------------------|
+| Auto-accept EULA | ✅ Yes | Configurable |
+| Auto-partition disk | ✅ Yes (recommended) | Configurable |
+| Show OOBE | ✅ Yes (for Autopilot) | No (skipped) |
+| Company branding | ✅ Yes (preserved) | No (OOBE skipped) |
+| Wireless setup | ✅ Yes (required) | Configurable |
+| Privacy screens | ❌ No (skipped via registry) | ❌ No (skipped) |
+| Local admin account | ❌ No (Azure AD only) | ✅ Yes (required) |
+| Computer name | ❌ No (Autopilot sets) | Configurable |
+| Azure AD join | ✅ Automatic | Manual |
+| Intune enrollment | ✅ Automatic | Manual |
+
+### Troubleshooting Unattended Installation
+
+#### Issue: Still seeing privacy screens (location, diagnostics, etc.)
+**Cause**: Registry keys not being applied during setup  
+**Solution**: v5.0.4+ includes both XML settings AND registry commands to disable these screens
+
+#### Issue: Autopilot not showing company branding
+**Cause**: SkipOOBE was enabled  
+**Solution**: Use Autopilot Mode - it preserves OOBE automatically
+
+#### Issue: Installation asks for disk partition selection
+**Cause**: Auto-partition not enabled or answer file not found  
+**Solution**: Ensure "Automatically partition and format" is checked and `autounattend.xml` is in USB root
+
+#### Issue: Can't create local admin in Autopilot mode
+**Cause**: This is intentional - Autopilot devices use Azure AD accounts only  
+**Solution**: Uncheck Autopilot Mode if you need a local account (but this will break Autopilot enrollment)
+
+#### Issue: Edition selection prompt still appears
+**Cause**: TargetEdition in answer file doesn't match available editions  
+**Solution**: Leave edition as "Auto-detect" or ensure exact name match (e.g., "Windows 11 Pro")
+
+For detailed Autopilot guidance, see [AUTOPILOT_MODE.md](AUTOPILOT_MODE.md)
 
 ---
 

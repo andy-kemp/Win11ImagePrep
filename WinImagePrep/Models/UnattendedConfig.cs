@@ -65,6 +65,12 @@ namespace WinImagePrep.Models
         public int TargetDiskId { get; set; } = 0;
 
         /// <summary>
+        /// Autopilot deployment mode - optimized for Autopilot-enrolled devices
+        /// When enabled: auto-accepts EULA, auto-wipes disk, preserves OOBE for Autopilot enrollment, skips local admin account creation
+        /// </summary>
+        public bool AutopilotMode { get; set; } = false;
+
+        /// <summary>
         /// Whether to skip OOBE (Out of Box Experience) screens
         /// Note: Set to FALSE for Autopilot devices to allow Autopilot enrollment
         /// </summary>
@@ -99,6 +105,7 @@ namespace WinImagePrep.Models
                 AdminPassword = this.AdminPassword,
                 AutoPartitionDisk = this.AutoPartitionDisk,
                 TargetDiskId = this.TargetDiskId,
+                AutopilotMode = this.AutopilotMode,
                 SkipOOBE = this.SkipOOBE,
                 HideEULA = this.HideEULA,
                 HideWirelessSetup = this.HideWirelessSetup

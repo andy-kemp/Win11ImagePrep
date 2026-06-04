@@ -1,9 +1,78 @@
 # Changelog
 
-All notable changes to the Windows Image Preparation Tool will be documented in this file.
+All notable changes to **WinImagePrep** by Andy Kemp Consulting Ltd will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [5.0.5] - 2026-06-04
+
+### Added
+- **Autopilot Mode** - Dedicated checkbox for Autopilot-enrolled devices
+  - Preserves Windows Autopilot OOBE experience and company branding
+  - Auto-accepts license agreement
+  - Auto-partitions disk (recommended for Autopilot refresh scenarios)
+  - Skips local admin account creation (Azure AD accounts only)
+  - Keeps wireless setup enabled for Azure AD join
+  - Smart UI that hides irrelevant options when Autopilot is enabled
+- **Enhanced Privacy Screen Control**
+  - Added registry-based privacy experience disabling
+  - Properly skips telemetry/diagnostic/speech/inking/location screens
+  - Uses both OOBE XML settings AND FirstLogonCommands for reliability
+  - Conditional behavior based on Autopilot vs. standard unattended mode
+- **Comprehensive Documentation**
+  - New `AUTOPILOT_MODE.md` guide with detailed Autopilot scenarios
+  - Updated `README.md` with complete Autopilot and unattended installation guide
+  - Comparison tables: Autopilot Mode vs. Standard Unattended Installation
+  - Troubleshooting section for common deployment issues
+
+### Changed
+- Unattended installation dialog now conditionally validates admin username (not required in Autopilot mode)
+- OOBE settings generation now respects Autopilot mode separately from SkipOOBE flag
+- `ProtectYourPC` setting only applied in non-Autopilot mode
+
+### Fixed
+- **CRITICAL**: Privacy/telemetry screens (reporting, location, diagnostics, speech, inking) now properly skipped via registry keys
+- Autopilot devices no longer lose company branding and OOBE experience when using unattended installation
+
+---
+
+## [5.0.3] - 2026-06-04
+
+### Fixed
+- Operation log UI now properly resizes with window collapse/expand
+- No empty space when log section is hidden
+- Better experience on smaller screens (Surface devices)
+
+---
+
+## [5.0.2] - 2026-06-04
+
+### Fixed
+- Operation log scrollbar auto-adjusts to window height
+- Works properly on smaller Surface screens
+- Improved layout with auto-sizing behavior
+
+---
+
+## [5.0.1] - 2026-06-04
+
+### Fixed
+- Corrected overlapping sections in main window
+- Better spacing and margins throughout UI
+- Improved visual consistency
+
+---
+
+## [5.0.0] - 2026-06-03
+
+### Changed
+- **MAJOR RELEASE**: Redesigned unattended installation for Windows Autopilot compatibility
+- Edition selection now only prompts when multiple editions are present in ISO
+- OOBE behavior now conditional based on deployment scenario
+- Enhanced support for enterprise deployment workflows
 
 ---
 

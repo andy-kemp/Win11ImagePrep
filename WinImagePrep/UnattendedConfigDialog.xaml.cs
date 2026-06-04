@@ -41,6 +41,10 @@ namespace WinImagePrep
 
         private void LoadConfiguration()
         {
+            // Autopilot mode
+            AutopilotModeCheckBox.IsChecked = Config.AutopilotMode;
+            UpdateAutopilotUI();
+
             // Edition
             if (!string.IsNullOrWhiteSpace(Config.TargetEdition))
             {
@@ -74,12 +78,38 @@ namespace WinImagePrep
             SkipOOBECheckBox.IsChecked = Config.SkipOOBE;
         }
 
+        private void AutopilotMode_Changed(object sender, RoutedEventArgs e)
+        {
+            UpdateAutopilotUI();
+        }
+
+        private void UpdateAutopilotUI()
+        {
+            bool isAutopilot = AutopilotModeCheckBox.IsChecked == true;
+
+            // Hide/show panels based on Autopilot mode
+            LocalAdminPanel.Visibility = isAutopilot ? Visibility.Collapsed : Visibility.Visible;
+            ComputerNamePanel.Visibility = isAutopilot ? Visibility.Collapsed : Visibility.Visible;
+            SetupExperiencePanel.Visibility = isAutopilot ? Visibility.Collapsed : Visibility.Visible;
+
+            // Force sensible defaults for Autopilot
+            if (isAutopilot)
+            {
+                AutoPartitionCheckBox.IsChecked = true;
+                HideEULACheckBox.IsChecked = true;
+                HideWirelessCheckBox.IsChecked = false;
+                SkipOOBECheckBox.IsChecked = false;
+            }
+        }
+
         private void Save_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // Validate
-                if (string.IsNullOrWhiteSpace(AdminUsernameTextBox.Text))
+                bool isAutopilot = AutopilotModeCheckBox.IsChecked == true;
+
+                // Validate (skip admin username check in Autopilot mode)
+                if (!isAutopilot && string.IsNullOrWhiteSpace(AdminUsernameTextBox.Text))
                 {
                     MessageBox.Show(
                         "Administrator username is required.",
@@ -100,6 +130,8 @@ namespace WinImagePrep
                 }
 
                 // Save configuration
+                Config.AutopilotMode = isAutopilot;
+
                 var editionText = EditionComboBox.Text;
                 if (editionText == "(Auto-detect / User will select)" || string.IsNullOrWhiteSpace(editionText))
                 {
@@ -116,18 +148,29 @@ namespace WinImagePrep
                 Config.UserLocale = Config.UILanguage;
                 Config.TimeZone = TimeZoneComboBox.SelectedItem?.ToString() ?? "GMT Standard Time";
 
-                Config.AdminUsername = AdminUsernameTextBox.Text.Trim();
-                Config.AdminPassword = AdminPasswordBox.Password;
+                if (!isAutopilot)
+                {
+                    Config.AdminUsername = AdminUsernameTextBox.Text.Trim();
+                    Config.AdminPassword = AdminPasswordBox.Password;
 
-                var computerName = ComputerNameTextBox.Text.Trim();
-                Config.ComputerName = string.IsNullOrWhiteSpace(computerName) ? null : computerName;
+                    var computerName = ComputerNameTextBox.Text.Trim();
+                    Config.ComputerName = string.IsNullOrWhiteSpace(computerName) ? null : computerName;
+
+                    Config.HideEULA = HideEULACheckBox.IsChecked == true;
+                    Config.HideWirelessSetup = HideWirelessCheckBox.IsChecked == true;
+                    Config.SkipOOBE = SkipOOBECheckBox.IsChecked == true;
+                }
+                else
+                {
+                    // Autopilot mode: force sensible defaults
+                    Config.ComputerName = null; // Autopilot will set this
+                    Config.HideEULA = true;
+                    Config.HideWirelessSetup = false;
+                    Config.SkipOOBE = false;
+                }
 
                 Config.AutoPartitionDisk = AutoPartitionCheckBox.IsChecked == true;
                 Config.TargetDiskId = diskId;
-
-                Config.HideEULA = HideEULACheckBox.IsChecked == true;
-                Config.HideWirelessSetup = HideWirelessCheckBox.IsChecked == true;
-                Config.SkipOOBE = SkipOOBECheckBox.IsChecked == true;
 
                 // Show confirmation if auto-partition is enabled
                 if (Config.AutoPartitionDisk)
