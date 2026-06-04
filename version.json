@@ -1,5 +1,5 @@
 {
-  "version": "5.0.13",
+  "version": "5.0.14",
   "releaseDate": "2026-06-05",
-  "releaseNotes": "🔧 CRITICAL FIX: Autopilot enrollment now works properly! Removed OOBE suppression and registry tweaks in Autopilot mode so company branding and enrollment screens display correctly. Also fixes keyboard/regional prompts with UILanguageFallback."
+  "releaseNotes": "🔧 CRITICAL FIX: Updater now works properly! Downloads EXE + docs BEFORE launching script, gives PowerShell time to start, script is much simpler and more reliable. Fixes PowerShell window flashing and cancelling."
 }

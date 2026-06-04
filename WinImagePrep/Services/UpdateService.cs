@@ -103,13 +103,24 @@ namespace WinImagePrep.Services
 
                 // Create temp directory for update files
                 var tempDir = Path.Combine(Path.GetTempPath(), "WinImagePrep_Update");
+                if (Directory.Exists(tempDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
                 Directory.CreateDirectory(tempDir);
 
                 var newExePath = Path.Combine(tempDir, "WinImagePrep_new.exe");
                 var updaterScriptPath = Path.Combine(tempDir, "Update.ps1");
 
-                // Download new EXE
-                progress?.Report("Downloading update...");
+                // Download new EXE first
+                progress?.Report("Downloading update (1/2)...");
                 var response = await _httpClient.GetAsync(ExeDownloadUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
@@ -118,19 +129,56 @@ namespace WinImagePrep.Services
                     await response.Content.CopyToAsync(fileStream, cancellationToken);
                 }
 
-                progress?.Report("Update downloaded. Preparing installation...");
+                progress?.Report($"Downloaded EXE: {new FileInfo(newExePath).Length / 1024 / 1024:F1} MB");
 
-                // Create updater script
-                var updaterScript = CreateUpdaterScript(currentExePath, newExePath);
+                // Download documentation files
+                progress?.Report("Downloading documentation (2/2)...");
+                var tempDocDir = Path.Combine(tempDir, "docs");
+                Directory.CreateDirectory(tempDocDir);
+
+                int docSuccess = 0;
+                int docFailed = 0;
+
+                foreach (var doc in DocumentationUrls)
+                {
+                    try
+                    {
+                        var docPath = Path.Combine(tempDocDir, doc.Key);
+                        var docResponse = await _httpClient.GetAsync(doc.Value, cancellationToken);
+
+                        if (docResponse.IsSuccessStatusCode)
+                        {
+                            await using var docStream = File.Create(docPath);
+                            await docResponse.Content.CopyToAsync(docStream, cancellationToken);
+                            docSuccess++;
+                        }
+                        else
+                        {
+                            docFailed++;
+                        }
+                    }
+                    catch
+                    {
+                        docFailed++;
+                    }
+                }
+
+                progress?.Report($"Downloaded {docSuccess}/{DocumentationUrls.Count} documentation files");
+
+                // Create updater script (now that everything is downloaded)
+                progress?.Report("Preparing installation script...");
+                var updaterScript = CreateUpdaterScript(currentExePath, newExePath, tempDocDir);
                 await File.WriteAllTextAsync(updaterScriptPath, updaterScript, cancellationToken);
 
-                // Launch updater script with admin elevation
+                // Launch updater script
+                progress?.Report("Launching updater...");
+
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-ExecutionPolicy Bypass -File \"{updaterScriptPath}\"",
-                    Verb = "runas", // Request elevation
-                    UseShellExecute = true
+                    Arguments = $"-ExecutionPolicy Bypass -WindowStyle Normal -File \"{updaterScriptPath}\"",
+                    UseShellExecute = true,
+                    WorkingDirectory = tempDir
                 };
 
                 try
@@ -138,20 +186,20 @@ namespace WinImagePrep.Services
                     var process = Process.Start(startInfo);
                     if (process == null)
                     {
-                        progress?.Report("Update cancelled or failed to start. UAC prompt may have been declined.");
+                        progress?.Report("Update failed to start. Please try again.");
                         return false;
                     }
 
-                    // Give the process a moment to start
-                    await Task.Delay(500, cancellationToken);
+                    // Give the PowerShell window time to open and display
+                    progress?.Report("Updater started. Application will close in 2 seconds...");
+                    await Task.Delay(2000, cancellationToken);
 
                     // Signal that we should close
                     return true;
                 }
-                catch (System.ComponentModel.Win32Exception)
+                catch (Exception ex)
                 {
-                    // User cancelled UAC prompt
-                    progress?.Report("Update cancelled. Administrator permission is required.");
+                    progress?.Report($"Failed to launch updater: {ex.Message}");
                     return false;
                 }
             }
@@ -162,17 +210,8 @@ namespace WinImagePrep.Services
             }
         }
 
-        private string CreateUpdaterScript(string currentExePath, string newExePath)
+        private string CreateUpdaterScript(string currentExePath, string newExePath, string docsSourcePath)
         {
-            // Build documentation URLs array for PowerShell
-            var docUrlsArray = new System.Text.StringBuilder();
-            docUrlsArray.AppendLine("$docFiles = @(");
-            foreach (var doc in DocumentationUrls)
-            {
-                docUrlsArray.AppendLine($"    @{{ Name = '{doc.Key}'; Url = '{doc.Value}' }},");
-            }
-            docUrlsArray.Append(")");
-
             return $@"
 # WinImagePrep Update Script
 $ErrorActionPreference = 'Continue'
@@ -183,6 +222,7 @@ Write-Host ''
 
 $currentExe = '{currentExePath.Replace("'", "''")}'
 $newExe = '{newExePath.Replace("'", "''")}'
+$docsSource = '{docsSourcePath.Replace("'", "''")}'
 $processName = 'WinImagePrep'
 
 # Verify files exist
@@ -201,34 +241,7 @@ if (-not (Test-Path $newExe)) {{
 Write-Host ""Current EXE: $currentExe""
 Write-Host ""New EXE: $newExe""
 Write-Host ""New EXE size: $((Get-Item $newExe).Length / 1MB) MB""
-Write-Host ''
-
-# Download documentation files
-Write-Host 'Downloading documentation...'
-{docUrlsArray}
-
-$tempDocDir = Join-Path $env:TEMP 'WinImagePrep_Update\docs'
-if (-not (Test-Path $tempDocDir)) {{
-    New-Item -ItemType Directory -Path $tempDocDir -Force | Out-Null
-}}
-
-$docDownloadSuccess = 0
-$docDownloadFailed = 0
-
-foreach ($doc in $docFiles) {{
-    try {{
-        $outPath = Join-Path $tempDocDir $doc.Name
-        Write-Host ""  Downloading $($doc.Name)..."" -NoNewline
-        Invoke-WebRequest -Uri $doc.Url -OutFile $outPath -ErrorAction Stop
-        Write-Host ' Done' -ForegroundColor Green
-        $docDownloadSuccess++
-    }} catch {{
-        Write-Host "" Failed: $($_.Exception.Message)"" -ForegroundColor Yellow
-        $docDownloadFailed++
-    }}
-}}
-
-Write-Host ""Downloaded $docDownloadSuccess/$($docFiles.Count) documentation files""
+Write-Host ""Docs source: $docsSource""
 Write-Host ''
 
 # Wait for main process to exit
@@ -238,7 +251,9 @@ $elapsed = 0
 while ((Get-Process -Name $processName -ErrorAction SilentlyContinue) -and ($elapsed -lt $timeout)) {{
     Start-Sleep -Seconds 1
     $elapsed++
-    Write-Host '.' -NoNewline
+    if ($elapsed % 5 -eq 0) {{
+        Write-Host ""  Still waiting... ($elapsed seconds)"" -ForegroundColor Yellow
+    }}
 }}
 Write-Host ''
 
@@ -249,9 +264,8 @@ if (Get-Process -Name $processName -ErrorAction SilentlyContinue) {{
         Start-Sleep -Seconds 2
         Write-Host 'Process closed.' -ForegroundColor Green
     }} catch {{
-        Write-Host 'Could not close process. Please close WinImagePrep manually.' -ForegroundColor Red
-        Read-Host 'Press Enter to exit'
-        exit 1
+        Write-Host 'Could not close process. Please close WinImagePrep manually and press Enter.' -ForegroundColor Red
+        Read-Host 'Press Enter to continue'
     }}
 }}
 
@@ -280,40 +294,48 @@ try {{
     Copy-Item $newExe $currentExe -Force -ErrorAction Stop
     Write-Host 'Update installed successfully!' -ForegroundColor Green
 
-    # Install documentation files
-    $exeDir = Split-Path $currentExe -Parent
-    $docsDir = Join-Path $exeDir 'docs'
-    if (-not (Test-Path $docsDir)) {{
-        New-Item -ItemType Directory -Path $docsDir -Force | Out-Null
-    }}
-
-    Write-Host 'Installing documentation...'
-    $installedDocs = 0
-    Get-ChildItem -Path $tempDocDir -File | ForEach-Object {{
-        try {{
-            $destPath = Join-Path $docsDir $_.Name
-            Copy-Item $_.FullName $destPath -Force -ErrorAction Stop
-            $installedDocs++
-        }} catch {{
-            Write-Host ""  Failed to copy $($_.Name): $($_.Exception.Message)"" -ForegroundColor Yellow
+    # Install documentation files if they exist
+    if (Test-Path $docsSource) {{
+        $exeDir = Split-Path $currentExe -Parent
+        $docsDir = Join-Path $exeDir 'docs'
+        if (-not (Test-Path $docsDir)) {{
+            New-Item -ItemType Directory -Path $docsDir -Force | Out-Null
         }}
+
+        Write-Host 'Installing documentation...'
+        $installedDocs = 0
+        Get-ChildItem -Path $docsSource -File | ForEach-Object {{
+            try {{
+                $destPath = Join-Path $docsDir $_.Name
+                Copy-Item $_.FullName $destPath -Force -ErrorAction Stop
+                Write-Host ""  Installed: $($_.Name)"" -ForegroundColor Gray
+                $installedDocs++
+            }} catch {{
+                Write-Host ""  Failed to copy $($_.Name): $($_.Exception.Message)"" -ForegroundColor Yellow
+            }}
+        }}
+
+        # Also copy README and CHANGELOG to root
+        $readmePath = Join-Path $docsSource 'README.md'
+        $changelogPath = Join-Path $docsSource 'CHANGELOG.md'
+        if (Test-Path $readmePath) {{
+            Copy-Item $readmePath (Join-Path $exeDir 'README.md') -Force -ErrorAction SilentlyContinue
+            Write-Host '  Installed: README.md' -ForegroundColor Gray
+        }}
+        if (Test-Path $changelogPath) {{
+            Copy-Item $changelogPath (Join-Path $exeDir 'CHANGELOG.md') -Force -ErrorAction SilentlyContinue
+            Write-Host '  Installed: CHANGELOG.md' -ForegroundColor Gray
+        }}
+
+        Write-Host ""Installed $installedDocs documentation files"" -ForegroundColor Green
+    }} else {{
+        Write-Host 'No documentation files found to install.' -ForegroundColor Yellow
     }}
 
-    # Also copy README and CHANGELOG to root
-    $readmePath = Join-Path $tempDocDir 'README.md'
-    $changelogPath = Join-Path $tempDocDir 'CHANGELOG.md'
-    if (Test-Path $readmePath) {{
-        Copy-Item $readmePath (Join-Path $exeDir 'README.md') -Force -ErrorAction SilentlyContinue
-    }}
-    if (Test-Path $changelogPath) {{
-        Copy-Item $changelogPath (Join-Path $exeDir 'CHANGELOG.md') -Force -ErrorAction SilentlyContinue
-    }}
-
-    Write-Host ""Installed $installedDocs documentation files"" -ForegroundColor Green
     Write-Host ''
     Write-Host 'Starting updated application...'
     Start-Process $currentExe -ErrorAction Stop
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds 1
 }} catch {{
     Write-Host ""Update failed: $($_.Exception.Message)"" -ForegroundColor Red
     Write-Host 'Restoring backup...' -ForegroundColor Yellow
@@ -328,15 +350,15 @@ try {{
 }}
 
 # Cleanup
-Write-Host 'Cleaning up...'
+Write-Host 'Cleaning up temporary files...'
 Start-Sleep -Seconds 1
-Remove-Item $newExe -Force -ErrorAction SilentlyContinue
-Remove-Item $tempDocDir -Recurse -Force -ErrorAction SilentlyContinue
+$tempUpdateDir = Split-Path $newExe -Parent
+Remove-Item $tempUpdateDir -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ''
 Write-Host 'Update complete!' -ForegroundColor Green
-Write-Host 'You can close this window.' -ForegroundColor Cyan
-Start-Sleep -Seconds 3
+Write-Host 'This window will close in 5 seconds...' -ForegroundColor Cyan
+Start-Sleep -Seconds 5
 ";
         }
     }

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.14] - 2026-06-05
+
+### Fixed
+- **Critical Updater Fix** - Fixed PowerShell updater window flashing and cancelling
+  - Now downloads EXE and documentation BEFORE launching PowerShell script
+  - Increased delay to 2 seconds before app shutdown to give PowerShell time to start
+  - Removed complex web download logic from PowerShell script
+  - Script now only handles: wait for process, backup, copy files, launch
+  - Much more reliable update process, especially when running as admin
+
+### Technical
+- Modified `UpdateService.DownloadAndApplyUpdateAsync()` to pre-download all files
+- Modified `CreateUpdaterScript()` to accept pre-downloaded docs path
+- Script now receives all file paths as parameters instead of downloading during execution
+- Fixed timing issue where app closed before PowerShell script could initialize
+
+---
+
 ## [5.0.13] - 2026-06-05
 
 ### Fixed
