@@ -1,5 +1,5 @@
 {
-  "version": "4.4.6",
+  "version": "4.4.7",
   "releaseDate": "2026-06-03",
-  "releaseNotes": "Added persistent app selection settings - remembers which apps you want to remove across sessions. Checkbox state and app selections automatically restored on startup."
+  "releaseNotes": "Fixed first-run loop bug - settings now properly persist across app restarts. Corrected settings save/clone pattern to ensure FirstRunComplete and app selections are preserved."
 }

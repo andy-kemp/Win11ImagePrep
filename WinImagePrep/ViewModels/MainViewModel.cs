@@ -255,9 +255,10 @@ namespace WinImagePrep.ViewModels
             {
                 if (SetProperty(ref _removeWindowsApps, value))
                 {
-                    // Save to settings
-                    _settingsService.CurrentSettings.RemoveWindowsApps = value;
-                    _ = _settingsService.SaveSettingsAsync(_settingsService.CurrentSettings);
+                    // Save to settings (clone, modify, save)
+                    var settings = _settingsService.CurrentSettings.Clone();
+                    settings.RemoveWindowsApps = value;
+                    _ = _settingsService.SaveSettingsAsync(settings);
 
                     // Auto-load apps when checkbox is checked
                     if (value && WindowsApps.Count == 0)
@@ -1615,8 +1616,10 @@ namespace WinImagePrep.ViewModels
                     selectedPackages.AddRange(app.PackageNames);
                 }
 
-                _settingsService.CurrentSettings.SelectedAppsForRemoval = selectedPackages;
-                _ = _settingsService.SaveSettingsAsync(_settingsService.CurrentSettings);
+                // Clone, modify, and save
+                var settings = _settingsService.CurrentSettings.Clone();
+                settings.SelectedAppsForRemoval = selectedPackages;
+                _ = _settingsService.SaveSettingsAsync(settings);
 
                 AddLog($"✓ Saved {selectedPackages.Count} package selections");
             }
