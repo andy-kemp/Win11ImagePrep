@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.19] - 2025-01-29
+
+### Changed
+- **Test Release** - No functional changes
+- Version bump to test v5.0.18 first-run update check
+- Validates simplified first-run update flow
+
+---
+
 ## [5.0.18] - 2025-01-29
 
 ### Fixed
