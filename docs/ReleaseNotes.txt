@@ -2,8 +2,8 @@
 WinImagePrep - Release Notes
 ================================================================================
 
-Version 5.0.5 - Autopilot Mode
-Release Date: January 2025
+Version 5.0.7 - Enhanced Documentation Updates
+Release Date: June 2026
 Publisher: Andy Kemp Consulting Ltd
 
 ================================================================================
@@ -16,7 +16,43 @@ to create customized Windows 11 installation media with integrated drivers,
 removed unwanted apps, unattended installation, and bootable USB creation.
 
 ================================================================================
-VERSION 5.0.5 - NEW IN THIS RELEASE
+VERSION 5.0.7 - NEW IN THIS RELEASE
+================================================================================
+
+📦 ENHANCED AUTO-UPDATE WITH DOCUMENTATION:
+
+  * Auto-update now downloads and installs ALL documentation files
+  * Downloads UserGuide.html, README.md, CHANGELOG.md, ReleaseNotes.txt,
+    and AUTOPILOT_MODE.md from GitHub
+  * Creates/updates docs\ subfolder next to the application EXE
+  * Copies README and CHANGELOG to application root for easy access
+  * Provides real-time download progress for each file
+  * Shows success/failure count for documentation downloads
+  * Continues update even if some documentation downloads fail
+  * Users always have up-to-date documentation matching their version
+
+🔧 TECHNICAL IMPROVEMENTS:
+
+  * Added DocumentationUrls dictionary in UpdateService.cs
+  * Enhanced PowerShell updater script with Invoke-WebRequest logic
+  * Automatic documentation directory structure creation
+  * Improved multi-file download progress reporting
+  * Graceful fallback if documentation downloads fail
+
+================================================================================
+VERSION 5.0.6 - OPERATION LOG UI FIXES
+================================================================================
+
+🔧 FIXED ISSUES:
+
+  * Operation log scrollbar now visible and working properly
+  * Log section properly collapses without leaving empty space
+  * Window resizes correctly when log is expanded/collapsed
+  * Grid row definition uses Height="*" for proper space filling
+  * Fixed ScrollViewer height (200px) for consistent behavior
+
+================================================================================
+VERSION 5.0.5 - AUTOPILOT MODE
 ================================================================================
 
 🚀 AUTOPILOT MODE - MAJOR FEATURE:

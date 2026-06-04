@@ -1,5 +1,5 @@
 {
-  "version": "5.0.6",
+  "version": "5.0.7",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "🔧 Fixed: Operation log scrollbar now visible and working properly. Fixed: Log section properly collapses without leaving empty space. Window now resizes correctly when log is expanded/collapsed."
+  "releaseNotes": "📦 Enhanced: Auto-update now downloads and updates documentation files (UserGuide, README, CHANGELOG, ReleaseNotes, Autopilot guide) alongside the application. Users always get current documentation matching their installed version."
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WinImagePrep User Guide v5.0.6</title>
+    <title>WinImagePrep User Guide v5.0.7</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -172,14 +172,14 @@
     <header>
         <h1>🚀 WinImagePrep</h1>
         <p style="font-size: 1.3em; margin: 0;">Complete User Guide</p>
-        <div class="version-badge">Version 5.0.6 | June 2026</div>
+        <div class="version-badge">Version 5.0.7 | June 2026</div>
     </header>
 
     <div class="section">
         <h2>📖 Table of Contents</h2>
         <ul style="columns: 2; column-gap: 40px;">
             <li><a href="#overview">What WinImagePrep Does</a></li>
-            <li><a href="#new-features">What's New in v5.0.6</a></li>
+            <li><a href="#new-features">What's New in v5.0.7</a></li>
             <li><a href="#requirements">System Requirements</a></li>
             <li><a href="#workflow">Standard Workflow</a></li>
             <li><a href="#autopilot">Autopilot Mode</a></li>
@@ -224,10 +224,24 @@
     </div>
 
     <div class="section" id="new-features">
-        <h2>🆕 What's New in v5.0.6</h2>
+        <h2>🆕 What's New in v5.0.7</h2>
 
         <div class="new-feature">
-            <h3>✅ Fixed: Operation Log UI</h3>
+            <h3>📦 Enhanced Auto-Update with Documentation</h3>
+            <p>The auto-update system now downloads and installs complete documentation alongside the application:</p>
+            <ul>
+                <li><strong>Complete docs download</strong> - UserGuide, README, CHANGELOG, ReleaseNotes, Autopilot guide</li>
+                <li><strong>Automatic folder structure</strong> - Creates docs\ subfolder next to the EXE</li>
+                <li><strong>Progress tracking</strong> - Shows download progress for each documentation file</li>
+                <li><strong>Graceful fallback</strong> - Update continues even if some doc downloads fail</li>
+                <li><strong>Always current</strong> - Documentation always matches your installed version</li>
+            </ul>
+            <p><em>Technical:</em> PowerShell updater script now uses Invoke-WebRequest to fetch documentation from GitHub raw URLs, creating the full documentation directory structure automatically.</p>
+        </div>
+
+        <h3>Recent Major Features</h3>
+        <div class="new-feature">
+            <h3>✅ Fixed: Operation Log UI (v5.0.6)</h3>
             <ul>
                 <li><strong>Scrollbar now visible</strong> - Operation log scrollbar works properly</li>
                 <li><strong>Proper collapse behavior</strong> - No empty space when log is collapsed</li>
@@ -235,9 +249,8 @@
             </ul>
         </div>
 
-        <h3>Recent Major Features (v5.0.5)</h3>
         <div class="new-feature">
-            <h3>🚀 Autopilot Mode</h3>
+            <h3>🚀 Autopilot Mode (v5.0.5)</h3>
             <p>Dedicated mode for Windows Autopilot-enrolled devices:</p>
             <ul>
                 <li>✅ Preserves OOBE and company branding</li>
@@ -254,6 +267,11 @@
                 <th>Version</th>
                 <th>Release Date</th>
                 <th>Key Features</th>
+            </tr>
+            <tr>
+                <td><strong>5.0.7</strong></td>
+                <td>June 2026</td>
+                <td>Enhanced auto-update with documentation downloads</td>
             </tr>
             <tr>
                 <td><strong>5.0.6</strong></td>

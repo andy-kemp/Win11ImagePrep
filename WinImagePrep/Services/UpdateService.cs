@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -17,6 +18,16 @@ namespace WinImagePrep.Services
         private readonly HttpClient _httpClient;
         private const string VersionCheckUrl = "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/version.json";
         private const string ExeDownloadUrl = "https://github.com/andy-kemp/Win11ImagePrep/raw/main/publish/WinImagePrep.exe";
+
+        // Documentation download URLs
+        private static readonly Dictionary<string, string> DocumentationUrls = new()
+        {
+            { "UserGuide.html", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/docs/UserGuide.html" },
+            { "README.md", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/README.md" },
+            { "CHANGELOG.md", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/CHANGELOG.md" },
+            { "ReleaseNotes.txt", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/docs/ReleaseNotes.txt" },
+            { "AUTOPILOT_MODE.md", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/docs/AUTOPILOT_MODE.md" }
+        };
 
         public UpdateService(HttpClient httpClient)
         {
@@ -136,6 +147,15 @@ namespace WinImagePrep.Services
 
         private string CreateUpdaterScript(string currentExePath, string newExePath)
         {
+            // Build documentation URLs array for PowerShell
+            var docUrlsArray = new System.Text.StringBuilder();
+            docUrlsArray.AppendLine("$docFiles = @(");
+            foreach (var doc in DocumentationUrls)
+            {
+                docUrlsArray.AppendLine($"    @{{ Name = '{doc.Key}'; Url = '{doc.Value}' }},");
+            }
+            docUrlsArray.Append(")");
+
             return $@"
 # WinImagePrep Update Script
 Write-Host 'WinImagePrep Updater' -ForegroundColor Cyan
@@ -145,6 +165,34 @@ Write-Host ''
 $currentExe = '{currentExePath.Replace("'", "''")}'
 $newExe = '{newExePath.Replace("'", "''")}'
 $processName = 'WinImagePrep'
+
+# Download documentation files
+Write-Host 'Downloading documentation...'
+{docUrlsArray}
+
+$tempDocDir = Join-Path $env:TEMP 'WinImagePrep_Update\docs'
+if (-not (Test-Path $tempDocDir)) {{
+    New-Item -ItemType Directory -Path $tempDocDir -Force | Out-Null
+}}
+
+$docDownloadSuccess = 0
+$docDownloadFailed = 0
+
+foreach ($doc in $docFiles) {{
+    try {{
+        $outPath = Join-Path $tempDocDir $doc.Name
+        Write-Host ""  Downloading $($doc.Name)..."" -NoNewline
+        Invoke-WebRequest -Uri $doc.Url -OutFile $outPath -ErrorAction Stop
+        Write-Host ' Done' -ForegroundColor Green
+        $docDownloadSuccess++
+    }} catch {{
+        Write-Host ' Failed' -ForegroundColor Yellow
+        $docDownloadFailed++
+    }}
+}}
+
+Write-Host ""Downloaded $docDownloadSuccess/$($docFiles.Count) documentation files""
+Write-Host ''
 
 # Wait for main process to exit
 Write-Host 'Waiting for application to close...'
@@ -176,6 +224,37 @@ Write-Host 'Installing update...'
 try {{
     Copy-Item $newExe $currentExe -Force
     Write-Host 'Update installed successfully!' -ForegroundColor Green
+
+    # Install documentation files
+    $exeDir = Split-Path $currentExe -Parent
+    $docsDir = Join-Path $exeDir 'docs'
+    if (-not (Test-Path $docsDir)) {{
+        New-Item -ItemType Directory -Path $docsDir -Force | Out-Null
+    }}
+
+    Write-Host 'Installing documentation...'
+    $installedDocs = 0
+    Get-ChildItem -Path $tempDocDir -File | ForEach-Object {{
+        try {{
+            $destPath = Join-Path $docsDir $_.Name
+            Copy-Item $_.FullName $destPath -Force
+            $installedDocs++
+        }} catch {{
+            Write-Host ""  Failed to copy $($_.Name)"" -ForegroundColor Yellow
+        }}
+    }}
+
+    # Also copy README and CHANGELOG to root
+    $readmePath = Join-Path $tempDocDir 'README.md'
+    $changelogPath = Join-Path $tempDocDir 'CHANGELOG.md'
+    if (Test-Path $readmePath) {{
+        Copy-Item $readmePath (Join-Path $exeDir 'README.md') -Force -ErrorAction SilentlyContinue
+    }}
+    if (Test-Path $changelogPath) {{
+        Copy-Item $changelogPath (Join-Path $exeDir 'CHANGELOG.md') -Force -ErrorAction SilentlyContinue
+    }}
+
+    Write-Host ""Installed $installedDocs documentation files"" -ForegroundColor Green
     Write-Host ''
     Write-Host 'Starting updated application...'
     Start-Process $currentExe
@@ -192,6 +271,7 @@ try {{
 Write-Host 'Cleaning up...'
 Start-Sleep -Seconds 1
 Remove-Item $newExe -Force -ErrorAction SilentlyContinue
+Remove-Item $tempDocDir -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host 'Update complete!' -ForegroundColor Green
 Start-Sleep -Seconds 2

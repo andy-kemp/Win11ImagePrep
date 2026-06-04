@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.7] - 2026-06-04
+
+### Enhanced
+- **Auto-Update with Documentation** - Update system now downloads and installs all documentation files
+  - Downloads `UserGuide.html`, `README.md`, `CHANGELOG.md`, `ReleaseNotes.txt`, and `AUTOPILOT_MODE.md`
+  - Creates/updates `docs\` subfolder next to application EXE
+  - Copies README and CHANGELOG to application root directory
+  - Provides download progress and success/failure count
+  - Continues update even if some documentation downloads fail
+  - Users always have up-to-date documentation matching their installed version
+
+### Technical
+- Added `DocumentationUrls` dictionary in `UpdateService.cs` with GitHub raw URLs
+- Enhanced PowerShell updater script with `Invoke-WebRequest` download logic
+- Updater now creates documentation directory structure automatically
+- Improved update progress reporting for multi-file downloads
+
+---
+
 ## [5.0.6] - 2026-06-04
 
 ### Fixed
