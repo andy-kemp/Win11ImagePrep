@@ -2,7 +2,7 @@
 WinImagePrep - Release Notes
 ================================================================================
 
-Version 5.0.13 - CRITICAL Autopilot Enrollment Fix
+Version 5.0.14 - CRITICAL Updater Fix
 Release Date: June 2026
 Publisher: Andy Kemp Consulting Ltd
 
@@ -16,7 +16,37 @@ to create customized Windows 11 installation media with integrated drivers,
 removed unwanted apps, unattended installation, and bootable USB creation.
 
 ================================================================================
-VERSION 5.0.13 - NEW IN THIS RELEASE (CRITICAL FIX)
+VERSION 5.0.14 - NEW IN THIS RELEASE (CRITICAL FIX)
+================================================================================
+
+🔧 CRITICAL FIX: UPDATER NOW WORKS RELIABLY:
+
+  * Fixed PowerShell updater window flashing and cancelling
+  * Now downloads EXE and documentation BEFORE launching PowerShell script
+  * Increased delay to 2 seconds before app shutdown to give PowerShell time to start
+  * Removed complex web download logic from PowerShell script
+  * Script now only handles: wait for process, backup, copy files, launch
+  * Much more reliable update process, especially when running as admin
+  * Tested: 4.4.4 → 5.0.14 works perfectly
+
+🎯 USE CASE:
+
+  You're running v5.0.12 and try to update to v5.0.13. Previously, the
+  PowerShell window would flash and cancel because the app closed before the
+  script could initialize. Now, all files download first, script launches
+  with a visible window, waits for app to close, and completes the update
+  successfully.
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Modified UpdateService.DownloadAndApplyUpdateAsync() to pre-download all files
+  * Modified CreateUpdaterScript() to accept pre-downloaded docs path
+  * Script receives all file paths as parameters instead of downloading during execution
+  * Fixed timing issue where app closed before PowerShell script could initialize
+  * Clean temp directory before starting to avoid stale files
+
+================================================================================
+VERSION 5.0.13 - CRITICAL AUTOPILOT ENROLLMENT FIX
 ================================================================================
 
 🔧 CRITICAL FIX: AUTOPILOT ENROLLMENT NOW WORKS PROPERLY:
