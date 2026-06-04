@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.17] - 2025-01-29
+
+### Changed
+- **Test Release** - No functional changes
+- Version bump to test v5.0.16 first-run update check fix
+- Validates that update check triggers after settings reset
+
+---
+
 ## [5.0.16] - 2025-01-29
 
 ### Fixed
