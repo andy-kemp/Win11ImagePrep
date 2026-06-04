@@ -2930,6 +2930,60 @@ namespace WinImagePrep.ViewModels
             });
         }
 
+        /// <summary>
+        /// Checks if there's a pending update from first-run and applies it
+        /// </summary>
+        public async Task CheckPendingFirstRunUpdateAsync()
+        {
+            try
+            {
+                var settings = _settingsService.CurrentSettings;
+
+                if (!string.IsNullOrEmpty(settings.PendingUpdateVersion))
+                {
+                    AddLog($"Pending update detected: v{settings.PendingUpdateVersion}");
+                    AddLog("Starting update download...");
+
+                    var success = await _updateService.DownloadAndApplyUpdateAsync(
+                        new Progress<string>(msg => AddLog(msg)));
+
+                    if (success)
+                    {
+                        AddLog("Update downloaded. Application will now close and update...");
+                        // The updater script will close the app
+                        await Task.Delay(1000); // Give user time to see the message
+                        Application.Current.Shutdown();
+                    }
+                    else
+                    {
+                        AddLog("⚠ Update failed. You can try again from Tools > Check for Updates.");
+
+                        // Clear the pending update flag
+                        var updatedSettings = settings.Clone();
+                        updatedSettings.PendingUpdateVersion = null;
+                        await _settingsService.SaveSettingsAsync(updatedSettings);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Failed to apply pending update: {ex.Message}");
+                Logger.Error($"Pending update failed: {ex.Message}");
+
+                // Clear the pending update flag
+                try
+                {
+                    var settings = _settingsService.CurrentSettings.Clone();
+                    settings.PendingUpdateVersion = null;
+                    await _settingsService.SaveSettingsAsync(settings);
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+            }
+        }
+
         private void AddLog(string message)
         {
             Application.Current?.Dispatcher.Invoke(() =>

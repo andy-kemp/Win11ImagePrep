@@ -66,6 +66,11 @@ namespace WinImagePrep.Models
         /// </summary>
         public UnattendedConfig? UnattendedInstallConfig { get; set; }
 
+        /// <summary>
+        /// Pending update version string (set during first-run if user accepts update)
+        /// </summary>
+        public string? PendingUpdateVersion { get; set; }
+
         // Validation constants
         public const long MinimumFreeSpaceGB = 25;
         public const string DefaultWorkingRoot = @"C:\ProgramData\Win11ImagePrep";

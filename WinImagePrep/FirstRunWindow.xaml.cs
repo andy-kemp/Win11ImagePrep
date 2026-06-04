@@ -89,35 +89,20 @@ namespace WinImagePrep
                             $"Current version: {currentVersion}\n" +
                             $"Latest version: {latestVersionStr}\n\n" +
                             $"Would you like to update now?\n\n" +
-                            $"The update will download and install automatically.",
+                            $"The app will load, download the update in the background,\n" +
+                            $"then automatically apply it when ready.",
                             "Update Available",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Information);
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            Logger.Info("User accepted update, starting download...");
+                            Logger.Info("User accepted update - will download after main window loads");
 
-                            // Download and apply update
-                            var success = await updateService.DownloadAndApplyUpdateAsync(
-                                new Progress<string>(msg => Logger.Info($"Update: {msg}")));
-
-                            if (success)
-                            {
-                                Logger.Info("Update successful, app will close and restart");
-                                // The updater script will close and restart the app
-                                Application.Current.Shutdown();
-                                return;
-                            }
-                            else
-                            {
-                                Logger.Warning("Update failed");
-                                MessageBox.Show(
-                                    "Update failed. You can update later from Tools > Check for Updates.",
-                                    "Update Failed",
-                                    MessageBoxButton.OK,
-                                    MessageBoxImage.Warning);
-                            }
+                            // Store the pending update info so MainWindow can pick it up
+                            var pendingSettings = _settingsService.CurrentSettings.Clone();
+                            pendingSettings.PendingUpdateVersion = latestVersionStr;
+                            await _settingsService.SaveSettingsAsync(pendingSettings);
                         }
                         else
                         {

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.21] - 2025-01-29
+
+### Fixed
+- **First-Run Update Process** - Deferred update until main window loads
+  - Update check still happens in first-run wizard
+  - If user accepts, update is flagged and downloaded after main app loads
+  - Prevents "process still running" errors from wizard window not closing cleanly
+  - Update progress now visible in operation log
+  - Added `PendingUpdateVersion` property to AppSettings
+
+### Changed
+- First-run wizard now only checks for updates and prompts user
+- Actual download/apply happens after main window loads via `CheckPendingFirstRunUpdateAsync()`
+
+---
+
 ## [5.0.20] - 2025-01-29
 
 ### Fixed
