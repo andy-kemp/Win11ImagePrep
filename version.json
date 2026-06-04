@@ -1,5 +1,5 @@
 {
-  "version": "5.0.9",
+  "version": "5.0.10",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "🛡️ Safety: Updates are now deferred when operations are running. If an update is available while processing (driver injection, image prep, or USB creation), the app will prompt you to update after the operation completes instead of interrupting mid-process. Prevents data loss and ensures safe operation completion."
+  "releaseNotes": "🐛 Fix: Reset to Default now properly clears FirstRunUpdateCheckComplete flag, ensuring first-run update check triggers after config reset. Complements the deferred update safety improvements in v5.0.9."
 }

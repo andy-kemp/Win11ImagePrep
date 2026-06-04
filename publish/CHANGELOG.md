@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.10] - 2026-06-04
+
+### Fixed
+- **Reset to Default Configuration** - First-run update check now properly triggers after resetting configuration
+  - `GetDefaultSettings()` now explicitly sets `FirstRunUpdateCheckComplete = false`
+  - Ensures users see update prompt after config reset, just like on true first run
+  - Complements the deferred update safety improvements from v5.0.9
+
+---
+
 ## [5.0.9] - 2026-06-04
 
 ### Added

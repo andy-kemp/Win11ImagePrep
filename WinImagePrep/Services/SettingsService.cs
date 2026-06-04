@@ -317,6 +317,7 @@ namespace WinImagePrep.Services
                 AutoCleanupMounts = true,
                 CheckForUpdates = true,
                 FirstRunComplete = false,
+                FirstRunUpdateCheckComplete = false,
                 LogLevel = "Information"
             };
         }

@@ -2,7 +2,7 @@
 WinImagePrep - Release Notes
 ================================================================================
 
-Version 5.0.9 - Deferred Updates During Operations
+Version 5.0.10 - Reset Config First-Run Update Check Fix
 Release Date: June 2026
 Publisher: Andy Kemp Consulting Ltd
 
@@ -16,7 +16,32 @@ to create customized Windows 11 installation media with integrated drivers,
 removed unwanted apps, unattended installation, and bootable USB creation.
 
 ================================================================================
-VERSION 5.0.9 - NEW IN THIS RELEASE
+VERSION 5.0.10 - NEW IN THIS RELEASE
+================================================================================
+
+🐛 FIXED: RESET TO DEFAULT NOW TRIGGERS FIRST-RUN UPDATE CHECK:
+
+  * Fixed issue where resetting configuration to default didn't trigger update check
+  * GetDefaultSettings() now explicitly sets FirstRunUpdateCheckComplete = false
+  * After resetting config, first-run update check will properly execute on next launch
+  * Ensures users see update prompt after config reset, just like on true first run
+  * Complements the deferred update safety improvements from v5.0.9
+
+🎯 USE CASE:
+
+  You're running v5.0.8 and reset your configuration to defaults. Previously,
+  the first-run update check wouldn't trigger even though FirstRunComplete was
+  reset. Now, after resetting config, you'll properly see the update prompt
+  on next launch if a newer version (like v5.0.10) is available.
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Modified GetDefaultSettings() in SettingsService to explicitly set
+    FirstRunUpdateCheckComplete = false
+  * Ensures complete first-run state reset when user chooses "Reset to Default"
+
+================================================================================
+VERSION 5.0.9 - DEFERRED UPDATES DURING OPERATIONS
 ================================================================================
 
 🛡️ DEFERRED UPDATES DURING OPERATIONS (SAFETY IMPROVEMENT):
