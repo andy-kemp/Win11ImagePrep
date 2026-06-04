@@ -1,5 +1,5 @@
 {
-  "version": "4.4.4",
+  "version": "4.4.5",
   "releaseDate": "2026-06-03",
-  "releaseNotes": "Streamlined UX: Auto-load apps from GitHub when checkbox checked. Removed manual Load/Scan buttons. Selection panel greys out when disabled."
+  "releaseNotes": "Fixed version display to show 3-part versions (4.4.5) instead of 4-part (4.4.5.0) in update dialogs and About screen."
 }

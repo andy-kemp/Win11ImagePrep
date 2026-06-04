@@ -33,6 +33,15 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// Get the current version formatted as Major.Minor.Build
+        /// </summary>
+        public string GetCurrentVersionString()
+        {
+            var version = GetCurrentVersion();
+            return $"{version.Major}.{version.Minor}.{version.Build}";
+        }
+
+        /// <summary>
         /// Check if a newer version is available on GitHub
         /// </summary>
         public async Task<(bool updateAvailable, Version? latestVersion)> CheckForUpdateAsync(CancellationToken cancellationToken = default)

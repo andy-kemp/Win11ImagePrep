@@ -2358,13 +2358,14 @@ namespace WinImagePrep.ViewModels
 
                 if (updateAvailable && latestVersion != null)
                 {
-                    var currentVersion = _updateService.GetCurrentVersion();
-                    AddLog($"✓ Update available: v{latestVersion} (current: v{currentVersion})");
+                    var currentVersionStr = _updateService.GetCurrentVersionString();
+                    var latestVersionStr = $"{latestVersion.Major}.{latestVersion.Minor}.{latestVersion.Build}";
+                    AddLog($"✓ Update available: v{latestVersionStr} (current: v{currentVersionStr})");
 
                     var result = MessageBox.Show(
                         $"A new version of WinImagePrep is available!\n\n" +
-                        $"Current version: {currentVersion}\n" +
-                        $"Latest version: {latestVersion}\n\n" +
+                        $"Current version: {currentVersionStr}\n" +
+                        $"Latest version: {latestVersionStr}\n\n" +
                         $"Would you like to download and install the update now?\n\n" +
                         $"The application will close, download the update, and restart automatically.",
                         "Update Available",
@@ -2396,10 +2397,10 @@ namespace WinImagePrep.ViewModels
                 }
                 else
                 {
-                    var currentVersion = _updateService.GetCurrentVersion();
-                    AddLog($"✓ You are running the latest version (v{currentVersion})");
+                    var currentVersionStr = _updateService.GetCurrentVersionString();
+                    AddLog($"✓ You are running the latest version (v{currentVersionStr})");
                     MessageBox.Show(
-                        $"You are running the latest version!\n\nCurrent version: {currentVersion}",
+                        $"You are running the latest version!\n\nCurrent version: {currentVersionStr}",
                         "No Updates Available",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
