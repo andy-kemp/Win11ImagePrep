@@ -31,6 +31,8 @@ namespace WinImagePrep.Services
         {
             try
             {
+                Logger.Info($"Loading settings from: {AppSettings.SettingsFilePath}");
+
                 if (!SettingsFileExists())
                 {
                     Logger.Info("Settings file not found, creating with defaults");
@@ -43,6 +45,8 @@ namespace WinImagePrep.Services
                 try
                 {
                     var json = await File.ReadAllTextAsync(AppSettings.SettingsFilePath);
+                    Logger.Info($"Read settings file ({json.Length} chars)");
+
                     var settings = JsonSerializer.Deserialize<AppSettings>(json);
 
                     if (settings == null || !settings.IsValidPathFormat())
@@ -53,7 +57,7 @@ namespace WinImagePrep.Services
                     }
 
                     _currentSettings = settings;
-                    Logger.Info($"Settings loaded: WorkingRoot = {_currentSettings.WorkingRoot}");
+                    Logger.Info($"✓ Settings loaded: WorkingRoot = {_currentSettings.WorkingRoot}, FirstRunComplete = {_currentSettings.FirstRunComplete}");
                     return _currentSettings;
                 }
                 finally
@@ -88,8 +92,9 @@ namespace WinImagePrep.Services
                 var settingsDir = AppSettings.SettingsDirectory;
                 if (!Directory.Exists(settingsDir))
                 {
+                    Logger.Info($"Creating settings directory: {settingsDir}");
                     Directory.CreateDirectory(settingsDir);
-                    Logger.Info($"Created settings directory: {settingsDir}");
+                    Logger.Info($"✓ Created settings directory: {settingsDir}");
                 }
 
                 await _fileLock.WaitAsync();
@@ -101,22 +106,27 @@ namespace WinImagePrep.Services
                     };
 
                     var json = JsonSerializer.Serialize(settings, options);
+                    Logger.Info($"Serialized settings JSON ({json.Length} chars), FirstRunComplete={settings.FirstRunComplete}");
 
                     // Atomic write: write to temp file, then replace
                     var tempFile = AppSettings.SettingsFilePath + ".tmp";
+                    Logger.Info($"Writing to temp file: {tempFile}");
                     await File.WriteAllTextAsync(tempFile, json);
+                    Logger.Info($"✓ Temp file written");
 
                     if (File.Exists(AppSettings.SettingsFilePath))
                     {
+                        Logger.Info($"Replacing existing settings file: {AppSettings.SettingsFilePath}");
                         File.Replace(tempFile, AppSettings.SettingsFilePath, null);
                     }
                     else
                     {
+                        Logger.Info($"Moving temp file to: {AppSettings.SettingsFilePath}");
                         File.Move(tempFile, AppSettings.SettingsFilePath);
                     }
 
                     _currentSettings = settings.Clone();
-                    Logger.Info($"Settings saved: WorkingRoot = {settings.WorkingRoot}");
+                    Logger.Info($"✓ Settings saved successfully: WorkingRoot = {settings.WorkingRoot}, FirstRunComplete = {settings.FirstRunComplete}");
                     return true;
                 }
                 finally

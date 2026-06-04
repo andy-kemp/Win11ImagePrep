@@ -1,5 +1,5 @@
 {
-  "version": "4.4.7",
-  "releaseDate": "2026-06-03",
-  "releaseNotes": "Fixed first-run loop bug - settings now properly persist across app restarts. Corrected settings save/clone pattern to ensure FirstRunComplete and app selections are preserved."
+  "version": "4.4.8",
+  "releaseDate": "2026-06-04",
+  "releaseNotes": "Enhanced logging for settings persistence diagnostics - helps troubleshoot first-run issues on Intune-deployed devices."
 }
