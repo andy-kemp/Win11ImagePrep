@@ -1,5 +1,5 @@
 {
-  "version": "5.0.5",
+  "version": "5.0.6",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "🚀 Autopilot Mode - Preserves OOBE and company branding for Autopilot devices. 🔧 FIXED: Privacy screens (location, diagnostics, speech, inking) now properly suppressed via registry keys. Smart UI that adapts based on Autopilot vs. standard deployment."
+  "releaseNotes": "🔧 Fixed: Operation log scrollbar now visible and working properly. Fixed: Log section properly collapses without leaving empty space. Window now resizes correctly when log is expanded/collapsed."
 }

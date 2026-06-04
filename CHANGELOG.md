@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.6] - 2026-06-04
+
+### Fixed
+- **Operation Log Scrollbar** - Scrollbar now visible and working properly
+- **Log Collapse Behavior** - Log section properly collapses without leaving empty space
+- **Window Resize** - Window now resizes correctly when log is expanded/collapsed
+- **Grid Row Definition** - Operation log row now uses `Height="*"` to fill available space
+- **ScrollViewer Sizing** - Fixed height (200px) instead of min/max for consistent behavior
+
+---
+
 ## [5.0.5] - 2026-06-04
 
 ### Added

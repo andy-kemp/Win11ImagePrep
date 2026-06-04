@@ -96,7 +96,7 @@
             <!-- Overall Progress -->
             <RowDefinition Height="Auto"/>
             <!-- Current Operation Progress -->
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
             <!-- Operation Log - grows to fill remaining space when expanded -->
         </Grid.RowDefinitions>
 
@@ -383,7 +383,7 @@
         <Expander Grid.Row="11"
                   Header="Operation Log" 
                   IsExpanded="True"
-                  Margin="0,0,0,15">
+                  Margin="0,0,0,0">
             <Border BorderThickness="1"
                     BorderBrush="#0078D4"
                     Background="Black"
@@ -391,9 +391,8 @@
                     Margin="0,5,0,0">
                 <ScrollViewer x:Name="LogScrollViewer"
                               VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Auto"
-                              MinHeight="150"
-                              MaxHeight="400"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Height="200"
                               Padding="0,0,2,2">
                     <ItemsControl ItemsSource="{Binding LogEntries}"
                                   x:Name="LogItemsControl">
@@ -405,7 +404,8 @@
                                            FontSize="12"
                                            FontFamily="Consolas"
                                            Padding="2"
-                                           Margin="0"/>
+                                           Margin="0"
+                                           TextWrapping="Wrap"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
