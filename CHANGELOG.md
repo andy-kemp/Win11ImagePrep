@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.8] - 2026-06-04
+
+### Added
+- **First-Run Update Check** - Automatic version check on initial startup
+  - Alerts users if a newer version is available immediately after installation
+  - Shows current version vs. latest version
+  - User-friendly dialog with "Update Now" or "Later" options
+  - Displays estimated update time (~1 minute depending on download speed)
+  - Only checks once per installation (uses `FirstRunUpdateCheckComplete` flag)
+  - Ensures users who download older published versions can upgrade immediately
+  - Non-intrusive: silently skips check if already running latest version
+
+### Technical
+- Added `FirstRunUpdateCheckComplete` property to `AppSettings` model
+- Added `PerformFirstRunUpdateCheckAsync()` method to `MainViewModel`
+- Integrated first-run check into `MainWindow_Loaded` event
+- Check runs after cleanup and existing work validation
+- Settings automatically persist the check-complete flag
+
+---
+
 ## [5.0.7] - 2026-06-04
 
 ### Enhanced

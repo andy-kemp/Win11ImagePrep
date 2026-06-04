@@ -37,6 +37,11 @@ namespace WinImagePrep.Models
         public bool FirstRunComplete { get; set; } = false;
 
         /// <summary>
+        /// Whether the first-run update check has been performed
+        /// </summary>
+        public bool FirstRunUpdateCheckComplete { get; set; } = false;
+
+        /// <summary>
         /// Logging level: Minimal, Information, Verbose
         /// </summary>
         public string LogLevel { get; set; } = "Information";

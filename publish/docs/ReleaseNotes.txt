@@ -2,7 +2,7 @@
 WinImagePrep - Release Notes
 ================================================================================
 
-Version 5.0.7 - Enhanced Documentation Updates
+Version 5.0.8 - First-Run Update Check
 Release Date: June 2026
 Publisher: Andy Kemp Consulting Ltd
 
@@ -16,7 +16,38 @@ to create customized Windows 11 installation media with integrated drivers,
 removed unwanted apps, unattended installation, and bootable USB creation.
 
 ================================================================================
-VERSION 5.0.7 - NEW IN THIS RELEASE
+VERSION 5.0.8 - NEW IN THIS RELEASE
+================================================================================
+
+🎉 FIRST-RUN UPDATE CHECK:
+
+  * NEW automatic version check on initial startup
+  * Alerts users immediately if a newer version is available
+  * Shows comparison: current version vs. latest available version
+  * User-friendly dialog with "Update Now" or "Later" options
+  * Displays estimated update time (~1 minute depending on download speed)
+  * Only checks once per installation - won't nag on every startup
+  * Silently skips if already running the latest version
+  * Perfect for users who download older published versions
+
+🎯 USE CASE:
+
+  You download WinImagePrep v5.0.6 from the GitHub releases page, but v5.0.8
+  is now available. On first launch, WinImagePrep detects this and offers
+  to update immediately, ensuring you always start with the latest features
+  and fixes. Choose "Update Now" for automatic upgrade, or "Later" to
+  use the current version (you can always update from Tools > Check for Updates).
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Added FirstRunUpdateCheckComplete flag to AppSettings
+  * New PerformFirstRunUpdateCheckAsync() method in MainViewModel
+  * Integrated into MainWindow_Loaded event (after cleanup)
+  * Settings automatically persist check-complete status
+  * Non-blocking, async operation with graceful error handling
+
+================================================================================
+VERSION 5.0.7 - ENHANCED DOCUMENTATION UPDATES
 ================================================================================
 
 📦 ENHANCED AUTO-UPDATE WITH DOCUMENTATION:

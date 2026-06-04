@@ -1,5 +1,5 @@
 {
-  "version": "5.0.7",
+  "version": "5.0.8",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "📦 Enhanced: Auto-update now downloads and updates documentation files (UserGuide, README, CHANGELOG, ReleaseNotes, Autopilot guide) alongside the application. Users always get current documentation matching their installed version."
+  "releaseNotes": "🎉 New: First-run update check - Alerts users on initial startup if a newer version is available with 'Update Now' or 'Later' options. Estimated update time shown (1 minute). Ensures users who download older versions can upgrade immediately after installation."
 }

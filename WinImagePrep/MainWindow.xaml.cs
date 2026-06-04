@@ -70,6 +70,9 @@ namespace WinImagePrep
             if (_viewModel != null)
             {
                 await _viewModel.CheckForExistingWorkAsync();
+
+                // Perform first-run update check
+                await _viewModel.PerformFirstRunUpdateCheckAsync();
             }
         }
 

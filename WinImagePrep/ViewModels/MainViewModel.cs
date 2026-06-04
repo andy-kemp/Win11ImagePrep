@@ -2590,6 +2590,90 @@ namespace WinImagePrep.ViewModels
             }
         }
 
+        /// <summary>
+        /// Performs a first-run update check if the app has just been installed
+        /// </summary>
+        public async Task PerformFirstRunUpdateCheckAsync()
+        {
+            try
+            {
+                var settings = _settingsService.CurrentSettings;
+
+                // Only check if this is a first run and we haven't already checked
+                if (!settings.FirstRunUpdateCheckComplete)
+                {
+                    // Wait a moment for the window to fully load
+                    await Task.Delay(500);
+
+                    AddLog("Checking for updates (first run)...");
+
+                    var (updateAvailable, latestVersion) = await _updateService.CheckForUpdateAsync();
+
+                    // Mark check as complete regardless of result
+                    settings.FirstRunUpdateCheckComplete = true;
+                    await _settingsService.SaveSettingsAsync(settings);
+
+                    if (updateAvailable && latestVersion != null)
+                    {
+                        var currentVersionStr = _updateService.GetCurrentVersionString();
+                        var latestVersionStr = $"{latestVersion.Major}.{latestVersion.Minor}.{latestVersion.Build}";
+                        AddLog($"✓ Update available: v{latestVersionStr} (current: v{currentVersionStr})");
+
+                        var result = MessageBox.Show(
+                            $"Welcome to WinImagePrep!\n\n" +
+                            $"A newer version is available for download:\n\n" +
+                            $"Current version: {currentVersionStr}\n" +
+                            $"Latest version: {latestVersionStr}\n\n" +
+                            $"Would you like to update now?\n\n" +
+                            $"The update will download and install automatically.\n" +
+                            $"Estimated time: ~1 minute (depending on download speed)",
+                            "Update Available",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Information);
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            AddLog("Starting update download...");
+
+                            var success = await _updateService.DownloadAndApplyUpdateAsync(
+                                new Progress<string>(msg => AddLog(msg)));
+
+                            if (success)
+                            {
+                                AddLog("Update downloaded. Application will now close and update...");
+                                // The updater script will close the app
+                                Application.Current.Shutdown();
+                            }
+                            else
+                            {
+                                AddLog("⚠ Update failed. Please download manually from GitHub.");
+                                MessageBox.Show(
+                                    "Update failed. You can check for updates later from the Tools menu.",
+                                    "Update Failed",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                            }
+                        }
+                        else
+                        {
+                            AddLog("Update postponed. You can update later from Tools > Check for Updates");
+                        }
+                    }
+                    else
+                    {
+                        var currentVersionStr = _updateService.GetCurrentVersionString();
+                        AddLog($"✓ You are running the latest version (v{currentVersionStr})");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ First-run update check failed: {ex.Message}");
+                // Don't show an error dialog for failed update checks - it's not critical
+                Logger.Warning($"First-run update check failed: {ex.Message}");
+            }
+        }
+
         #endregion
 
         #region Helpers

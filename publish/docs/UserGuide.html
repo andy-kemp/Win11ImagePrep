@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WinImagePrep User Guide v5.0.7</title>
+    <title>WinImagePrep User Guide v5.0.8</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -172,14 +172,14 @@
     <header>
         <h1>🚀 WinImagePrep</h1>
         <p style="font-size: 1.3em; margin: 0;">Complete User Guide</p>
-        <div class="version-badge">Version 5.0.7 | June 2026</div>
+        <div class="version-badge">Version 5.0.8 | June 2026</div>
     </header>
 
     <div class="section">
         <h2>📖 Table of Contents</h2>
         <ul style="columns: 2; column-gap: 40px;">
             <li><a href="#overview">What WinImagePrep Does</a></li>
-            <li><a href="#new-features">What's New in v5.0.7</a></li>
+            <li><a href="#new-features">What's New in v5.0.8</a></li>
             <li><a href="#requirements">System Requirements</a></li>
             <li><a href="#workflow">Standard Workflow</a></li>
             <li><a href="#autopilot">Autopilot Mode</a></li>
@@ -224,10 +224,25 @@
     </div>
 
     <div class="section" id="new-features">
-        <h2>🆕 What's New in v5.0.7</h2>
+        <h2>🆕 What's New in v5.0.8</h2>
 
         <div class="new-feature">
-            <h3>📦 Enhanced Auto-Update with Documentation</h3>
+            <h3>🎉 First-Run Update Check</h3>
+            <p>WinImagePrep now automatically checks for updates on first launch:</p>
+            <ul>
+                <li><strong>Immediate notification</strong> - Alerts you if a newer version is available right after installation</li>
+                <li><strong>Version comparison</strong> - Shows your current version vs. the latest available</li>
+                <li><strong>User choice</strong> - "Update Now" or "Later" options</li>
+                <li><strong>Time estimate</strong> - Displays estimated update time (~1 minute)</li>
+                <li><strong>One-time check</strong> - Only happens on first run, won't nag every startup</li>
+                <li><strong>Silent when current</strong> - No dialog if you're already running the latest version</li>
+            </ul>
+            <p><em>Use Case:</em> You download WinImagePrep v5.0.6 from GitHub releases, but v5.0.8 is now available. On first launch, WinImagePrep detects this and offers to upgrade immediately. Perfect for ensuring you always start with the latest features!</p>
+        </div>
+
+        <h3>Recent Major Features</h3>
+        <div class="new-feature">
+            <h3>📦 Enhanced Auto-Update with Documentation (v5.0.7)</h3>
             <p>The auto-update system now downloads and installs complete documentation alongside the application:</p>
             <ul>
                 <li><strong>Complete docs download</strong> - UserGuide, README, CHANGELOG, ReleaseNotes, Autopilot guide</li>
@@ -236,10 +251,8 @@
                 <li><strong>Graceful fallback</strong> - Update continues even if some doc downloads fail</li>
                 <li><strong>Always current</strong> - Documentation always matches your installed version</li>
             </ul>
-            <p><em>Technical:</em> PowerShell updater script now uses Invoke-WebRequest to fetch documentation from GitHub raw URLs, creating the full documentation directory structure automatically.</p>
         </div>
 
-        <h3>Recent Major Features</h3>
         <div class="new-feature">
             <h3>✅ Fixed: Operation Log UI (v5.0.6)</h3>
             <ul>
@@ -267,6 +280,11 @@
                 <th>Version</th>
                 <th>Release Date</th>
                 <th>Key Features</th>
+            </tr>
+            <tr>
+                <td><strong>5.0.8</strong></td>
+                <td>June 2026</td>
+                <td>First-run update check with user choice</td>
             </tr>
             <tr>
                 <td><strong>5.0.7</strong></td>
