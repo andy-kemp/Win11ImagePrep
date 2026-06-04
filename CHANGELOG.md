@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.12] - 2026-06-05
+
+### Fixed
+- **Unattended Install Locale Prompts** - Fixed keyboard and regional prompts appearing during Autopilot/unattended installations
+  - Added `UILanguageFallback` setting to both windowsPE and oobeSystem passes
+  - Ensures Windows doesn't prompt for keyboard layout or regional settings when booting from USB
+  - Maintains proper locale configuration for en-GB and other regional ISOs
+
+### Technical
+- Modified `UnattendedInstallService.BuildAutounattendXml()` to include UILanguageFallback
+- Added comment clarifying international settings suppress keyboard/regional prompts
+
+---
+
 ## [5.0.11] - 2026-06-04
 
 ### Fixed
