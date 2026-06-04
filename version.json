@@ -1,5 +1,5 @@
 {
-  "version": "5.0.19",
+  "version": "5.0.20",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Test release for first-run update validation"
+  "releaseNotes": "🔧 FIX: Increased updater delay from 3 to 5 seconds to prevent 'process still running' errors"
 }

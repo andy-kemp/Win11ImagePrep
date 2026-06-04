@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.20] - 2025-01-29
+
+### Fixed
+- **Updater Timing** - Increased initial delay from 3 to 5 seconds
+  - Fixes "process still running" error when updating immediately after a previous update
+  - Gives application more time to fully shut down before file replacement
+  - Combined with 2-second post-launch delay = 7 seconds total safety window
+
+---
+
 ## [5.0.19] - 2025-01-29
 
 ### Changed

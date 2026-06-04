@@ -264,7 +264,7 @@ Write-Host ''
 
 # Give the app a moment to begin shutdown
 Write-Host 'Giving application time to shut down...'
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 5
 
 # Wait for specific process ID to exit
 Write-Host 'Waiting for application process to exit...'
