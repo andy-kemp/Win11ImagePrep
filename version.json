@@ -1,5 +1,5 @@
 {
-  "version": "5.0.12",
+  "version": "5.0.13",
   "releaseDate": "2026-06-05",
-  "releaseNotes": "🐛 Fix: Added UILanguageFallback settings to unattended install XML to suppress keyboard and regional prompts during boot from USB, especially for en-GB and other regional ISOs in Autopilot mode."
+  "releaseNotes": "🔧 CRITICAL FIX: Autopilot enrollment now works properly! Removed OOBE suppression and registry tweaks in Autopilot mode so company branding and enrollment screens display correctly. Also fixes keyboard/regional prompts with UILanguageFallback."
 }

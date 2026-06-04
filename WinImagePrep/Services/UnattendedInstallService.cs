@@ -187,7 +187,12 @@ namespace WinImagePrep.Services
 
             // OOBE settings
             sb.AppendLine("            <OOBE>");
-            sb.AppendLine($"                <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
+
+            // For Autopilot: Don't hide EULA - let Autopilot control the experience
+            if (!config.AutopilotMode)
+            {
+                sb.AppendLine($"                <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
+            }
 
             // For Autopilot: don't hide wireless setup (needed for Azure AD join)
             if (!config.AutopilotMode)
@@ -195,18 +200,19 @@ namespace WinImagePrep.Services
                 sb.AppendLine($"                <HideWirelessSetupInOOBE>{config.HideWirelessSetup.ToString().ToLower()}</HideWirelessSetupInOOBE>");
             }
 
-            // NetworkLocation: 1=Home, 2=Work, 3=Public (skip network location selection)
-            sb.AppendLine("                <NetworkLocation>1</NetworkLocation>");
+            // NetworkLocation: Only set for non-Autopilot (Autopilot handles network config)
+            if (!config.AutopilotMode)
+            {
+                sb.AppendLine("                <NetworkLocation>1</NetworkLocation>");
+            }
 
-            // ProtectYourPC: 1=Recommended, 3=Not now (skip privacy/telemetry screens)
-            // For Autopilot: Let Autopilot policies control this
-            // For standard unattended: Skip these screens
+            // ProtectYourPC: Only for standard unattended (Autopilot policies control this)
             if (!config.AutopilotMode)
             {
                 sb.AppendLine("                <ProtectYourPC>3</ProtectYourPC>");
             }
 
-            // Hide OOBE privacy/telemetry screens (location, diagnostics, speech, inking)
+            // Hide OOBE privacy/telemetry screens - Only for standard unattended
             if (!config.AutopilotMode)
             {
                 sb.AppendLine("                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>");
@@ -247,19 +253,19 @@ namespace WinImagePrep.Services
                 sb.AppendLine("            </UserAccounts>");
             }
 
-            // Add FirstLogonCommands to disable privacy screens via registry
-            // These are especially important for Autopilot to prevent the privacy screens
-            sb.AppendLine("            <FirstLogonCommands>");
-
-            // Disable privacy experience (location, diagnostics, speech, inking, etc.)
-            sb.AppendLine("                <SynchronousCommand wcm:action=\"add\">");
-            sb.AppendLine("                    <Order>1</Order>");
-            sb.AppendLine("                    <CommandLine>reg add HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\OOBE /v DisablePrivacyExperience /t REG_DWORD /d 1 /f</CommandLine>");
-            sb.AppendLine("                </SynchronousCommand>");
-
-            // Skip machine OOBE registry key (backup method)
+            // Add FirstLogonCommands ONLY for non-Autopilot mode
+            // Autopilot needs a clean OOBE experience - don't interfere with registry tweaks
             if (!config.AutopilotMode)
             {
+                sb.AppendLine("            <FirstLogonCommands>");
+
+                // Disable privacy experience (location, diagnostics, speech, inking, etc.)
+                sb.AppendLine("                <SynchronousCommand wcm:action=\"add\">");
+                sb.AppendLine("                    <Order>1</Order>");
+                sb.AppendLine("                    <CommandLine>reg add HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\OOBE /v DisablePrivacyExperience /t REG_DWORD /d 1 /f</CommandLine>");
+                sb.AppendLine("                </SynchronousCommand>");
+
+                // Skip machine OOBE registry key (backup method)
                 sb.AppendLine("                <SynchronousCommand wcm:action=\"add\">");
                 sb.AppendLine("                    <Order>2</Order>");
                 sb.AppendLine("                    <CommandLine>reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\OOBE /v SkipMachineOOBE /t REG_DWORD /d 1 /f</CommandLine>");
@@ -269,9 +275,9 @@ namespace WinImagePrep.Services
                 sb.AppendLine("                    <Order>3</Order>");
                 sb.AppendLine("                    <CommandLine>reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\OOBE /v SkipUserOOBE /t REG_DWORD /d 1 /f</CommandLine>");
                 sb.AppendLine("                </SynchronousCommand>");
-            }
 
-            sb.AppendLine("            </FirstLogonCommands>");
+                sb.AppendLine("            </FirstLogonCommands>");
+            }
 
             sb.AppendLine("        </component>");
             sb.AppendLine("    </settings>");

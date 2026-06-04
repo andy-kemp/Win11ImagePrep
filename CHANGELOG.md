@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.13] - 2026-06-05
+
+### Fixed
+- **Critical Autopilot Enrollment Fix** - Fixed unattended XML interfering with proper Autopilot enrollment
+  - Removed `HideEULAPage`, `NetworkLocation`, and `ProtectYourPC` settings in Autopilot mode
+  - Removed ALL `FirstLogonCommands` registry tweaks in Autopilot mode (especially `DisablePrivacyExperience`)
+  - Autopilot now properly displays company logo and enrollment screens without manual prompts
+  - Non-Autopilot unattended installs still skip all privacy/setup screens as before
+
+### Technical
+- Modified `UnattendedInstallService.BuildAutounattendXml()` to skip OOBE suppression in Autopilot mode
+- Autopilot enrollment requires clean OOBE - answer file now only handles disk partitioning and locale settings
+- Standard unattended mode unchanged - still suppresses all privacy/setup prompts
+
+---
+
 ## [5.0.12] - 2026-06-05
 
 ### Fixed
