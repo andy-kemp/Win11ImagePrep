@@ -66,8 +66,9 @@ namespace WinImagePrep.Models
 
         /// <summary>
         /// Whether to skip OOBE (Out of Box Experience) screens
+        /// Note: Set to FALSE for Autopilot devices to allow Autopilot enrollment
         /// </summary>
-        public bool SkipOOBE { get; set; } = true;
+        public bool SkipOOBE { get; set; } = false;
 
         /// <summary>
         /// Whether to hide EULA page
@@ -76,8 +77,9 @@ namespace WinImagePrep.Models
 
         /// <summary>
         /// Whether to hide wireless setup page
+        /// Note: Set to FALSE for Autopilot devices
         /// </summary>
-        public bool HideWirelessSetup { get; set; } = true;
+        public bool HideWirelessSetup { get; set; } = false;
 
         /// <summary>
         /// Creates a deep copy of this configuration

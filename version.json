@@ -1,5 +1,5 @@
 {
-  "version": "4.5.0",
+  "version": "5.0.0",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "NEW: Unattended Windows installation support - automatically partition disk, accept license, skip OOBE, configure locale/timezone, and create admin account with zero user interaction during setup."
+  "releaseNotes": "MAJOR UPDATE: Unattended Windows installation support - auto-partition disk, accept license, configure locale/timezone. Autopilot-friendly defaults (OOBE enabled). Smart edition selection (auto-skip if single edition)."
 }

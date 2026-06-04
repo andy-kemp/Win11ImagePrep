@@ -1257,6 +1257,22 @@ namespace WinImagePrep.ViewModels
                     var autounattendPath = Path.Combine(_config.Windows11Directory, "autounattend.xml");
 
                     var config = _settingsService.CurrentSettings.UnattendedInstallConfig ?? new Models.UnattendedConfig();
+
+                    // Only include edition selection if multiple editions are in the image
+                    // If user selected only one edition, don't specify it (let Windows install that one)
+                    if (SelectedEditions != null && SelectedEditions.Count == 1)
+                    {
+                        // Single edition in image - don't specify edition in autounattend
+                        // This prevents edition selection prompt
+                        config = config.Clone();
+                        config.TargetEdition = null;
+                        AddLog("Single edition detected - edition selection will be automatic");
+                    }
+                    else if (SelectedEditions != null && SelectedEditions.Count > 1)
+                    {
+                        AddLog($"Multiple editions in image ({SelectedEditions.Count}) - user will select during install");
+                    }
+
                     if (unattendedService.GenerateAutounattendXml(config, autounattendPath))
                     {
                         AddLog("✓ Autounattend.xml created successfully");
