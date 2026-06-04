@@ -96,7 +96,7 @@
             <!-- Overall Progress -->
             <RowDefinition Height="Auto"/>
             <!-- Current Operation Progress -->
-            <RowDefinition Height="*" MinHeight="220"/>
+            <RowDefinition Height="*" MinHeight="150"/>
             <!-- Operation Log - grows to fill remaining space -->
         </Grid.RowDefinitions>
 
@@ -392,7 +392,6 @@
                 <ScrollViewer x:Name="LogScrollViewer"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Auto"
-                              MaxHeight="280"
                               Padding="0,0,2,2">
                     <ItemsControl ItemsSource="{Binding LogEntries}"
                                   x:Name="LogItemsControl">

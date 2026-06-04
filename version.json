@@ -1,5 +1,5 @@
 {
-  "version": "5.0.1",
+  "version": "5.0.2",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "Fixed overlapping UI elements. Unattended Windows installation with Autopilot-friendly defaults (OOBE enabled, smart edition selection)."
+  "releaseNotes": "Responsive operation log - auto-resizes with window height for smaller screens (Surface devices). Unattended install with Autopilot support."
 }
