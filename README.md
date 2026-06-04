@@ -2,7 +2,7 @@
 
 A professional WPF application for preparing Windows 11 installation images with injected drivers, dynamic app discovery and removal, and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages and streamlined Windows app configurations, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
 
-![Version](https://img.shields.io/badge/version-4.4.8-blue.svg)
+![Version](https://img.shields.io/badge/version-4.4.9-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Proprietary-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue.svg)
@@ -29,7 +29,13 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 
 ## ✨ Features
 
-### Version 4.4.8 (Latest) - June 2026
+### Version 4.4.9 (Latest) - June 2026
+- 🐛 **Fixed: Window Title Version Display**
+  - Window title now dynamically shows current version from assembly metadata
+  - Version updates automatically when app is updated via in-app updater
+  - No more stale hardcoded version in title bar
+
+### Version 4.4.8 - June 2026
 - 🔍 **Enhanced Settings Diagnostics**
   - Added detailed logging for settings load/save operations
   - Better error tracking for Intune-deployed installations

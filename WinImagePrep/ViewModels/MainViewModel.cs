@@ -92,6 +92,15 @@ namespace WinImagePrep.ViewModels
 
         #region Properties
 
+        public string WindowTitle
+        {
+            get
+            {
+                var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                return $"WinImagePrep v{version?.Major}.{version?.Minor}.{version?.Build}";
+            }
+        }
+
         private string _selectedIsoPath = string.Empty;
         public string SelectedIsoPath
         {

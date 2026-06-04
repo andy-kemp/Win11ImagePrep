@@ -1,5 +1,5 @@
 {
-  "version": "4.4.8",
+  "version": "4.4.9",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "Enhanced logging for settings persistence diagnostics - helps troubleshoot first-run issues on Intune-deployed devices."
+  "releaseNotes": "Fixed hardcoded version in window title - now dynamically shows current version from assembly metadata."
 }
