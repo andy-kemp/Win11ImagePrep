@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.9] - 2026-06-04
+
+### Added
+- **Deferred Updates During Operations** - Safety improvement to prevent mid-operation shutdowns
+  - Updates now check if an operation is currently in progress (`IsProcessing`)
+  - If processing (driver injection, image prep, USB creation), update prompt is deferred
+  - User is asked if they want to be notified when operation completes
+  - After operation finishes, pending update prompt appears automatically
+  - Prevents data loss and ensures safe completion of long-running operations
+  - Works for both manual update checks and first-run update checks
+
+### Technical
+- Added `PendingUpdate` bool and `PendingUpdateVersion` Version? properties to `MainViewModel`
+- Added `CheckPendingUpdateAsync()` method to prompt for deferred updates after operations
+- Modified `CheckForUpdatesAsync()` to check `IsProcessing` and defer if needed
+- Modified `PerformFirstRunUpdateCheckAsync()` to check `IsProcessing` and defer silently
+- Wired `CheckPendingUpdateAsync()` into all operation completion points:
+  - `InjectDriversAsync` (2 completion points)
+  - `CreateUsbFromIsoAsync`
+  - `CreateUsbAsync`
+
+---
+
 ## [5.0.8] - 2026-06-04
 
 ### Added

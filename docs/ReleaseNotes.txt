@@ -2,7 +2,7 @@
 WinImagePrep - Release Notes
 ================================================================================
 
-Version 5.0.8 - First-Run Update Check
+Version 5.0.9 - Deferred Updates During Operations
 Release Date: June 2026
 Publisher: Andy Kemp Consulting Ltd
 
@@ -16,7 +16,41 @@ to create customized Windows 11 installation media with integrated drivers,
 removed unwanted apps, unattended installation, and bootable USB creation.
 
 ================================================================================
-VERSION 5.0.8 - NEW IN THIS RELEASE
+VERSION 5.0.9 - NEW IN THIS RELEASE
+================================================================================
+
+🛡️ DEFERRED UPDATES DURING OPERATIONS (SAFETY IMPROVEMENT):
+
+  * NEW intelligent update deferral system prevents mid-operation shutdowns
+  * Updates now detect if an operation is currently running
+  * If processing (driver injection, image prep, USB creation), update is deferred
+  * User is prompted: "Would you like to be notified when operation completes?"
+  * After operation finishes, pending update prompt appears automatically
+  * Prevents data loss from interrupted long-running operations
+  * Ensures safe completion of image preparation and USB creation tasks
+  * Works for both manual update checks and first-run update checks
+
+🎯 USE CASE:
+
+  You're in the middle of a 30-minute driver injection process when you check
+  for updates. Version 5.0.9 is available, but instead of shutting down
+  immediately (and losing all progress), WinImagePrep asks if you want to be
+  reminded after the operation completes. Once your image is ready, you'll
+  see the update prompt automatically—no lost work, no interruptions.
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Added PendingUpdate and PendingUpdateVersion properties to MainViewModel
+  * New CheckPendingUpdateAsync() method for post-operation update prompts
+  * CheckForUpdatesAsync() now checks IsProcessing flag before applying updates
+  * PerformFirstRunUpdateCheckAsync() silently defers first-run checks if busy
+  * Wired CheckPendingUpdateAsync() into all operation completion points:
+    - InjectDriversAsync (2 completion points: after injection, after cleanup)
+    - CreateUsbFromIsoAsync (finally block)
+    - CreateUsbAsync (finally block)
+
+================================================================================
+VERSION 5.0.8 - FIRST-RUN UPDATE CHECK
 ================================================================================
 
 🎉 FIRST-RUN UPDATE CHECK:

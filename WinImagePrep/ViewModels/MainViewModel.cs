@@ -300,6 +300,20 @@ namespace WinImagePrep.ViewModels
             }
         }
 
+        private bool _pendingUpdate;
+        public bool PendingUpdate
+        {
+            get => _pendingUpdate;
+            set => SetProperty(ref _pendingUpdate, value);
+        }
+
+        private Version? _pendingUpdateVersion;
+        public Version? PendingUpdateVersion
+        {
+            get => _pendingUpdateVersion;
+            set => SetProperty(ref _pendingUpdateVersion, value);
+        }
+
         public bool CanConfigureUnattended => EnableUnattendedInstall;
 
 
@@ -1300,6 +1314,9 @@ namespace WinImagePrep.ViewModels
                 // Re-enable commands by setting IsProcessing = false
                 IsProcessing = false;
 
+                // Check for pending update after operation completes
+                await CheckPendingUpdateAsync();
+
                 // Prompt user to create USB now or save for later
                 var dialogMsg = RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected)
                     ? "✓ Driver injection and app removal completed successfully!\n\n"
@@ -1381,6 +1398,9 @@ namespace WinImagePrep.ViewModels
                 IsProcessing = false;
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
+
+                // Check for pending update after operation completes
+                await CheckPendingUpdateAsync();
             }
         }
 
@@ -1883,6 +1903,9 @@ namespace WinImagePrep.ViewModels
                 IsProcessing = false;
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
+
+                // Check for pending update after operation completes
+                await CheckPendingUpdateAsync();
             }
         }
 
@@ -2071,6 +2094,9 @@ namespace WinImagePrep.ViewModels
             finally
             {
                 IsProcessing = false;
+
+                // Check for pending update after operation completes
+                await CheckPendingUpdateAsync();
             }
         }
 
@@ -2539,6 +2565,35 @@ namespace WinImagePrep.ViewModels
                     var latestVersionStr = $"{latestVersion.Major}.{latestVersion.Minor}.{latestVersion.Build}";
                     AddLog($"✓ Update available: v{latestVersionStr} (current: v{currentVersionStr})");
 
+                    // Check if an operation is currently running
+                    if (IsProcessing)
+                    {
+                        AddLog("⏳ Operation in progress. Update will be deferred until completion.");
+
+                        var deferResult = MessageBox.Show(
+                            $"A new version of WinImagePrep is available!\n\n" +
+                            $"Current version: {currentVersionStr}\n" +
+                            $"Latest version: {latestVersionStr}\n\n" +
+                            $"An operation is currently in progress.\n\n" +
+                            $"The update will be available after your current operation completes.\n\n" +
+                            $"Would you like to be prompted to update when the operation finishes?",
+                            "Update Available - Operation In Progress",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Information);
+
+                        if (deferResult == MessageBoxResult.Yes)
+                        {
+                            PendingUpdate = true;
+                            PendingUpdateVersion = latestVersion;
+                            AddLog($"✓ Update to v{latestVersionStr} will be prompted after operation completes");
+                        }
+                        else
+                        {
+                            AddLog("Update deferred. You can check for updates later from Tools menu.");
+                        }
+                        return;
+                    }
+
                     var result = MessageBox.Show(
                         $"A new version of WinImagePrep is available!\n\n" +
                         $"Current version: {currentVersionStr}\n" +
@@ -2619,6 +2674,18 @@ namespace WinImagePrep.ViewModels
                         var latestVersionStr = $"{latestVersion.Major}.{latestVersion.Minor}.{latestVersion.Build}";
                         AddLog($"✓ Update available: v{latestVersionStr} (current: v{currentVersionStr})");
 
+                        // Check if an operation is currently running
+                        if (IsProcessing)
+                        {
+                            AddLog("⏳ Operation in progress. Update will be deferred until completion.");
+
+                            // Silently defer the update for first-run scenario
+                            PendingUpdate = true;
+                            PendingUpdateVersion = latestVersion;
+                            AddLog($"✓ Update to v{latestVersionStr} will be prompted after operation completes");
+                            return;
+                        }
+
                         var result = MessageBox.Show(
                             $"Welcome to WinImagePrep!\n\n" +
                             $"A newer version is available for download:\n\n" +
@@ -2671,6 +2738,74 @@ namespace WinImagePrep.ViewModels
                 AddLog($"✗ First-run update check failed: {ex.Message}");
                 // Don't show an error dialog for failed update checks - it's not critical
                 Logger.Warning($"First-run update check failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Checks if there's a pending update and prompts user after operation completes
+        /// </summary>
+        public async Task CheckPendingUpdateAsync()
+        {
+            try
+            {
+                if (PendingUpdate && PendingUpdateVersion != null)
+                {
+                    var currentVersionStr = _updateService.GetCurrentVersionString();
+                    var latestVersionStr = $"{PendingUpdateVersion.Major}.{PendingUpdateVersion.Minor}.{PendingUpdateVersion.Build}";
+
+                    AddLog($"Operation complete. Update to v{latestVersionStr} is ready.");
+
+                    var result = MessageBox.Show(
+                        $"Your operation has completed!\n\n" +
+                        $"An update is ready to install:\n\n" +
+                        $"Current version: {currentVersionStr}\n" +
+                        $"Latest version: {latestVersionStr}\n\n" +
+                        $"Would you like to update now?\n\n" +
+                        $"The application will close, download the update, and restart automatically.\n" +
+                        $"Estimated time: ~1 minute",
+                        "Update Ready",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        AddLog("Starting update download...");
+
+                        var success = await _updateService.DownloadAndApplyUpdateAsync(
+                            new Progress<string>(msg => AddLog(msg)));
+
+                        if (success)
+                        {
+                            AddLog("Update downloaded. Application will now close and update...");
+                            // The updater script will close the app
+                            Application.Current.Shutdown();
+                        }
+                        else
+                        {
+                            AddLog("⚠ Update failed. Please download manually from GitHub.");
+                            MessageBox.Show(
+                                "Update failed. You can check for updates later from the Tools menu.",
+                                "Update Failed",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                        }
+                    }
+                    else
+                    {
+                        AddLog("Update postponed. You can update later from Tools > Check for Updates");
+                    }
+
+                    // Clear pending update flag regardless of user choice
+                    PendingUpdate = false;
+                    PendingUpdateVersion = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Pending update check failed: {ex.Message}");
+                Logger.Warning($"Pending update check failed: {ex.Message}");
+                PendingUpdate = false;
+                PendingUpdateVersion = null;
             }
         }
 

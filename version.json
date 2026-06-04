@@ -1,5 +1,5 @@
 {
-  "version": "5.0.8",
+  "version": "5.0.9",
   "releaseDate": "2026-06-04",
-  "releaseNotes": "🎉 New: First-run update check - Alerts users on initial startup if a newer version is available with 'Update Now' or 'Later' options. Estimated update time shown (1 minute). Ensures users who download older versions can upgrade immediately after installation."
+  "releaseNotes": "🛡️ Safety: Updates are now deferred when operations are running. If an update is available while processing (driver injection, image prep, or USB creation), the app will prompt you to update after the operation completes instead of interrupting mid-process. Prevents data loss and ensures safe operation completion."
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WinImagePrep User Guide v5.0.8</title>
+    <title>WinImagePrep User Guide v5.0.9</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -172,14 +172,14 @@
     <header>
         <h1>🚀 WinImagePrep</h1>
         <p style="font-size: 1.3em; margin: 0;">Complete User Guide</p>
-        <div class="version-badge">Version 5.0.8 | June 2026</div>
+        <div class="version-badge">Version 5.0.9 | June 2026</div>
     </header>
 
     <div class="section">
         <h2>📖 Table of Contents</h2>
         <ul style="columns: 2; column-gap: 40px;">
             <li><a href="#overview">What WinImagePrep Does</a></li>
-            <li><a href="#new-features">What's New in v5.0.8</a></li>
+            <li><a href="#new-features">What's New in v5.0.9</a></li>
             <li><a href="#requirements">System Requirements</a></li>
             <li><a href="#workflow">Standard Workflow</a></li>
             <li><a href="#autopilot">Autopilot Mode</a></li>
@@ -224,11 +224,25 @@
     </div>
 
     <div class="section" id="new-features">
-        <h2>🆕 What's New in v5.0.8</h2>
+        <h2>🆕 What's New in v5.0.9</h2>
 
         <div class="new-feature">
-            <h3>🎉 First-Run Update Check</h3>
-            <p>WinImagePrep now automatically checks for updates on first launch:</p>
+            <h3>🛡️ Deferred Updates During Operations (Safety Improvement)</h3>
+            <p>WinImagePrep now intelligently defers updates to prevent mid-operation shutdowns:</p>
+            <ul>
+                <li><strong>Operation detection</strong> - Checks if driver injection, image prep, or USB creation is running</li>
+                <li><strong>Deferred prompts</strong> - If processing, asks if you want to be notified after completion</li>
+                <li><strong>Automatic reminder</strong> - Pending update prompt appears once operation finishes</li>
+                <li><strong>Data protection</strong> - Prevents data loss from interrupted long-running operations</li>
+                <li><strong>Works everywhere</strong> - Applies to manual update checks and first-run checks</li>
+            </ul>
+            <p><em>Use Case:</em> You're 30 minutes into a driver injection when you check for updates. Version 5.0.9 is available, but instead of interrupting your work, WinImagePrep offers to remind you after the operation completes. Once your image is ready, the update prompt appears—no lost progress, no interruptions!</p>
+        </div>
+
+        <h3>Recent Major Features</h3>
+        <div class="new-feature">
+            <h3>🎉 First-Run Update Check (v5.0.8)</h3>
+            <p>WinImagePrep automatically checks for updates on first launch:</p>
             <ul>
                 <li><strong>Immediate notification</strong> - Alerts you if a newer version is available right after installation</li>
                 <li><strong>Version comparison</strong> - Shows your current version vs. the latest available</li>
@@ -240,7 +254,6 @@
             <p><em>Use Case:</em> You download WinImagePrep v5.0.6 from GitHub releases, but v5.0.8 is now available. On first launch, WinImagePrep detects this and offers to upgrade immediately. Perfect for ensuring you always start with the latest features!</p>
         </div>
 
-        <h3>Recent Major Features</h3>
         <div class="new-feature">
             <h3>📦 Enhanced Auto-Update with Documentation (v5.0.7)</h3>
             <p>The auto-update system now downloads and installs complete documentation alongside the application:</p>
@@ -280,6 +293,11 @@
                 <th>Version</th>
                 <th>Release Date</th>
                 <th>Key Features</th>
+            </tr>
+            <tr>
+                <td><strong>5.0.9</strong></td>
+                <td>June 2026</td>
+                <td>Deferred updates during operations (safety improvement)</td>
             </tr>
             <tr>
                 <td><strong>5.0.8</strong></td>
