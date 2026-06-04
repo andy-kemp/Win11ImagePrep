@@ -1,5 +1,5 @@
 {
-  "version": "4.4.3",
+  "version": "4.4.4",
   "releaseDate": "2026-06-03",
-  "releaseNotes": "Quick Select presets: Remove Bloatware (keeps Calculator, Notepad, etc.) or Remove All"
+  "releaseNotes": "Streamlined UX: Auto-load apps from GitHub when checkbox checked. Removed manual Load/Scan buttons. Selection panel greys out when disabled."
 }

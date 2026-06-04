@@ -50,7 +50,7 @@ namespace WinImagePrep.ViewModels
             BrowseMsiCommand = new RelayCommand(BrowseMsi);
             BrowseDriverSourceCommand = new RelayCommand(BrowseDriverSource);
             SelectEditionsCommand = new RelayCommand(SelectEditions, () => !string.IsNullOrEmpty(SelectedIsoPath));
-            SelectAppsToRemoveCommand = new RelayCommand(SelectAppsToRemove);
+            SelectAppsToRemoveCommand = new RelayCommand(SelectAppsToRemove, () => WindowsApps?.Count > 0);
             LoadAppsCommand = new RelayCommand(async () => await LoadAppsAsync(), () => !IsProcessing);
             ScanAppsFromIsoCommand = new RelayCommand(async () => await ScanAppsFromIsoAsync(), () => !string.IsNullOrEmpty(SelectedIsoPath) && !IsProcessing);
             InjectDriversCommand = new RelayCommand(async () => await InjectDriversAsync(), CanExecuteInject);
@@ -77,9 +77,6 @@ namespace WinImagePrep.ViewModels
             LogEntries = new ObservableCollection<string>();
             UsbDrives = new ObservableCollection<UsbDriveInfo>();
             WindowsApps = new ObservableCollection<WindowsApp>();
-
-            // Initialize predefined Windows apps to remove
-            InitializeWindowsApps();
 
             // Load initial USB drives
             RefreshUsbDrives();
@@ -250,7 +247,24 @@ namespace WinImagePrep.ViewModels
         public bool RemoveWindowsApps
         {
             get => _removeWindowsApps;
-            set => SetProperty(ref _removeWindowsApps, value);
+            set
+            {
+                if (SetProperty(ref _removeWindowsApps, value))
+                {
+                    // Auto-load apps when checkbox is checked
+                    if (value && WindowsApps.Count == 0)
+                    {
+                        _ = LoadAppsAsync();
+                    }
+                }
+            }
+        }
+
+        private string _appLoadingStatusText = string.Empty;
+        public string AppLoadingStatusText
+        {
+            get => _appLoadingStatusText;
+            set => SetProperty(ref _appLoadingStatusText, value);
         }
 
         public string SelectedAppsCountText
@@ -487,7 +501,8 @@ namespace WinImagePrep.ViewModels
             try
             {
                 IsProcessing = true;
-                AddLog("Loading Windows app list...");
+                AppLoadingStatusText = "Loading apps...";
+                AddLog("Loading Windows app list from GitHub...");
 
                 var apps = await _appListService.LoadAppListAsync(
                     new Progress<string>(AddLog),
@@ -501,30 +516,29 @@ namespace WinImagePrep.ViewModels
                         WindowsApps.Add(app);
                     }
 
-                    AddLog($"✓ Loaded {WindowsApps.Count} apps");
-                    MessageBox.Show(
-                        $"Loaded {WindowsApps.Count} Windows apps.\n\n" +
-                        $"Select the apps you want to remove, then prepare your image.",
-                        "Apps Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    AddLog($"✓ Loaded {WindowsApps.Count} apps from GitHub");
+                    AppLoadingStatusText = $"✓ {WindowsApps.Count} apps loaded";
+
+                    // Trigger command re-evaluation
+                    OnPropertyChanged(nameof(SelectedAppsCountText));
+                    CommandManager.InvalidateRequerySuggested();
                 }
                 else
                 {
-                    AddLog("⚠ No apps loaded - you can scan from ISO instead");
-                    var result = MessageBox.Show(
-                        "No app list available from GitHub or cache.\n\n" +
-                        "Would you like to scan apps directly from your ISO?\n" +
-                        "(This will take 5-10 minutes)",
-                        "No App List", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        await ScanAppsFromIsoAsync();
-                    }
+                    AddLog("⚠ No apps available - GitHub/cache unavailable");
+                    AppLoadingStatusText = "⚠ Unable to load apps";
+                    MessageBox.Show(
+                        "Unable to load app list from GitHub or cache.\n\n" +
+                        "Please check your internet connection and try again.",
+                        "App List Unavailable", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
                 AddLog($"✗ Error loading apps: {ex.Message}");
+                AppLoadingStatusText = "✗ Failed to load apps";
                 MessageBox.Show($"Error loading app list:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -1559,59 +1573,6 @@ namespace WinImagePrep.ViewModels
             {
                 AddLog("No USB drives detected");
                 UsbInfo = "No USB drives detected. Please insert a USB drive.";
-            }
-        }
-
-        private void InitializeWindowsApps()
-        {
-            // Predefined list of common Windows apps that users might want to remove
-            var commonApps = new List<(string package, string display, string description)>
-            {
-                ("MicrosoftTeams", "Microsoft Teams (Consumer)", "Teams consumer edition"),
-                ("MSTeams", "Microsoft Teams (Work/School)", "Teams enterprise/work edition"),
-                ("Microsoft.549981C3F5F10", "Cortana", "Digital assistant"),
-                ("Microsoft.BingNews", "Microsoft News", "News and weather app"),
-                ("Microsoft.BingWeather", "Weather", "Weather app"),
-                ("Microsoft.GetHelp", "Get Help", "Support app"),
-                ("Microsoft.Getstarted", "Tips", "Windows tips app"),
-                ("Microsoft.Microsoft3DViewer", "3D Viewer", "3D model viewer"),
-                ("Microsoft.MicrosoftOfficeHub", "Office", "Office hub app"),
-                ("Microsoft.MicrosoftSolitaireCollection", "Solitaire", "Solitaire games"),
-                ("Microsoft.MicrosoftStickyNotes", "Sticky Notes", "Note-taking app"),
-                ("Microsoft.MixedReality.Portal", "Mixed Reality Portal", "VR/AR portal"),
-                ("Microsoft.MSPaint", "Paint 3D", "3D painting app"),
-                ("Microsoft.Office.OneNote", "OneNote", "Note-taking app"),
-                ("Microsoft.People", "People", "Contact management app"),
-                ("Microsoft.PowerAutomateDesktop", "Power Automate", "Automation tool"),
-                ("Microsoft.SkypeApp", "Skype", "Video calling app"),
-                ("Microsoft.Todos", "Microsoft To Do", "Task management app"),
-                ("Microsoft.WindowsAlarms", "Alarms & Clock", "Clock and timer app"),
-                ("Microsoft.WindowsCamera", "Camera", "Camera app"),
-                ("microsoft.windowscommunicationsapps", "Mail and Calendar", "Email and calendar apps"),
-                ("Microsoft.WindowsFeedbackHub", "Feedback Hub", "User feedback app"),
-                ("Microsoft.WindowsMaps", "Maps", "Maps app"),
-                ("Microsoft.WindowsSoundRecorder", "Voice Recorder", "Audio recording app"),
-                ("Microsoft.Xbox.TCUI", "Xbox TCUI", "Xbox UI component"),
-                ("Microsoft.XboxApp", "Xbox Console Companion", "Xbox app"),
-                ("Microsoft.XboxGameOverlay", "Xbox Game Bar", "Gaming overlay"),
-                ("Microsoft.XboxGamingOverlay", "Xbox Gaming Overlay", "Gaming overlay"),
-                ("Microsoft.XboxIdentityProvider", "Xbox Identity Provider", "Xbox sign-in"),
-                ("Microsoft.XboxSpeechToTextOverlay", "Xbox Speech To Text", "Voice transcription"),
-                ("Microsoft.YourPhone", "Phone Link", "Phone integration app"),
-                ("Microsoft.ZuneMusic", "Groove Music", "Music player"),
-                ("Microsoft.ZuneVideo", "Movies & TV", "Video player"),
-                ("Microsoft.OneDrive", "OneDrive", "Cloud storage (use with caution)"),
-            };
-
-            foreach (var (package, display, description) in commonApps)
-            {
-                WindowsApps.Add(new WindowsApp
-                {
-                    PackageName = package,
-                    DisplayName = display,
-                    Description = description,
-                    IsSelected = false
-                });
             }
         }
 

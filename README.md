@@ -2,7 +2,7 @@
 
 A professional WPF application for preparing Windows 11 installation images with injected drivers, dynamic app discovery and removal, and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages and streamlined Windows app configurations, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
 
-![Version](https://img.shields.io/badge/version-4.4.3-blue.svg)
+![Version](https://img.shields.io/badge/version-4.4.4-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Proprietary-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue.svg)
@@ -29,8 +29,17 @@ Similar in concept to Rufus, but specialized for driver integration before deplo
 
 ## ✨ Features
 
-### Version 4.4.3 (Latest) - June 2026
-- ✨ **NEW: Quick Select Presets for App Removal**
+### Version 4.4.4 (Latest) - June 2026
+- ✨ **NEW: Streamlined App Removal UX**
+  - Apps auto-load from GitHub when "Remove Windows Apps" checkbox is checked
+  - Removed manual "Load Apps" and "Scan from ISO" buttons for cleaner interface
+  - Selection panel greys out when checkbox is unchecked for clear visual feedback
+  - Status text shows loading progress: "Loading apps..." → "✓ 79 apps loaded"
+  - "Select Apps to Remove" button only enabled when apps are successfully loaded
+  - Simpler, more intuitive workflow with fewer manual steps
+
+### Version 4.4.3 - June 2026
+- ✨ **Quick Select Presets for App Removal**
   - "Remove Bloatware Only" - Removes social/gaming apps, keeps Calculator, Notepad, Paint, Photos, Snipping Tool, etc.
   - "Remove All Optional Apps" - Removes everything including useful utilities
   - "Clear Selection" - Quick deselect all
