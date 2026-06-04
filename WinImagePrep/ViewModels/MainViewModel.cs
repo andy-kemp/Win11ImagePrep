@@ -2654,6 +2654,8 @@ namespace WinImagePrep.ViewModels
             {
                 var settings = _settingsService.CurrentSettings;
 
+                AddLog($"First-run update check: FirstRunUpdateCheckComplete={settings.FirstRunUpdateCheckComplete}");
+
                 // Only check if this is a first run and we haven't already checked
                 if (!settings.FirstRunUpdateCheckComplete)
                 {
@@ -2731,6 +2733,10 @@ namespace WinImagePrep.ViewModels
                         var currentVersionStr = _updateService.GetCurrentVersionString();
                         AddLog($"✓ You are running the latest version (v{currentVersionStr})");
                     }
+                }
+                else
+                {
+                    AddLog("First-run update check already completed, skipping");
                 }
             }
             catch (Exception ex)

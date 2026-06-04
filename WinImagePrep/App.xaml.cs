@@ -295,13 +295,14 @@ namespace WinImagePrep
                     // Clear the temporary main window
                     await Dispatcher.InvokeAsync(() => Current.MainWindow = null);
 
-                    // Reload settings after first run
+                    // Reload settings after first run from disk to pick up any changes
                     if (_settingsService != null)
                     {
                         try
                         {
+                            await _settingsService.ReloadSettingsAsync();
                             _appSettings = _settingsService.CurrentSettings;
-                            Logger.Info("Settings reloaded after first-run");
+                            Logger.Info("Settings reloaded from disk after first-run");
                         }
                         catch (Exception ex)
                         {

@@ -1,0 +1,443 @@
+================================================================================
+WinImagePrep - Release Notes
+================================================================================
+
+Version 5.0.14 - CRITICAL Updater Fix
+Release Date: June 2026
+Publisher: Andy Kemp Consulting Ltd
+
+================================================================================
+OVERVIEW
+================================================================================
+
+WinImagePrep is a professional Windows 11 image preparation tool built with
+native C# and WPF using .NET 8. It enables IT professionals and power users
+to create customized Windows 11 installation media with integrated drivers,
+removed unwanted apps, unattended installation, and bootable USB creation.
+
+================================================================================
+VERSION 5.0.14 - NEW IN THIS RELEASE (CRITICAL FIX)
+================================================================================
+
+🔧 CRITICAL FIX: UPDATER NOW WORKS RELIABLY:
+
+  * Fixed PowerShell updater window flashing and cancelling
+  * Now downloads EXE and documentation BEFORE launching PowerShell script
+  * Increased delay to 2 seconds before app shutdown to give PowerShell time to start
+  * Removed complex web download logic from PowerShell script
+  * Script now only handles: wait for process, backup, copy files, launch
+  * Much more reliable update process, especially when running as admin
+  * Tested: 4.4.4 → 5.0.14 works perfectly
+
+🎯 USE CASE:
+
+  You're running v5.0.12 and try to update to v5.0.13. Previously, the
+  PowerShell window would flash and cancel because the app closed before the
+  script could initialize. Now, all files download first, script launches
+  with a visible window, waits for app to close, and completes the update
+  successfully.
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Modified UpdateService.DownloadAndApplyUpdateAsync() to pre-download all files
+  * Modified CreateUpdaterScript() to accept pre-downloaded docs path
+  * Script receives all file paths as parameters instead of downloading during execution
+  * Fixed timing issue where app closed before PowerShell script could initialize
+  * Clean temp directory before starting to avoid stale files
+
+================================================================================
+VERSION 5.0.13 - CRITICAL AUTOPILOT ENROLLMENT FIX
+================================================================================
+
+🔧 CRITICAL FIX: AUTOPILOT ENROLLMENT NOW WORKS PROPERLY:
+
+  * Fixed unattended XML interfering with Autopilot enrollment
+  * Removed DisablePrivacyExperience registry key in Autopilot mode
+  * Removed HideEULAPage, NetworkLocation, and ProtectYourPC settings in Autopilot mode
+  * Removed ALL FirstLogonCommands in Autopilot mode for clean OOBE experience
+  * Company logo and enrollment screens now display properly
+  * Privacy/telemetry settings controlled by your Autopilot profile policies
+  * Non-Autopilot unattended installs unchanged - still skip all prompts
+
+🐛 FIXED: KEYBOARD/REGIONAL PROMPTS IN AUTOPILOT MODE:
+
+  * Added UILanguageFallback to windowsPE and oobeSystem passes
+  * No more keyboard layout prompts when booting from USB
+  * Works properly with en-GB and other regional ISOs
+
+🎯 USE CASE:
+
+  You have a Surface device pre-registered in Autopilot. You create a custom
+  Windows 11 USB with drivers using Autopilot Mode. Now when you boot from USB:
+  - Disk partitioning happens automatically
+  - No keyboard/regional prompts
+  - Your company logo appears during enrollment
+  - Autopilot enrollment completes properly
+  - No manual privacy/tracking prompts
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Modified UnattendedInstallService.BuildAutounattendXml() to skip OOBE
+    suppression when AutopilotMode = true
+  * Autopilot now only handles: disk partitioning, locale settings, EULA acceptance
+  * Clean OOBE preserved for proper Autopilot enrollment flow
+  * Added UILanguageFallback to both windowsPE and oobeSystem international components
+
+================================================================================
+VERSION 5.0.12 - UNATTENDED LOCALE PROMPTS FIX
+================================================================================
+
+🐛 FIXED: KEYBOARD/REGIONAL PROMPTS IN UNATTENDED INSTALLS:
+
+  * Added UILanguageFallback setting to suppress keyboard/regional prompts
+  * Ensures fully hands-off boot from USB for all regional ISOs
+
+================================================================================
+VERSION 5.0.11 - UPDATER IMPROVEMENTS
+================================================================================
+
+🐛 FIXED: UPDATER SCRIPT IMPROVEMENTS:
+
+  * Enhanced error handling and logging in PowerShell updater
+  * Added file existence validation and better error messages
+  * Automatic force-close if app doesn't exit gracefully
+  * Fixed silent update failures when running as administrator
+
+================================================================================
+VERSION 5.0.10 - RESET CONFIG FIRST-RUN UPDATE CHECK FIX
+================================================================================
+
+🐛 FIXED: RESET TO DEFAULT NOW TRIGGERS FIRST-RUN UPDATE CHECK:
+
+  * Fixed issue where resetting configuration to default didn't trigger update check
+  * GetDefaultSettings() now explicitly sets FirstRunUpdateCheckComplete = false
+  * After resetting config, first-run update check will properly execute on next launch
+  * Ensures users see update prompt after config reset, just like on true first run
+  * Complements the deferred update safety improvements from v5.0.9
+
+🎯 USE CASE:
+
+  You're running v5.0.8 and reset your configuration to defaults. Previously,
+  the first-run update check wouldn't trigger even though FirstRunComplete was
+  reset. Now, after resetting config, you'll properly see the update prompt
+  on next launch if a newer version (like v5.0.10) is available.
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Modified GetDefaultSettings() in SettingsService to explicitly set
+    FirstRunUpdateCheckComplete = false
+  * Ensures complete first-run state reset when user chooses "Reset to Default"
+
+================================================================================
+VERSION 5.0.9 - DEFERRED UPDATES DURING OPERATIONS
+================================================================================
+
+🛡️ DEFERRED UPDATES DURING OPERATIONS (SAFETY IMPROVEMENT):
+
+  * NEW intelligent update deferral system prevents mid-operation shutdowns
+  * Updates now detect if an operation is currently running
+  * If processing (driver injection, image prep, USB creation), update is deferred
+  * User is prompted: "Would you like to be notified when operation completes?"
+  * After operation finishes, pending update prompt appears automatically
+  * Prevents data loss from interrupted long-running operations
+  * Ensures safe completion of image preparation and USB creation tasks
+  * Works for both manual update checks and first-run update checks
+
+🎯 USE CASE:
+
+  You're in the middle of a 30-minute driver injection process when you check
+  for updates. Version 5.0.9 is available, but instead of shutting down
+  immediately (and losing all progress), WinImagePrep asks if you want to be
+  reminded after the operation completes. Once your image is ready, you'll
+  see the update prompt automatically—no lost work, no interruptions.
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Added PendingUpdate and PendingUpdateVersion properties to MainViewModel
+  * New CheckPendingUpdateAsync() method for post-operation update prompts
+  * CheckForUpdatesAsync() now checks IsProcessing flag before applying updates
+  * PerformFirstRunUpdateCheckAsync() silently defers first-run checks if busy
+  * Wired CheckPendingUpdateAsync() into all operation completion points:
+    - InjectDriversAsync (2 completion points: after injection, after cleanup)
+    - CreateUsbFromIsoAsync (finally block)
+    - CreateUsbAsync (finally block)
+
+================================================================================
+VERSION 5.0.8 - FIRST-RUN UPDATE CHECK
+================================================================================
+
+🎉 FIRST-RUN UPDATE CHECK:
+
+  * NEW automatic version check on initial startup
+  * Alerts users immediately if a newer version is available
+  * Shows comparison: current version vs. latest available version
+  * User-friendly dialog with "Update Now" or "Later" options
+  * Displays estimated update time (~1 minute depending on download speed)
+  * Only checks once per installation - won't nag on every startup
+  * Silently skips if already running the latest version
+  * Perfect for users who download older published versions
+
+🎯 USE CASE:
+
+  You download WinImagePrep v5.0.6 from the GitHub releases page, but v5.0.8
+  is now available. On first launch, WinImagePrep detects this and offers
+  to update immediately, ensuring you always start with the latest features
+  and fixes. Choose "Update Now" for automatic upgrade, or "Later" to
+  use the current version (you can always update from Tools > Check for Updates).
+
+🔧 TECHNICAL IMPLEMENTATION:
+
+  * Added FirstRunUpdateCheckComplete flag to AppSettings
+  * New PerformFirstRunUpdateCheckAsync() method in MainViewModel
+  * Integrated into MainWindow_Loaded event (after cleanup)
+  * Settings automatically persist check-complete status
+  * Non-blocking, async operation with graceful error handling
+
+================================================================================
+VERSION 5.0.7 - ENHANCED DOCUMENTATION UPDATES
+================================================================================
+
+📦 ENHANCED AUTO-UPDATE WITH DOCUMENTATION:
+
+  * Auto-update now downloads and installs ALL documentation files
+  * Downloads UserGuide.html, README.md, CHANGELOG.md, ReleaseNotes.txt,
+    and AUTOPILOT_MODE.md from GitHub
+  * Creates/updates docs\ subfolder next to the application EXE
+  * Copies README and CHANGELOG to application root for easy access
+  * Provides real-time download progress for each file
+  * Shows success/failure count for documentation downloads
+  * Continues update even if some documentation downloads fail
+  * Users always have up-to-date documentation matching their version
+
+🔧 TECHNICAL IMPROVEMENTS:
+
+  * Added DocumentationUrls dictionary in UpdateService.cs
+  * Enhanced PowerShell updater script with Invoke-WebRequest logic
+  * Automatic documentation directory structure creation
+  * Improved multi-file download progress reporting
+  * Graceful fallback if documentation downloads fail
+
+================================================================================
+VERSION 5.0.6 - OPERATION LOG UI FIXES
+================================================================================
+
+🔧 FIXED ISSUES:
+
+  * Operation log scrollbar now visible and working properly
+  * Log section properly collapses without leaving empty space
+  * Window resizes correctly when log is expanded/collapsed
+  * Grid row definition uses Height="*" for proper space filling
+  * Fixed ScrollViewer height (200px) for consistent behavior
+
+================================================================================
+VERSION 5.0.5 - AUTOPILOT MODE
+================================================================================
+
+🚀 AUTOPILOT MODE - MAJOR FEATURE:
+
+  * NEW "This device is enrolled in Autopilot" checkbox in unattended config
+  * Optimized installation flow specifically for Autopilot-enrolled devices:
+    - Auto-accepts license agreement
+    - Auto-wipes and partitions disk
+    - PRESERVES OOBE for Autopilot enrollment and company branding
+    - Skips local admin account creation (Azure AD accounts only)
+    - Keeps wireless setup enabled for Azure AD join
+  * Smart UI adaptation:
+    - Hides local admin section when Autopilot mode is enabled
+    - Hides computer name section (Autopilot manages this)
+    - Hides setup experience options (forced to Autopilot-friendly defaults)
+  * Clear visual guidance with feature checklist in Autopilot section
+  * Separate behavior from standard unattended install mode
+
+🔧 UNATTENDED INSTALL IMPROVEMENTS:
+
+  * Conditional validation - admin username only required in non-Autopilot mode
+  * Autopilot mode forces sensible defaults automatically
+  * Better separation of concerns between Autopilot and silent install scenarios
+
+📖 DOCUMENTATION:
+
+  * Added comprehensive AUTOPILOT_MODE.md guide
+  * Detailed comparison table: Autopilot vs. Standard Unattended
+  * Troubleshooting section for common Autopilot issues
+  * Technical details on answer file behavior
+
+================================================================================
+VERSION 5.0.3 - RECENT IMPROVEMENTS
+================================================================================
+
+DYNAMIC APP DISCOVERY FROM ISO:
+
+  * NEW "Load Apps from ISO" feature scans install.wim for actual provisioned apps
+  * Discovers all ~47 apps present in the Windows image (not just a hardcoded list)
+  * Handles variant package names correctly (e.g., MSTeams vs MicrosoftTeams)
+  * Works with all Windows 11 editions and builds
+  * Full package name resolution for reliable app removal
+
+AUTOMATED WORKFLOW IMPROVEMENTS:
+
+  * Intelligent auto-prompt: When "Remove Windows apps" is checked and you click
+    "Prepare Image with Drivers", the app now automatically offers to:
+    - Scan the ISO and load all apps
+    - Open the app selection dialog
+    - Guide you through the removal process
+  * No more manual steps - just check the box and go!
+  * Graceful fallback to default app list if ISO scanning fails
+  * Smart detection of whether apps have already been loaded
+
+APP REMOVAL ENHANCEMENTS:
+
+  * Created ProvisionedApp model with DisplayName, PackageName, Version, PublisherId
+  * New GetProvisionedAppsDetailedAsync() method for comprehensive app metadata
+  * Dual-mode removal logic:
+    - Full package names (from ISO scan) used directly - faster, no re-scanning
+    - Partial names (legacy hardcoded list) trigger pattern matching
+  * Backward compatible with existing configurations
+
+USER EXPERIENCE:
+
+  * Green "Load Apps from ISO" button for manual discovery
+  * Automatic prompts guide users through the process
+  * Clear messaging about app loading status
+  * Option to continue without app removal if no apps selected
+
+================================================================================
+VERSION 4.2.1 - PREVIOUS RELEASE
+================================================================================
+
+STARTUP & FIRST-RUN IMPROVEMENTS:
+
+  * Fixed first-run window display and activation issues
+  * Corrected application shutdown mode for proper window lifecycle
+  * Improved splash screen timing and window ownership handling
+  * Enhanced first-run wizard visibility and user interaction flow
+
+STORAGE & PATH UPDATES:
+
+  * Changed default working folder from C:\Win11ImagePrep to C:\ProgramData\Win11ImagePrep
+  * All application data now centralized under C:\ProgramData\Win11ImagePrep
+  * Updated documentation to reflect new default storage location
+  * Settings and working files in consistent parent directory
+
+RESET & TROUBLESHOOTING:
+
+  * Added "Reset to Defaults" functionality for troubleshooting
+  * Settings reset capability to restore first-run experience
+  * Better error handling and logging during startup sequence
+  * Comprehensive diagnostic messages for startup failures
+
+================================================================================
+VERSION 4.1.1 - PREVIOUS RELEASE
+================================================================================
+
+PUBLIC RELEASE ENHANCEMENTS:
+
+  * Professional branding and UI polish for Andy Kemp Consulting Ltd
+  * First-run welcome wizard with system requirements and safety information
+  * Comprehensive local HTML user guide with quick-start workflow
+  * Professional About dialog with company information and working folder
+  * Updated Help menu with User Guide, Online Documentation, and GitHub links
+  * Release notes and local documentation integration
+
+SETTINGS & CONFIGURATION:
+
+  * JSON-based application settings system (C:\ProgramData\Win11ImagePrep)
+  * Configurable working folder with validation and disk space checking
+  * Auto cleanup mounted images on errors or application exit
+  * Check for updates preference
+  * Persistent log level configuration (Minimal, Information, Verbose)
+  * Options dialog for easy configuration management
+
+BUG FIXES:
+
+  * Fixed Teams removal to match full provisioned package names
+  * Added MSTeams (enterprise/work-school) alongside MicrosoftTeams (consumer)
+  * Improved app removal reliability with DISM full-name matching
+
+================================================================================
+VERSION 4.0.2 - EARLIER RELEASE
+================================================================================
+
+FEATURES:
+
+  * Native C# WPF application built on .NET 8
+  * MVVM architecture with clean separation of concerns
+  * ISO extraction and validation for Windows 11 installation media
+  * Driver MSI extraction with cabinet file support
+  * Driver injection into boot.wim and install.wim images
+  * Windows edition selection and filtering
+  * Windows app removal (Teams, Xbox, OneDrive, etc.)
+  * Multiple driver source types: MSI, Folder, ZIP
+  * Bootable UEFI USB creation with GPT partitioning
+  * Saved image management and reuse
+  * Real-time progress tracking and operation logging
+  * Cancellation support for long-running operations
+  * Automatic cleanup and error recovery
+  * File-based and UI-based logging system
+
+TECHNICAL STACK:
+
+  * .NET 8.0 / WPF desktop application
+  * MVVM design pattern with data binding
+  * DISM (Deployment Image Servicing and Management) integration
+  * Windows PowerShell automation for USB creation
+  * Cabinet file extraction for driver MSI packages
+  * Async/await for responsive UI during long operations
+
+================================================================================
+SYSTEM REQUIREMENTS
+================================================================================
+
+  Operating System:  Windows 10 version 1809 or later, Windows 11
+  Privileges:        Administrator rights required for DISM and USB operations
+  Disk Space:        25 GB minimum free space on working drive
+  Memory:            4 GB RAM recommended
+  .NET Runtime:      Bundled with standalone EXE (no separate install needed)
+
+================================================================================
+KNOWN LIMITATIONS
+================================================================================
+
+  * Some operations require administrator privileges and will prompt if needed
+  * Processing time for image preparation: 20-60 minutes depending on system
+  * USB drive creation permanently erases all data on target drive
+  * Network drives and OneDrive-synced folders are not supported for working folder
+  * Windows 11 ISO required (Windows 10 not officially supported)
+
+================================================================================
+SUPPORT & DOCUMENTATION
+================================================================================
+
+  Website:            https://tools.andykemp.com
+  Documentation:      https://tools.andykemp.com/winimageprep
+  GitHub Repository:  https://github.com/andy-kemp/Win11ImagePrep
+  Report Issues:      https://github.com/andy-kemp/Win11ImagePrep/issues
+  User Guide:         Local docs/UserGuide.html (included with installation)
+
+================================================================================
+COPYRIGHT & LICENSE
+================================================================================
+
+  Copyright © 2025 Andy Kemp Consulting Ltd. All rights reserved.
+
+  This software is provided "as is" without warranty of any kind, express or
+  implied. Use at your own risk. Always back up important data before using
+  disk imaging or USB creation features.
+
+================================================================================
+DEVELOPER NOTES
+================================================================================
+
+  WinImagePrep is designed for:
+
+  * IT professionals deploying custom Windows 11 images
+  * System builders creating driver-integrated installation media
+  * Power users preparing Surface or OEM-specific Windows installations
+  * Corporate environments requiring app-free Windows deployments
+
+  The application automates DISM and PowerShell workflows while providing
+  real-time feedback and robust error handling.
+
+================================================================================
+END OF RELEASE NOTES
+================================================================================

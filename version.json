@@ -1,5 +1,5 @@
 {
-  "version": "5.0.15",
-  "releaseDate": "2026-06-05",
-  "releaseNotes": "✅ Test release - No changes, testing v5.0.14 updater improvements"
+  "version": "5.0.16",
+  "releaseDate": "2025-01-29",
+  "releaseNotes": "🔧 FIX: First-run update check now works after settings reset • Updater process detection improvements"
 }

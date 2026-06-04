@@ -212,6 +212,9 @@ namespace WinImagePrep.Services
 
         private string CreateUpdaterScript(string currentExePath, string newExePath, string docsSourcePath)
         {
+            // Get the current process ID to wait for specifically
+            var currentProcessId = Process.GetCurrentProcess().Id;
+
             return $@"
 # WinImagePrep Update Script
 $ErrorActionPreference = 'Continue'
@@ -223,7 +226,7 @@ Write-Host ''
 $currentExe = '{currentExePath.Replace("'", "''")}'
 $newExe = '{newExePath.Replace("'", "''")}'
 $docsSource = '{docsSourcePath.Replace("'", "''")}'
-$processName = 'WinImagePrep'
+$targetProcessId = {currentProcessId}
 
 # Verify files exist
 if (-not (Test-Path $currentExe)) {{
@@ -242,32 +245,60 @@ Write-Host ""Current EXE: $currentExe""
 Write-Host ""New EXE: $newExe""
 Write-Host ""New EXE size: $((Get-Item $newExe).Length / 1MB) MB""
 Write-Host ""Docs source: $docsSource""
+Write-Host ""Target Process ID: $targetProcessId""
 Write-Host ''
 
-# Wait for main process to exit
-Write-Host 'Waiting for application to close...'
+# Give the app a moment to begin shutdown
+Write-Host 'Giving application time to shut down...'
+Start-Sleep -Seconds 3
+
+# Wait for specific process ID to exit
+Write-Host 'Waiting for application process to exit...'
 $timeout = 30
 $elapsed = 0
-while ((Get-Process -Name $processName -ErrorAction SilentlyContinue) -and ($elapsed -lt $timeout)) {{
-    Start-Sleep -Seconds 1
-    $elapsed++
-    if ($elapsed % 5 -eq 0) {{
-        Write-Host ""  Still waiting... ($elapsed seconds)"" -ForegroundColor Yellow
+$processStillRunning = $true
+
+while ($processStillRunning -and ($elapsed -lt $timeout)) {{
+    try {{
+        $process = Get-Process -Id $targetProcessId -ErrorAction SilentlyContinue
+        if ($null -eq $process) {{
+            $processStillRunning = $false
+            Write-Host 'Application closed successfully.' -ForegroundColor Green
+        }} else {{
+            Start-Sleep -Seconds 1
+            $elapsed++
+            if ($elapsed % 5 -eq 0) {{
+                Write-Host ""  Still waiting... ($elapsed seconds)"" -ForegroundColor Yellow
+            }}
+        }}
+    }} catch {{
+        # Process not found - it exited
+        $processStillRunning = $false
+        Write-Host 'Application closed successfully.' -ForegroundColor Green
     }}
 }}
-Write-Host ''
 
-if (Get-Process -Name $processName -ErrorAction SilentlyContinue) {{
+if ($processStillRunning) {{
     Write-Host 'Process did not exit in time. Attempting to force close...' -ForegroundColor Yellow
     try {{
-        Stop-Process -Name $processName -Force -ErrorAction Stop
+        Stop-Process -Id $targetProcessId -Force -ErrorAction Stop
         Start-Sleep -Seconds 2
-        Write-Host 'Process closed.' -ForegroundColor Green
+        Write-Host 'Process force-closed.' -ForegroundColor Green
     }} catch {{
-        Write-Host 'Could not close process. Please close WinImagePrep manually and press Enter.' -ForegroundColor Red
-        Read-Host 'Press Enter to continue'
+        Write-Host 'Could not force-close process. It may have already exited.' -ForegroundColor Yellow
+        # Continue anyway - process might be gone
     }}
 }}
+
+# Extra safety: ensure no WinImagePrep processes are running
+Write-Host 'Verifying no WinImagePrep processes remain...'
+$remainingProcesses = Get-Process -Name 'WinImagePrep' -ErrorAction SilentlyContinue
+if ($remainingProcesses) {{
+    Write-Host 'Found remaining WinImagePrep processes. Closing...' -ForegroundColor Yellow
+    $remainingProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+}}
+Write-Host ''
 
 # Backup current EXE
 Write-Host 'Backing up current version...'

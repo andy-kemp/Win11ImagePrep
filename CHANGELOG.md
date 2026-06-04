@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [5.0.15] - 2026-06-05
+## [5.0.16] - 2025-01-29
+
+### Fixed
+- **First-Run Update Check After Reset** - Fixed update check not running after settings reset
+  - Settings are now reloaded from disk after first-run wizard completes
+  - Ensures `FirstRunUpdateCheckComplete` flag is properly read
+  - Added debug logging to track first-run update check status
+- **Updater Process Detection** - Improved "process still running" error handling
+  - Now waits for specific process ID instead of searching by name
+  - Added 3-second initial delay to allow app to begin shutdown
+  - Better error handling if process lookup fails
+
+### Technical
+- Modified `App.xaml.cs` to call `ReloadSettingsAsync()` after first-run wizard closes
+- Modified `CreateUpdaterScript()` to capture and wait for current process ID
+- Added diagnostic logging in `PerformFirstRunUpdateCheckAsync()`
+
+---
+
+## [5.0.15] - 2025-01-28
 
 ### Changed
 - **Test Release** - No functional changes
@@ -16,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [5.0.14] - 2026-06-05
+## [5.0.14] - 2025-01-28
 
 ### Fixed
 - **Critical Updater Fix** - Fixed PowerShell updater window flashing and cancelling
