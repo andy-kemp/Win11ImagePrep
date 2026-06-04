@@ -208,6 +208,34 @@
             </StackPanel>
         </StackPanel>
 
+        <!-- Unattended Installation Section -->
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,15,0,0">
+            <TextBlock Text="⚙️ Unattended Installation"
+                       FontSize="14"
+                       FontWeight="Bold"
+                       Margin="0,0,0,5"/>
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Enable unattended Windows installation" 
+                          IsChecked="{Binding EnableUnattendedInstall}"
+                          VerticalAlignment="Center"
+                          Margin="0,0,15,0"
+                          Width="280"/>
+                <Button Content="Configure Options..." 
+                        Command="{Binding ConfigureUnattendedCommand}"
+                        IsEnabled="{Binding CanConfigureUnattended}"
+                        Width="150" 
+                        Height="28"
+                        Background="#0078D4"
+                        Foreground="White"
+                        FontWeight="SemiBold"
+                        ToolTip="Configure unattended installation settings (auto-partition, locale, etc.)"/>
+                <TextBlock VerticalAlignment="Center" Margin="15,0,0,0" Foreground="#D2691E" FontWeight="SemiBold">
+                    <Run Text="⚠️"/>
+                    <Run Text="Will auto-wipe Disk 0"/>
+                </TextBlock>
+            </StackPanel>
+        </StackPanel>
+
         <!-- Main Action Buttons -->
         <StackPanel Grid.Row="4"
                     Orientation="Horizontal" 

@@ -60,6 +60,7 @@ namespace WinImagePrep.ViewModels
             FromSavedImageCommand = new RelayCommand(OpenSavedImageDialog);
             RefreshUsbCommand = new RelayCommand(RefreshUsbDrives);
             RepairCleanupCommand = new RelayCommand(RepairCleanup);
+            ConfigureUnattendedCommand = new RelayCommand(ConfigureUnattendedInstall, () => EnableUnattendedInstall);
 
             // Menu commands
             SaveConfigCommand = new RelayCommand(SaveConfiguration);
@@ -84,6 +85,9 @@ namespace WinImagePrep.ViewModels
 
             // Load saved app removal settings
             RemoveWindowsApps = settings.RemoveWindowsApps;
+
+            // Load saved unattended install settings
+            EnableUnattendedInstall = settings.EnableUnattendedInstall;
 
             AddLog("Windows Image Preparation Tool V4 - Ready");
             AddLog("NEW: Windows app removal + Edition selection features");
@@ -278,6 +282,27 @@ namespace WinImagePrep.ViewModels
             }
         }
 
+        private bool _enableUnattendedInstall;
+        public bool EnableUnattendedInstall
+        {
+            get => _enableUnattendedInstall;
+            set
+            {
+                if (SetProperty(ref _enableUnattendedInstall, value))
+                {
+                    // Save to settings (clone, modify, save)
+                    var settings = _settingsService.CurrentSettings.Clone();
+                    settings.EnableUnattendedInstall = value;
+                    _ = _settingsService.SaveSettingsAsync(settings);
+
+                    OnPropertyChanged(nameof(CanConfigureUnattended));
+                }
+            }
+        }
+
+        public bool CanConfigureUnattended => EnableUnattendedInstall;
+
+
         private string _appLoadingStatusText = string.Empty;
         public string AppLoadingStatusText
         {
@@ -316,6 +341,7 @@ namespace WinImagePrep.ViewModels
         public ICommand FromSavedImageCommand { get; }
         public ICommand RefreshUsbCommand { get; }
         public ICommand RepairCleanupCommand { get; }
+        public ICommand ConfigureUnattendedCommand { get; }
 
         // Menu commands
         public ICommand SaveConfigCommand { get; }
@@ -1222,6 +1248,24 @@ namespace WinImagePrep.ViewModels
                 OverallProgress = 90;
                 OverallProgressText = "Step 6/6: Finalizing...";
                 await SplitWimIfNeededAsync(_cancellationTokenSource.Token);
+
+                // Inject autounattend.xml if enabled
+                if (EnableUnattendedInstall)
+                {
+                    AddLog("Generating unattended installation file...");
+                    var unattendedService = new UnattendedInstallService();
+                    var autounattendPath = Path.Combine(_config.Windows11Directory, "autounattend.xml");
+
+                    var config = _settingsService.CurrentSettings.UnattendedInstallConfig ?? new Models.UnattendedConfig();
+                    if (unattendedService.GenerateAutounattendXml(config, autounattendPath))
+                    {
+                        AddLog("✓ Autounattend.xml created successfully");
+                    }
+                    else
+                    {
+                        AddLog("⚠ Warning: Failed to create autounattend.xml");
+                    }
+                }
 
                 OverallProgress = 100;
                 var completionMsg = RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected)
@@ -2378,6 +2422,34 @@ namespace WinImagePrep.ViewModels
                     "Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
+            }
+        }
+
+        private void ConfigureUnattendedInstall()
+        {
+            try
+            {
+                var currentConfig = _settingsService.CurrentSettings.UnattendedInstallConfig;
+                var dialog = new UnattendedConfigDialog(currentConfig);
+
+                if (dialog.ShowDialog() == true)
+                {
+                    // Save the configuration
+                    var settings = _settingsService.CurrentSettings.Clone();
+                    settings.UnattendedInstallConfig = dialog.Config;
+                    _ = _settingsService.SaveSettingsAsync(settings);
+
+                    AddLog("✓ Unattended install configuration saved");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error configuring unattended install: {ex.Message}");
+                MessageBox.Show(
+                    $"Error opening configuration dialog: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 

@@ -51,6 +51,16 @@ namespace WinImagePrep.Models
         /// </summary>
         public List<string> SelectedAppsForRemoval { get; set; } = new List<string>();
 
+        /// <summary>
+        /// Whether to enable unattended Windows installation
+        /// </summary>
+        public bool EnableUnattendedInstall { get; set; } = false;
+
+        /// <summary>
+        /// Configuration for unattended installation (autounattend.xml generation)
+        /// </summary>
+        public UnattendedConfig? UnattendedInstallConfig { get; set; }
+
         // Validation constants
         public const long MinimumFreeSpaceGB = 25;
         public const string DefaultWorkingRoot = @"C:\ProgramData\Win11ImagePrep";
@@ -133,7 +143,9 @@ namespace WinImagePrep.Models
                 FirstRunComplete = this.FirstRunComplete,
                 LogLevel = this.LogLevel,
                 RemoveWindowsApps = this.RemoveWindowsApps,
-                SelectedAppsForRemoval = new List<string>(this.SelectedAppsForRemoval)
+                SelectedAppsForRemoval = new List<string>(this.SelectedAppsForRemoval),
+                EnableUnattendedInstall = this.EnableUnattendedInstall,
+                UnattendedInstallConfig = this.UnattendedInstallConfig?.Clone()
             };
         }
 
