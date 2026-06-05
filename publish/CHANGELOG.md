@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.22] - 2025-01-29
+
+### Added
+- **New Dedicated Updater Application** - Replaced fragile PowerShell script with standalone WinImagePrep.Updater.exe
+  - Modern WPF interface with visible progress bar and status messages
+  - More reliable process waiting and file replacement
+  - Better error handling and user feedback
+  - Smaller and faster than PowerShell-based approach
+  - No more "process still running" timing issues
+
+### Changed
+- UpdateService now launches WinImagePrep.Updater.exe instead of creating PowerShell scripts
+- Build process now includes updater compilation via build-with-updater.ps1
+- Updater automatically waits for app to close, downloads update, replaces EXE, and relaunches
+
+### Removed
+- PowerShell-based updater script generation (replaced by dedicated executable)
+
+---
+
 ## [5.0.21] - 2025-01-29
 
 ### Fixed
