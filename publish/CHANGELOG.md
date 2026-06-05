@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.36] - 2025-01-29
+
+### Fixed
+- 🔧 Improved updater error handling:
+  - Detects when user declines UAC prompt (error 1223)
+  - Shows clear dialog explaining admin rights requirement
+  - Updater now logs ALL command-line arguments for debugging
+  - Updater keeps window open on error instead of silently exiting
+- 🔧 Updater version bumped to 1.4.0
+
 ## [5.0.35] - 2025-01-29
 
 ### Fixed

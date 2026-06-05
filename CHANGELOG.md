@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.37] - 2025-01-29
+
+### Changed
+- 🧪 Test release to validate:
+  - Updater error handling and UAC prompt detection
+  - First-run update detection with aggressive no-cache headers
+  - Complete update flow from v5.0.36 → v5.0.37
+
 ## [5.0.36] - 2025-01-29
 
 ### Fixed

@@ -1,5 +1,5 @@
 {
-  "version": "5.0.36",
+  "version": "5.0.37",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🔧 FIX: Better updater error handling - shows clear UAC prompts and detailed logging for silent exit issues"
+  "releaseNotes": "🧪 TEST: Version bump to validate updater error handling and first-run update detection"
 }
