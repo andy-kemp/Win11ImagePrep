@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.44] - 2025-01-29
+
+### Fixed
+- 🔧 **App restart after update now works**: Fixed batch script execution
+  - Changed to `UseShellExecute = true` for proper batch script execution
+  - Added `cd /d` command to ensure correct working directory
+  - Added echo statements for debugging
+  - Changed window style to Minimized (was Hidden) for troubleshooting
+  - Batch script now properly launches the main app after updater replacement
+
+### Technical
+- Batch script process launch now uses shell execute instead of direct cmd.exe invocation
+- Working directory is explicitly set with `cd /d` before starting application
+
 ## [5.0.43] - 2025-01-29
 
 ### Fixed

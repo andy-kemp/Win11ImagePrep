@@ -1,6 +1,6 @@
 {
-  "version": "5.0.43",
+  "version": "5.0.44",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "✅ Update fixes: First-run updates now work, app restarts properly after update, updater only downloads if newer version available"
+  "releaseNotes": "✅ Fixed: App now restarts properly after update (improved batch script with UseShellExecute and cd /d)"
 }
