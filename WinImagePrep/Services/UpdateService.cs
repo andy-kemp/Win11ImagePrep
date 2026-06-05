@@ -198,7 +198,9 @@ namespace WinImagePrep.Services
                 var currentProcessName = currentProcess.ProcessName;
 
                 // Step 3: Write update info to a file (arguments can get mangled through UAC)
-                var updateInfoPath = Path.Combine(Path.GetTempPath(), "WinImagePrep_UpdateInfo.json");
+                // Use ProgramData which is accessible to both user and elevated processes
+                var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                var updateInfoPath = Path.Combine(programData, "WinImagePrep_UpdateInfo.json");
                 var updateInfo = new
                 {
                     TargetExePath = currentExePath,
