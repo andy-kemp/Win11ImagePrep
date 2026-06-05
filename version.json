@@ -1,5 +1,5 @@
 {
-  "version": "5.0.29",
+  "version": "5.0.30",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🔧 FIX: Added comprehensive logging to updater for debugging"
+  "releaseNotes": "🔧 FIX: Added global exception handlers to updater - will now ALWAYS create log files"
 }
