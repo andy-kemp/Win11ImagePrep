@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.29] - 2025-01-29
+
+### Fixed
+- 🔧 Added comprehensive logging to updater for debugging update issues
+- 🔧 Updater now logs to %TEMP%\WinImagePrep_Updater_*.log for troubleshooting
+
 ## [5.0.28] - 2025-01-29
 
 ### Changed

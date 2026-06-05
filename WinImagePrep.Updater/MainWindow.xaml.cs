@@ -17,16 +17,25 @@ public partial class MainWindow : Window
     private readonly string _targetProcessName;
     private readonly int _targetProcessId;
     private bool _updateSuccessful = false;
+    private readonly string _logPath;
 
     public MainWindow()
     {
         InitializeComponent();
 
+        // Set up logging
+        _logPath = Path.Combine(Path.GetTempPath(), $"WinImagePrep_Updater_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+        Log("Updater started");
+
         // Parse command line args: updater.exe <targetExePath> <downloadUrl> <processName> <processId>
         var args = Environment.GetCommandLineArgs();
+        Log($"Command line args count: {args.Length}");
+
+        Log($"Command line args count: {args.Length}");
 
         if (args.Length < 5)
         {
+            Log($"ERROR: Invalid arguments. Args: {string.Join(", ", args)}");
             MessageBox.Show(
                 "Invalid arguments. Usage: updater.exe <targetExePath> <downloadUrl> <processName> <processId>",
                 "Updater Error",
@@ -41,6 +50,11 @@ public partial class MainWindow : Window
         _targetProcessName = args[3];
         _targetProcessId = int.Parse(args[4]);
 
+        Log($"Target EXE: {_targetExePath}");
+        Log($"Download URL: {_downloadUrl}");
+        Log($"Process Name: {_targetProcessName}");
+        Log($"Process ID: {_targetProcessId}");
+
         Loaded += MainWindow_Loaded;
     }
 
@@ -48,15 +62,18 @@ public partial class MainWindow : Window
     {
         try
         {
+            Log("MainWindow loaded, starting update process");
             await PerformUpdateAsync();
         }
         catch (Exception ex)
         {
+            Log($"ERROR: Update failed - {ex.GetType().Name}: {ex.Message}");
+            Log($"Stack trace: {ex.StackTrace}");
             StatusText.Text = $"Update failed: {ex.Message}";
             ProgressBar.Value = 0;
             CloseButton.Visibility = Visibility.Visible;
             MessageBox.Show(
-                $"Failed to update WinImagePrep:\n\n{ex.Message}",
+                $"Failed to update WinImagePrep:\n\n{ex.Message}\n\nLog file: {_logPath}",
                 "Update Failed",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -65,56 +82,72 @@ public partial class MainWindow : Window
 
     private async Task PerformUpdateAsync()
     {
+        Log("PerformUpdateAsync started");
         var targetDirectory = Path.GetDirectoryName(_targetExePath);
         if (string.IsNullOrEmpty(targetDirectory))
         {
             throw new InvalidOperationException("Could not determine target directory");
         }
+        Log($"Target directory: {targetDirectory}");
 
         // Step 1: Wait for the target process to exit
         UpdateStatus("Waiting for WinImagePrep to close...", 10);
+        Log("Waiting for target process to exit");
         await WaitForProcessToExitAsync();
+        Log("Target process exited");
 
         // Step 2: Download all EXE files from the publish directory
         UpdateStatus("Downloading updates...", 20);
+        Log("Starting downloads");
 
         // Download main EXE
         var tempMainExe = Path.Combine(Path.GetTempPath(), $"WinImagePrep_Update_{Guid.NewGuid()}.exe");
+        Log($"Downloading main EXE from {_downloadUrl} to {tempMainExe}");
         await DownloadFileAsync(_downloadUrl, tempMainExe, 20, 50);
+        Log("Main EXE downloaded");
 
         // Download updater EXE
         var updaterUrl = _downloadUrl.Replace("WinImagePrep.exe", "WinImagePrep.Updater.exe");
         var tempUpdaterExe = Path.Combine(Path.GetTempPath(), $"WinImagePrep.Updater_Update_{Guid.NewGuid()}.exe");
+        Log($"Downloading updater EXE from {updaterUrl} to {tempUpdaterExe}");
         await DownloadFileAsync(updaterUrl, tempUpdaterExe, 50, 70);
+        Log("Updater EXE downloaded");
 
         // Step 3: Replace the old EXEs
         UpdateStatus("Installing updates...", 70);
         await Task.Delay(500); // Brief pause
 
         // Replace main EXE
+        Log($"Replacing main EXE: {tempMainExe} -> {_targetExePath}");
         File.Copy(tempMainExe, _targetExePath, overwrite: true);
         File.Delete(tempMainExe);
+        Log("Main EXE replaced");
 
         // Replace updater EXE (ourselves!)
         var updaterPath = Path.Combine(targetDirectory, "WinImagePrep.Updater.exe");
         if (File.Exists(updaterPath))
         {
+            Log($"Replacing updater EXE: {tempUpdaterExe} -> {updaterPath}");
             File.Copy(tempUpdaterExe, updaterPath, overwrite: true);
+            Log("Updater EXE replaced");
         }
         File.Delete(tempUpdaterExe);
 
         // Step 4: Restart WinImagePrep
         UpdateStatus("Starting WinImagePrep...", 90);
         await Task.Delay(500);
+        Log($"Starting WinImagePrep: {_targetExePath}");
         Process.Start(new ProcessStartInfo
         {
             FileName = _targetExePath,
             UseShellExecute = true
         });
+        Log("WinImagePrep started");
 
         // Step 5: Complete
         UpdateStatus("Update complete!", 100);
         _updateSuccessful = true;
+        Log("Update completed successfully");
         await Task.Delay(1000);
         Application.Current.Shutdown(0);
     }
@@ -208,5 +241,18 @@ public partial class MainWindow : Window
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Application.Current.Shutdown(_updateSuccessful ? 0 : 1);
+    }
+
+    private void Log(string message)
+    {
+        try
+        {
+            var logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}";
+            File.AppendAllText(_logPath, logMessage + Environment.NewLine);
+        }
+        catch
+        {
+            // Ignore logging errors
+        }
     }
 }

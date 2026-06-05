@@ -151,6 +151,10 @@ namespace WinImagePrep.Services
                     WorkingDirectory = exeDirectory
                 };
 
+                Logger.Info($"Starting updater: {updaterPath}");
+                Logger.Info($"Arguments: {startInfo.Arguments}");
+                Logger.Info($"Working directory: {exeDirectory}");
+
                 try
                 {
                     var process = Process.Start(startInfo);
