@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.23] - 2025-01-29
+
+### Changed
+- **Test Release** - Version bump only to test new updater application
+- No functional changes from v5.0.22
+
+---
+
 ## [5.0.22] - 2025-01-29
 
 ### Added

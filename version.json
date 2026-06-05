@@ -1,5 +1,5 @@
 {
-  "version": "5.0.22",
+  "version": "5.0.23",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "✨ NEW: Dedicated updater app replaces fragile PowerShell script - more reliable with visible progress"
+  "releaseNotes": "🧪 TEST: Version bump to test new updater application"
 }
