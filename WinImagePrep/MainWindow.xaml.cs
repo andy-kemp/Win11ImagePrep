@@ -73,6 +73,9 @@ namespace WinImagePrep
 
                 // Check if there's a pending update from first-run
                 await _viewModel.CheckPendingFirstRunUpdateAsync();
+
+                // Perform first-run update check if needed
+                await _viewModel.PerformFirstRunUpdateCheckAsync();
             }
         }
 

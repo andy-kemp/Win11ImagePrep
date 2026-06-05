@@ -1,6 +1,6 @@
 {
-  "version": "5.0.44",
+  "version": "5.0.45",
   "updaterVersion": "1.6.0",
-  "releaseDate": "2025-01-29",
-  "releaseNotes": "✅ Fixed: App now restarts properly after update (improved batch script with UseShellExecute and cd /d)"
+  "releaseDate": "2025-01-30",
+  "releaseNotes": "✅ Fixed: First-run update check now properly triggers update when user clicks Yes"
 }
