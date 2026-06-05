@@ -188,11 +188,9 @@ namespace WinImagePrep.Services
             // OOBE settings
             sb.AppendLine("            <OOBE>");
 
-            // For Autopilot: Don't hide EULA - let Autopilot control the experience
-            if (!config.AutopilotMode)
-            {
-                sb.AppendLine($"                <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
-            }
+            // Always hide EULA page if configured - this doesn't interfere with Autopilot enrollment
+            // EULA acceptance happens during windowsPE, Autopilot enrollment happens after OOBE
+            sb.AppendLine($"                <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
 
             // For Autopilot: don't hide wireless setup (needed for Azure AD join)
             if (!config.AutopilotMode)
