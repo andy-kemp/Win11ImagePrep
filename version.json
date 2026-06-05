@@ -1,6 +1,6 @@
 {
-  "version": "5.0.45",
+  "version": "5.0.46",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "✅ Fixed: First-run update check now properly triggers update when user clicks Yes"
+  "releaseNotes": "✅ Fixed: Operation Log auto-scroll, window resize when collapsed, and dynamic scroll bar height"
 }

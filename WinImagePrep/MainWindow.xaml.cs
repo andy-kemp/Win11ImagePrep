@@ -46,7 +46,7 @@ namespace WinImagePrep
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     LogScrollViewer?.ScrollToEnd();
-                }), System.Windows.Threading.DispatcherPriority.Loaded);
+                }), System.Windows.Threading.DispatcherPriority.ContextIdle);
             }
         }
 

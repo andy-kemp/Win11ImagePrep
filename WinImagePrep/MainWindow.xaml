@@ -392,7 +392,8 @@
                 <ScrollViewer x:Name="LogScrollViewer"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
-                              Height="200"
+                              MinHeight="100"
+                              MaxHeight="400"
                               Padding="0,0,2,2">
                     <ItemsControl ItemsSource="{Binding LogEntries}"
                                   x:Name="LogItemsControl">
