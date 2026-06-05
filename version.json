@@ -1,5 +1,5 @@
 {
-  "version": "5.0.25",
+  "version": "5.0.26",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Version bump to test updater self-update functionality"
+  "releaseNotes": "🔧 FIX: Added cache-busting to update checks - prevents stale version detection"
 }

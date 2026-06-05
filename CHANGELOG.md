@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.26] - 2025-01-29
+
+### Fixed
+- **Update Check Caching** - Added timestamp query parameter to version check URL
+  - Prevents HttpClient from using cached version.json responses
+  - Ensures update checks always retrieve the latest version information
+  - Fixes issue where v5.0.24 could not detect v5.0.25
+
+---
+
 ## [5.0.25] - 2025-01-29
 
 ### Changed

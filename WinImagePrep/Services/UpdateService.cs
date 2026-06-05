@@ -60,8 +60,10 @@ namespace WinImagePrep.Services
         {
             try
             {
-                Logger.Info($"Checking for updates from: {VersionCheckUrl}");
-                var response = await _httpClient.GetAsync(VersionCheckUrl, cancellationToken);
+                // Add cache-busting parameter to ensure we get the latest version
+                var versionCheckUrlWithCacheBust = $"{VersionCheckUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+                Logger.Info($"Checking for updates from: {versionCheckUrlWithCacheBust}");
+                var response = await _httpClient.GetAsync(versionCheckUrlWithCacheBust, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
