@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.27] - 2025-01-29
+
+### Changed
+- 🧪 TEST: Version bump to validate cache-busting update detection fix
+
 ## [5.0.26] - 2025-01-29
 
 ### Fixed
