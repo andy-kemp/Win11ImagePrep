@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.35] - 2025-01-29
+
+### Fixed
+- 🔧 Added aggressive HTTP cache-busting headers to update check:
+  - Cache-Control: no-cache, no-store, max-age=0
+  - Pragma: no-cache
+- 🔧 Fixes issue where some versions couldn't detect new updates due to HTTP caching
+
 ## [5.0.34] - 2025-01-29
 
 ### Changed

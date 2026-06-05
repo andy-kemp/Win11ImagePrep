@@ -1,5 +1,5 @@
 {
-  "version": "5.0.34",
+  "version": "5.0.35",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Version bump to validate complete update flow with admin elevation"
+  "releaseNotes": "🔧 FIX: Added aggressive no-cache headers (Cache-Control, Pragma) to version check requests"
 }

@@ -64,7 +64,18 @@ namespace WinImagePrep.Services
                 // Add cache-busting parameter to ensure we get the latest version
                 var versionCheckUrlWithCacheBust = $"{VersionCheckUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
                 Logger.Info($"Checking for updates from: {versionCheckUrlWithCacheBust}");
-                var response = await _httpClient.GetAsync(versionCheckUrlWithCacheBust, cancellationToken);
+
+                // Create request with no-cache headers
+                var request = new HttpRequestMessage(HttpMethod.Get, versionCheckUrlWithCacheBust);
+                request.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue
+                {
+                    NoCache = true,
+                    NoStore = true,
+                    MaxAge = TimeSpan.Zero
+                };
+                request.Headers.Add("Pragma", "no-cache");
+
+                var response = await _httpClient.SendAsync(request, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
