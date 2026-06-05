@@ -1,6 +1,6 @@
 {
-  "version": "5.0.47",
+  "version": "5.0.49",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "✅ Fixed: Autopilot mode now truly zero-touch - auto-accepts EULA and auto-partitions disk"
+  "releaseNotes": "✅ Fixed: Autopilot mode now preserves full OOBE for enrollment (manual disk partition deletion required)"
 }
