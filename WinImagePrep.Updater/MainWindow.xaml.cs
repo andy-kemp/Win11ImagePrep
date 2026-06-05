@@ -174,13 +174,43 @@ public partial class MainWindow : Window
         File.Delete(tempMainExe);
         App.Log("Main EXE replaced");
 
-        // Replace updater EXE (ourselves!)
+        // Replace updater EXE (ourselves!) - we need a helper script
         var updaterPath = Path.Combine(targetDirectory, "WinImagePrep.Updater.exe");
         if (File.Exists(updaterPath))
         {
-            App.Log($"Replacing updater EXE: {tempUpdaterExe} -> {updaterPath}");
-            File.Copy(tempUpdaterExe, updaterPath, overwrite: true);
-            App.Log("Updater EXE replaced");
+            App.Log($"Need to replace updater EXE: {tempUpdaterExe} -> {updaterPath}");
+
+            // Create a batch script to replace the updater after we exit
+            var batchScript = Path.Combine(Path.GetTempPath(), $"UpdaterSelfUpdate_{Guid.NewGuid()}.bat");
+            var batchContent = $@"@echo off
+timeout /t 2 /nobreak >nul
+echo Replacing updater...
+copy /Y ""{tempUpdaterExe}"" ""{updaterPath}""
+del ""{tempUpdaterExe}""
+del ""{batchScript}""
+start """" ""{_targetExePath}""
+";
+            File.WriteAllText(batchScript, batchContent);
+            App.Log($"Created self-update batch script: {batchScript}");
+
+            // Launch the batch script and exit
+            App.Log("Launching self-update script");
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = batchScript,
+                UseShellExecute = true,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            });
+
+            // Don't delete temp updater - the batch script will do it
+            // Don't start main app - the batch script will do it
+            App.Log("Self-update script launched, updater will exit now");
+            _updateSuccessful = true;
+            UpdateStatus("Update complete! Restarting...", 100);
+            await Task.Delay(500);
+            Application.Current.Shutdown(0);
+            return; // Exit immediately
         }
         File.Delete(tempUpdaterExe);
 
