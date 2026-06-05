@@ -197,14 +197,26 @@ namespace WinImagePrep.Services
                 var currentProcessId = currentProcess.Id;
                 var currentProcessName = currentProcess.ProcessName;
 
-                // Step 3: Launch the updater with arguments: <targetExePath> <downloadUrl> <processName> <processId>
+                // Step 3: Write update info to a file (arguments can get mangled through UAC)
+                var updateInfoPath = Path.Combine(Path.GetTempPath(), "WinImagePrep_UpdateInfo.json");
+                var updateInfo = new
+                {
+                    TargetExePath = currentExePath,
+                    DownloadUrl = ExeDownloadUrl,
+                    ProcessName = currentProcessName,
+                    ProcessId = currentProcessId
+                };
+                File.WriteAllText(updateInfoPath, JsonSerializer.Serialize(updateInfo));
+                Logger.Info($"Wrote update info to: {updateInfoPath}");
+
+                // Step 4: Launch the updater with the info file path
                 progress?.Report("Launching updater...");
                 Logger.Info($"Starting updater: {updaterPath}");
 
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = updaterPath,
-                    Arguments = $"\"{currentExePath}\" \"{ExeDownloadUrl}\" \"{currentProcessName}\" {currentProcessId}",
+                    Arguments = $"\"{updateInfoPath}\"",
                     UseShellExecute = true,
                     Verb = "runas", // Request admin elevation
                     WorkingDirectory = exeDirectory
@@ -221,12 +233,6 @@ namespace WinImagePrep.Services
                     {
                         progress?.Report("Failed to start updater. Please try again.");
                         Logger.Error("Process.Start returned null - likely UAC was declined");
-                        MessageBox.Show(
-                            "Administrator privileges are required to update WinImagePrep.\n\n" +
-                            "Please click 'Yes' on the User Account Control prompt.",
-                            "Admin Rights Required",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Warning);
                         return false;
                     }
 
@@ -238,28 +244,10 @@ namespace WinImagePrep.Services
                     // Signal that we should close
                     return true;
                 }
-                catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
-                {
-                    // ERROR_CANCELLED - user clicked "No" on UAC prompt
-                    progress?.Report("Update cancelled - admin rights required");
-                    Logger.Warning("User declined UAC prompt");
-                    MessageBox.Show(
-                        "Administrator privileges are required to update WinImagePrep.\n\n" +
-                        "The update has been cancelled.",
-                        "Update Cancelled",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                    return false;
-                }
                 catch (Exception ex)
                 {
                     progress?.Report($"Failed to launch updater: {ex.Message}");
                     Logger.Error($"Failed to launch updater: {ex.Message}");
-                    MessageBox.Show(
-                        $"Failed to launch updater:\n\n{ex.Message}",
-                        "Update Failed",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
                     return false;
                 }
             }

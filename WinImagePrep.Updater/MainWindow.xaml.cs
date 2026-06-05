@@ -21,21 +21,35 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        App.Log("MainWindow constructor started");
-
+        var fallbackLog = Path.Combine(Path.GetTempPath(), "WinImagePrep_Updater_Constructor.log");
         try
         {
-            InitializeComponent();
-            App.Log("InitializeComponent completed");
+            File.WriteAllText(fallbackLog, $"MainWindow constructor ENTRY at {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}\n");
+
+            App.Log("MainWindow constructor started");
+
+            try
+            {
+                File.AppendAllText(fallbackLog, "Calling InitializeComponent...\n");
+                InitializeComponent();
+                File.AppendAllText(fallbackLog, "InitializeComponent completed\n");
+                App.Log("InitializeComponent completed");
+            }
+            catch (Exception ex)
+            {
+                File.AppendAllText(fallbackLog, $"InitializeComponent ERROR: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}\n");
+                App.Log($"ERROR in InitializeComponent: {ex.GetType().Name}: {ex.Message}");
+                App.Log($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
         catch (Exception ex)
         {
-            App.Log($"ERROR in InitializeComponent: {ex.GetType().Name}: {ex.Message}");
-            App.Log($"Stack trace: {ex.StackTrace}");
+            File.AppendAllText(fallbackLog, $"Constructor ERROR: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}\n");
             throw;
         }
 
-        // Parse command line args: updater.exe <targetExePath> <downloadUrl> <processName> <processId>
+        // Parse command line args: updater.exe <updateInfoJsonPath>
         var args = Environment.GetCommandLineArgs();
         App.Log($"Command line args count: {args.Length}");
         for (int i = 0; i < args.Length; i++)
@@ -43,32 +57,56 @@ public partial class MainWindow : Window
             App.Log($"  args[{i}] = '{args[i]}'");
         }
 
-        if (args.Length < 5)
+        if (args.Length < 2)
         {
-            App.Log($"ERROR: Invalid arguments. Expected 5, got {args.Length}");
-            var errorMsg = $"Invalid arguments.\n\nExpected: updater.exe <targetExePath> <downloadUrl> <processName> <processId>\n\n" +
-                          $"Received {args.Length} arguments:\n" + string.Join("\n", args.Select((a, i) => $"[{i}] {a}"));
-
-            App.Log($"Showing error dialog: {errorMsg}");
-            MessageBox.Show(errorMsg, "Updater Error", MessageBoxButton.OK, MessageBoxImage.Error);
-
-            // Keep window open to see the error
-            StatusText.Text = "Invalid command-line arguments. See logs in %TEMP%\\WinImagePrep_Updater_*.log";
+            App.Log($"ERROR: Invalid arguments. Expected 2, got {args.Length}");
+            StatusText.Text = "Invalid command-line arguments. Expected: updater.exe <updateInfoJsonPath>";
             CloseButton.Visibility = Visibility.Visible;
             return;
         }
 
-        _targetExePath = args[1];
-        _downloadUrl = args[2];
-        _targetProcessName = args[3];
-        _targetProcessId = int.Parse(args[4]);
+        // Read update info from JSON file
+        var updateInfoPath = args[1];
+        App.Log($"Reading update info from: {updateInfoPath}");
 
-        App.Log($"Target EXE: {_targetExePath}");
-        App.Log($"Download URL: {_downloadUrl}");
-        App.Log($"Process Name: {_targetProcessName}");
-        App.Log($"Process ID: {_targetProcessId}");
+        try
+        {
+            var json = File.ReadAllText(updateInfoPath);
+            App.Log($"JSON content: {json}");
+
+            var updateInfo = System.Text.Json.JsonSerializer.Deserialize<UpdateInfo>(json);
+            if (updateInfo == null)
+            {
+                throw new Exception("Failed to deserialize update info");
+            }
+
+            _targetExePath = updateInfo.TargetExePath ?? string.Empty;
+            _downloadUrl = updateInfo.DownloadUrl ?? string.Empty;
+            _targetProcessName = updateInfo.ProcessName ?? string.Empty;
+            _targetProcessId = updateInfo.ProcessId;
+
+            App.Log($"Target EXE: {_targetExePath}");
+            App.Log($"Download URL: {_downloadUrl}");
+            App.Log($"Process Name: {_targetProcessName}");
+            App.Log($"Process ID: {_targetProcessId}");
+        }
+        catch (Exception ex)
+        {
+            App.Log($"ERROR reading update info: {ex.Message}");
+            StatusText.Text = $"Failed to read update info: {ex.Message}";
+            CloseButton.Visibility = Visibility.Visible;
+            return;
+        }
 
         Loaded += MainWindow_Loaded;
+    }
+
+    private class UpdateInfo
+    {
+        public string? TargetExePath { get; set; }
+        public string? DownloadUrl { get; set; }
+        public string? ProcessName { get; set; }
+        public int ProcessId { get; set; }
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)

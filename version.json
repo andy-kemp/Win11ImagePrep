@@ -1,5 +1,5 @@
 {
-  "version": "5.0.37",
+  "version": "5.0.39",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Version bump to validate updater error handling and first-run update detection"
+  "releaseNotes": "🔧 FIX: Updater now receives arguments via JSON file instead of command-line to avoid UAC argument mangling"
 }

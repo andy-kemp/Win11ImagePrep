@@ -4,6 +4,6 @@
              xmlns:local="clr-namespace:WinImagePrep.Updater"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+
     </Application.Resources>
 </Application>
