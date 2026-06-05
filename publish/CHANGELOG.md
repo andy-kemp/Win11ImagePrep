@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.40] - 2025-01-29
+
+### Changed
+- 🧪 Test release to validate:
+  - JSON-based updater argument passing
+  - Admin elevation with UAC prompt
+  - Complete update flow from v5.0.39 → v5.0.40
+  - First-run and manual update paths
+
 ## [5.0.39] - 2025-01-29
 
 ### Fixed
