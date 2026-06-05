@@ -211,20 +211,20 @@ namespace WinImagePrep.Services
                 File.WriteAllText(updateInfoPath, JsonSerializer.Serialize(updateInfo));
                 Logger.Info($"Wrote update info to: {updateInfoPath}");
 
-                // Step 4: Launch the updater with the info file path
+                // Step 4: Launch the updater WITHOUT arguments (they get lost through UAC)
+                // The updater will look for the JSON in the fixed ProgramData location
                 progress?.Report("Launching updater...");
                 Logger.Info($"Starting updater: {updaterPath}");
 
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = updaterPath,
-                    Arguments = $"\"{updateInfoPath}\"",
+                    Arguments = "", // Don't pass arguments - they get lost through UAC elevation
                     UseShellExecute = true,
                     Verb = "runas", // Request admin elevation
                     WorkingDirectory = exeDirectory
                 };
 
-                Logger.Info($"Arguments: {startInfo.Arguments}");
                 Logger.Info($"Working directory: {exeDirectory}");
                 Logger.Info("Requesting admin elevation for updater");
 

@@ -49,24 +49,22 @@ public partial class MainWindow : Window
             throw;
         }
 
-        // Parse command line args: updater.exe <updateInfoJsonPath>
-        var args = Environment.GetCommandLineArgs();
-        App.Log($"Command line args count: {args.Length}");
-        for (int i = 0; i < args.Length; i++)
-        {
-            App.Log($"  args[{i}] = '{args[i]}'");
-        }
+        // Don't rely on command-line arguments - they get lost through UAC elevation
+        // Always read from a fixed location that both processes can access
+        var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+        var updateInfoPath = Path.Combine(programData, "WinImagePrep_UpdateInfo.json");
 
-        if (args.Length < 2)
+        App.Log($"Looking for update info at: {updateInfoPath}");
+
+        if (!File.Exists(updateInfoPath))
         {
-            App.Log($"ERROR: Invalid arguments. Expected 2, got {args.Length}");
-            StatusText.Text = "Invalid command-line arguments. Expected: updater.exe <updateInfoJsonPath>";
+            App.Log($"ERROR: Update info file not found at {updateInfoPath}");
+            StatusText.Text = $"Update info file not found. Please try the update again.";
             CloseButton.Visibility = Visibility.Visible;
             return;
         }
 
         // Read update info from JSON file
-        var updateInfoPath = args[1];
         App.Log($"Reading update info from: {updateInfoPath}");
 
         try
