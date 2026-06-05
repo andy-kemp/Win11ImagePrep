@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.31] - 2025-01-29
+
+### Added
+- ✨ Main app now automatically downloads the latest updater from GitHub before launching it
+- ✨ Shows progress while downloading updater (e.g., "Downloading updater: 12.5 MB / 64.7 MB (19%)")
+- ✨ No more manual updater downloads required - always uses the latest version
+
+### Changed
+- 🔄 Update process now: download updater → launch updater → updater downloads main app → install → relaunch
+
 ## [5.0.30] - 2025-01-29
 
 ### Fixed

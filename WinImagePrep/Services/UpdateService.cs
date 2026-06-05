@@ -19,6 +19,7 @@ namespace WinImagePrep.Services
         private readonly HttpClient _httpClient;
         private const string VersionCheckUrl = "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/version.json";
         private const string ExeDownloadUrl = "https://github.com/andy-kemp/Win11ImagePrep/raw/main/publish/WinImagePrep.exe";
+        private const string UpdaterDownloadUrl = "https://github.com/andy-kemp/Win11ImagePrep/raw/main/publish/WinImagePrep.Updater.exe";
 
         // Documentation download URLs
         private static readonly Dictionary<string, string> DocumentationUrls = new()
@@ -101,19 +102,21 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
-        /// Download and apply the update by launching the dedicated updater application
+        /// Download and apply the update by first downloading the latest updater, then launching it
         /// </summary>
         public async Task<bool> DownloadAndApplyUpdateAsync(IProgress<string>? progress = null, CancellationToken cancellationToken = default)
         {
             try
             {
                 progress?.Report("Preparing update...");
+                Logger.Info("Starting update process");
 
                 // Get current EXE path and directory
                 var currentExePath = Process.GetCurrentProcess().MainModule?.FileName;
                 if (string.IsNullOrEmpty(currentExePath))
                 {
                     progress?.Report("Error: Could not determine current EXE path");
+                    Logger.Error("Could not determine current EXE path");
                     return false;
                 }
 
@@ -121,14 +124,59 @@ namespace WinImagePrep.Services
                 if (string.IsNullOrEmpty(exeDirectory))
                 {
                     progress?.Report("Error: Could not determine EXE directory");
+                    Logger.Error("Could not determine EXE directory");
                     return false;
                 }
 
-                // Look for the updater in the same directory as the main EXE
+                // Step 1: Download the latest updater from GitHub
                 var updaterPath = Path.Combine(exeDirectory, "WinImagePrep.Updater.exe");
+                progress?.Report("Downloading latest updater...");
+                Logger.Info($"Downloading updater from: {UpdaterDownloadUrl}");
+                Logger.Info($"Updater destination: {updaterPath}");
+
+                try
+                {
+                    var response = await _httpClient.GetAsync(UpdaterDownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    response.EnsureSuccessStatusCode();
+
+                    var totalBytes = response.Content.Headers.ContentLength ?? 0;
+                    var totalMB = totalBytes / (1024.0 * 1024.0);
+
+                    await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                    await using var fileStream = new FileStream(updaterPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+
+                    var buffer = new byte[8192];
+                    long totalRead = 0;
+                    int bytesRead;
+
+                    while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
+                    {
+                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                        totalRead += bytesRead;
+
+                        if (totalBytes > 0)
+                        {
+                            var readMB = totalRead / (1024.0 * 1024.0);
+                            var percent = (int)((totalRead * 100) / totalBytes);
+                            progress?.Report($"Downloading updater: {readMB:F1} MB / {totalMB:F1} MB ({percent}%)");
+                        }
+                    }
+
+                    Logger.Info($"Updater downloaded successfully ({totalRead} bytes)");
+                    progress?.Report("Updater downloaded successfully");
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"Failed to download updater: {ex.Message}");
+                    Logger.Error($"Failed to download updater: {ex.Message}");
+                    return false;
+                }
+
+                // Step 2: Verify the updater was downloaded
                 if (!File.Exists(updaterPath))
                 {
-                    progress?.Report("Error: Updater executable not found. Please reinstall the application.");
+                    progress?.Report("Error: Updater download failed");
+                    Logger.Error("Updater file does not exist after download");
                     return false;
                 }
 
@@ -137,21 +185,18 @@ namespace WinImagePrep.Services
                 var currentProcessId = currentProcess.Id;
                 var currentProcessName = currentProcess.ProcessName;
 
-                // Download EXE URL
-                var downloadUrl = ExeDownloadUrl;
-
-                // Launch the updater with arguments: <targetExePath> <downloadUrl> <processName> <processId>
+                // Step 3: Launch the updater with arguments: <targetExePath> <downloadUrl> <processName> <processId>
                 progress?.Report("Launching updater...");
+                Logger.Info($"Starting updater: {updaterPath}");
 
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = updaterPath,
-                    Arguments = $"\"{currentExePath}\" \"{downloadUrl}\" \"{currentProcessName}\" {currentProcessId}",
+                    Arguments = $"\"{currentExePath}\" \"{ExeDownloadUrl}\" \"{currentProcessName}\" {currentProcessId}",
                     UseShellExecute = true,
                     WorkingDirectory = exeDirectory
                 };
 
-                Logger.Info($"Starting updater: {updaterPath}");
                 Logger.Info($"Arguments: {startInfo.Arguments}");
                 Logger.Info($"Working directory: {exeDirectory}");
 
@@ -161,11 +206,13 @@ namespace WinImagePrep.Services
                     if (process == null)
                     {
                         progress?.Report("Failed to start updater. Please try again.");
+                        Logger.Error("Process.Start returned null");
                         return false;
                     }
 
                     // Give the updater time to start
                     progress?.Report("Updater started. Application will close shortly...");
+                    Logger.Info("Updater process started successfully");
                     await Task.Delay(1000, cancellationToken);
 
                     // Signal that we should close
@@ -174,6 +221,7 @@ namespace WinImagePrep.Services
                 catch (Exception ex)
                 {
                     progress?.Report($"Failed to launch updater: {ex.Message}");
+                    Logger.Error($"Failed to launch updater: {ex.Message}");
                     return false;
                 }
             }

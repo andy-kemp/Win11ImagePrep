@@ -1,5 +1,5 @@
 {
-  "version": "5.0.30",
+  "version": "5.0.31",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🔧 FIX: Added global exception handlers to updater - will now ALWAYS create log files"
+  "releaseNotes": "✨ NEW: Main app now auto-downloads latest updater from GitHub before updating - no more manual updater downloads!"
 }
