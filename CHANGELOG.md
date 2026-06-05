@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.24] - 2025-01-29
+
+### Fixed
+- **Updater Self-Update** - Updater now downloads and replaces itself during updates
+  - Downloads both WinImagePrep.exe and WinImagePrep.Updater.exe from GitHub
+  - Ensures users always get the latest updater improvements
+  - Progress bar shows download progress for both files (20-50% main, 50-70% updater)
+  - Updater version bumped to 1.1.0
+
+### Changed
+- Updater now accepts progress range parameters for better visual feedback
+- All EXE files in the publish directory are now synchronized during updates
+
+---
+
 ## [5.0.23] - 2025-01-29
 
 ### Changed

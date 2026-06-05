@@ -65,20 +65,43 @@ public partial class MainWindow : Window
 
     private async Task PerformUpdateAsync()
     {
+        var targetDirectory = Path.GetDirectoryName(_targetExePath);
+        if (string.IsNullOrEmpty(targetDirectory))
+        {
+            throw new InvalidOperationException("Could not determine target directory");
+        }
+
         // Step 1: Wait for the target process to exit
         UpdateStatus("Waiting for WinImagePrep to close...", 10);
         await WaitForProcessToExitAsync();
 
-        // Step 2: Download the new EXE
-        UpdateStatus("Downloading update...", 30);
-        var tempPath = Path.Combine(Path.GetTempPath(), $"WinImagePrep_Update_{Guid.NewGuid()}.exe");
-        await DownloadFileAsync(_downloadUrl, tempPath);
+        // Step 2: Download all EXE files from the publish directory
+        UpdateStatus("Downloading updates...", 20);
 
-        // Step 3: Replace the old EXE
-        UpdateStatus("Installing update...", 70);
+        // Download main EXE
+        var tempMainExe = Path.Combine(Path.GetTempPath(), $"WinImagePrep_Update_{Guid.NewGuid()}.exe");
+        await DownloadFileAsync(_downloadUrl, tempMainExe, 20, 50);
+
+        // Download updater EXE
+        var updaterUrl = _downloadUrl.Replace("WinImagePrep.exe", "WinImagePrep.Updater.exe");
+        var tempUpdaterExe = Path.Combine(Path.GetTempPath(), $"WinImagePrep.Updater_Update_{Guid.NewGuid()}.exe");
+        await DownloadFileAsync(updaterUrl, tempUpdaterExe, 50, 70);
+
+        // Step 3: Replace the old EXEs
+        UpdateStatus("Installing updates...", 70);
         await Task.Delay(500); // Brief pause
-        File.Copy(tempPath, _targetExePath, overwrite: true);
-        File.Delete(tempPath);
+
+        // Replace main EXE
+        File.Copy(tempMainExe, _targetExePath, overwrite: true);
+        File.Delete(tempMainExe);
+
+        // Replace updater EXE (ourselves!)
+        var updaterPath = Path.Combine(targetDirectory, "WinImagePrep.Updater.exe");
+        if (File.Exists(updaterPath))
+        {
+            File.Copy(tempUpdaterExe, updaterPath, overwrite: true);
+        }
+        File.Delete(tempUpdaterExe);
 
         // Step 4: Restart WinImagePrep
         UpdateStatus("Starting WinImagePrep...", 90);
@@ -143,7 +166,7 @@ public partial class MainWindow : Window
         await Task.Delay(1000);
     }
 
-    private async Task DownloadFileAsync(string url, string destinationPath)
+    private async Task DownloadFileAsync(string url, string destinationPath, int progressStart = 0, int progressEnd = 100)
     {
         using var client = new HttpClient();
         client.Timeout = TimeSpan.FromMinutes(5);
@@ -153,6 +176,7 @@ public partial class MainWindow : Window
 
         var totalBytes = response.Content.Headers.ContentLength ?? 0;
         var canReportProgress = totalBytes > 0;
+        var progressRange = progressEnd - progressStart;
 
         await using var contentStream = await response.Content.ReadAsStreamAsync();
         await using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
@@ -168,8 +192,9 @@ public partial class MainWindow : Window
 
             if (canReportProgress)
             {
-                var progressPercent = (double)totalRead / totalBytes * 40; // 30-70% range
-                Dispatcher.Invoke(() => ProgressBar.Value = 30 + progressPercent);
+                var downloadProgress = (double)totalRead / totalBytes;
+                var progressPercent = progressStart + (downloadProgress * progressRange);
+                Dispatcher.Invoke(() => ProgressBar.Value = progressPercent);
             }
         }
     }

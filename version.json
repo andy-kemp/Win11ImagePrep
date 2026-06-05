@@ -1,5 +1,5 @@
 {
-  "version": "5.0.23",
+  "version": "5.0.24",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Version bump to test new updater application"
+  "releaseNotes": "🔧 FIX: Updater now downloads ALL EXE files (main app + updater itself) - ensures updater improvements are deployed"
 }
