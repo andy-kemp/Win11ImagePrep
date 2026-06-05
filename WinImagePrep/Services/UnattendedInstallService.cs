@@ -74,8 +74,9 @@ namespace WinImagePrep.Services
             sb.AppendLine("                <Organization></Organization>");
             sb.AppendLine("            </UserData>");
 
-            // Disk configuration - Auto-partition disk 0
-            if (config.AutoPartitionDisk)
+            // Disk configuration - NOT for Autopilot mode (manual partition deletion required)
+            // For Autopilot: user manually deletes partitions, then Autopilot handles the rest
+            if (!config.AutopilotMode && config.AutoPartitionDisk)
             {
                 sb.AppendLine("            <DiskConfiguration>");
                 sb.AppendLine("                <Disk wcm:action=\"add\">");

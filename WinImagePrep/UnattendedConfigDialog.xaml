@@ -37,10 +37,10 @@
                                   Checked="AutopilotMode_Changed" Unchecked="AutopilotMode_Changed"/>
                         <TextBlock TextWrapping="Wrap" Foreground="#1976D2" FontSize="12">
                             <Run Text="✓ Auto-accepts license agreement"/><LineBreak/>
-                            <Run Text="✓ Auto-wipes and partitions disk"/><LineBreak/>
                             <Run Text="✓ Preserves OOBE for Autopilot enrollment"/><LineBreak/>
                             <Run Text="✓ Company branding will appear during setup"/><LineBreak/>
-                            <Run Text="✓ Azure AD user accounts only (no local admin)"/>
+                            <Run Text="✓ Azure AD user accounts only (no local admin)"/><LineBreak/>
+                            <Run Text="⚠️ Manually delete disk partitions before install" FontWeight="SemiBold" Foreground="#E65100"/>
                         </TextBlock>
                     </StackPanel>
                 </Border>
@@ -95,17 +95,19 @@
                     <TextBlock Text="Leave blank to auto-generate" Foreground="Gray" FontSize="11" Margin="0,0,0,15"/>
                 </StackPanel>
 
-                <!-- Disk Configuration -->
-                <TextBlock Text="Disk Configuration" FontWeight="SemiBold" Margin="0,10,0,10"/>
-                <CheckBox x:Name="AutoPartitionCheckBox" Content="Automatically partition and format Disk 0" IsChecked="True" Margin="0,0,0,5"/>
-                <TextBlock TextWrapping="Wrap" Foreground="Red" FontSize="11" Margin="20,0,0,10">
-                    ⚠️ This will ERASE ALL DATA on the primary disk (usually Disk 0)
-                </TextBlock>
+                <!-- Disk Configuration (hidden in Autopilot mode - manual partition deletion required) -->
+                <StackPanel x:Name="DiskConfigPanel">
+                    <TextBlock Text="Disk Configuration" FontWeight="SemiBold" Margin="0,10,0,10"/>
+                    <CheckBox x:Name="AutoPartitionCheckBox" Content="Automatically partition and format Disk 0" IsChecked="True" Margin="0,0,0,5"/>
+                    <TextBlock TextWrapping="Wrap" Foreground="Red" FontSize="11" Margin="20,0,0,10">
+                        ⚠️ This will ERASE ALL DATA on the primary disk (usually Disk 0)
+                    </TextBlock>
 
-                <StackPanel Orientation="Horizontal" Margin="0,5,0,15">
-                    <TextBlock Text="Target Disk ID:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBox x:Name="DiskIdTextBox" Width="50" Height="30" Text="0" VerticalAlignment="Center"/>
-                    <TextBlock Text="(Usually 0 for primary disk)" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Gray" FontSize="11"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,15">
+                        <TextBlock Text="Target Disk ID:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBox x:Name="DiskIdTextBox" Width="50" Height="30" Text="0" VerticalAlignment="Center"/>
+                        <TextBlock Text="(Usually 0 for primary disk)" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Gray" FontSize="11"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Setup Experience (hidden in Autopilot mode) -->
