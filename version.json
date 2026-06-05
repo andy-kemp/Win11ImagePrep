@@ -1,5 +1,5 @@
 {
-  "version": "5.0.31",
+  "version": "5.0.32",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "✨ NEW: Main app now auto-downloads latest updater from GitHub before updating - no more manual updater downloads!"
+  "releaseNotes": "🧪 TEST: Version bump to validate auto-download updater functionality"
 }
