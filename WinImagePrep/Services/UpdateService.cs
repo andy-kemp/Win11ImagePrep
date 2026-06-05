@@ -99,7 +99,7 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
-        /// Download and apply the update by launching an elevated updater script
+        /// Download and apply the update by launching the dedicated updater application
         /// </summary>
         public async Task<bool> DownloadAndApplyUpdateAsync(IProgress<string>? progress = null, CancellationToken cancellationToken = default)
         {
@@ -107,7 +107,7 @@ namespace WinImagePrep.Services
             {
                 progress?.Report("Preparing update...");
 
-                // Get current EXE path
+                // Get current EXE path and directory
                 var currentExePath = Process.GetCurrentProcess().MainModule?.FileName;
                 if (string.IsNullOrEmpty(currentExePath))
                 {
@@ -115,84 +115,38 @@ namespace WinImagePrep.Services
                     return false;
                 }
 
-                // Create temp directory for update files
-                var tempDir = Path.Combine(Path.GetTempPath(), "WinImagePrep_Update");
-                if (Directory.Exists(tempDir))
+                var exeDirectory = Path.GetDirectoryName(currentExePath);
+                if (string.IsNullOrEmpty(exeDirectory))
                 {
-                    try
-                    {
-                        Directory.Delete(tempDir, true);
-                    }
-                    catch
-                    {
-                        // Ignore cleanup errors
-                    }
-                }
-                Directory.CreateDirectory(tempDir);
-
-                var newExePath = Path.Combine(tempDir, "WinImagePrep_new.exe");
-                var updaterScriptPath = Path.Combine(tempDir, "Update.ps1");
-
-                // Download new EXE first
-                progress?.Report("Downloading update (1/2)...");
-                var response = await _httpClient.GetAsync(ExeDownloadUrl, cancellationToken);
-                response.EnsureSuccessStatusCode();
-
-                await using (var fileStream = File.Create(newExePath))
-                {
-                    await response.Content.CopyToAsync(fileStream, cancellationToken);
+                    progress?.Report("Error: Could not determine EXE directory");
+                    return false;
                 }
 
-                progress?.Report($"Downloaded EXE: {new FileInfo(newExePath).Length / 1024 / 1024:F1} MB");
-
-                // Download documentation files
-                progress?.Report("Downloading documentation (2/2)...");
-                var tempDocDir = Path.Combine(tempDir, "docs");
-                Directory.CreateDirectory(tempDocDir);
-
-                int docSuccess = 0;
-                int docFailed = 0;
-
-                foreach (var doc in DocumentationUrls)
+                // Look for the updater in the same directory as the main EXE
+                var updaterPath = Path.Combine(exeDirectory, "WinImagePrep.Updater.exe");
+                if (!File.Exists(updaterPath))
                 {
-                    try
-                    {
-                        var docPath = Path.Combine(tempDocDir, doc.Key);
-                        var docResponse = await _httpClient.GetAsync(doc.Value, cancellationToken);
-
-                        if (docResponse.IsSuccessStatusCode)
-                        {
-                            await using var docStream = File.Create(docPath);
-                            await docResponse.Content.CopyToAsync(docStream, cancellationToken);
-                            docSuccess++;
-                        }
-                        else
-                        {
-                            docFailed++;
-                        }
-                    }
-                    catch
-                    {
-                        docFailed++;
-                    }
+                    progress?.Report("Error: Updater executable not found. Please reinstall the application.");
+                    return false;
                 }
 
-                progress?.Report($"Downloaded {docSuccess}/{DocumentationUrls.Count} documentation files");
+                // Get current process info to pass to updater
+                var currentProcess = Process.GetCurrentProcess();
+                var currentProcessId = currentProcess.Id;
+                var currentProcessName = currentProcess.ProcessName;
 
-                // Create updater script (now that everything is downloaded)
-                progress?.Report("Preparing installation script...");
-                var updaterScript = CreateUpdaterScript(currentExePath, newExePath, tempDocDir);
-                await File.WriteAllTextAsync(updaterScriptPath, updaterScript, cancellationToken);
+                // Download EXE URL
+                var downloadUrl = ExeDownloadUrl;
 
-                // Launch updater script
+                // Launch the updater with arguments: <targetExePath> <downloadUrl> <processName> <processId>
                 progress?.Report("Launching updater...");
 
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = "powershell.exe",
-                    Arguments = $"-ExecutionPolicy Bypass -WindowStyle Normal -File \"{updaterScriptPath}\"",
+                    FileName = updaterPath,
+                    Arguments = $"\"{currentExePath}\" \"{downloadUrl}\" \"{currentProcessName}\" {currentProcessId}",
                     UseShellExecute = true,
-                    WorkingDirectory = tempDir
+                    WorkingDirectory = exeDirectory
                 };
 
                 try
@@ -200,13 +154,13 @@ namespace WinImagePrep.Services
                     var process = Process.Start(startInfo);
                     if (process == null)
                     {
-                        progress?.Report("Update failed to start. Please try again.");
+                        progress?.Report("Failed to start updater. Please try again.");
                         return false;
                     }
 
-                    // Give the PowerShell window time to open and display
-                    progress?.Report("Updater started. Application will close in 2 seconds...");
-                    await Task.Delay(2000, cancellationToken);
+                    // Give the updater time to start
+                    progress?.Report("Updater started. Application will close shortly...");
+                    await Task.Delay(1000, cancellationToken);
 
                     // Signal that we should close
                     return true;
@@ -222,189 +176,6 @@ namespace WinImagePrep.Services
                 progress?.Report($"Update failed: {ex.Message}");
                 return false;
             }
-        }
-
-        private string CreateUpdaterScript(string currentExePath, string newExePath, string docsSourcePath)
-        {
-            // Get the current process ID to wait for specifically
-            var currentProcessId = Process.GetCurrentProcess().Id;
-
-            return $@"
-# WinImagePrep Update Script
-$ErrorActionPreference = 'Continue'
-$Host.UI.RawUI.WindowTitle = 'WinImagePrep Updater'
-Write-Host 'WinImagePrep Updater' -ForegroundColor Cyan
-Write-Host '=====================' -ForegroundColor Cyan
-Write-Host ''
-
-$currentExe = '{currentExePath.Replace("'", "''")}'
-$newExe = '{newExePath.Replace("'", "''")}'
-$docsSource = '{docsSourcePath.Replace("'", "''")}'
-$targetProcessId = {currentProcessId}
-
-# Verify files exist
-if (-not (Test-Path $currentExe)) {{
-    Write-Host ""ERROR: Current EXE not found: $currentExe"" -ForegroundColor Red
-    Read-Host 'Press Enter to exit'
-    exit 1
-}}
-
-if (-not (Test-Path $newExe)) {{
-    Write-Host ""ERROR: New EXE not found: $newExe"" -ForegroundColor Red
-    Read-Host 'Press Enter to exit'
-    exit 1
-}}
-
-Write-Host ""Current EXE: $currentExe""
-Write-Host ""New EXE: $newExe""
-Write-Host ""New EXE size: $((Get-Item $newExe).Length / 1MB) MB""
-Write-Host ""Docs source: $docsSource""
-Write-Host ""Target Process ID: $targetProcessId""
-Write-Host ''
-
-# Give the app a moment to begin shutdown
-Write-Host 'Giving application time to shut down...'
-Start-Sleep -Seconds 5
-
-# Wait for specific process ID to exit
-Write-Host 'Waiting for application process to exit...'
-$timeout = 30
-$elapsed = 0
-$processStillRunning = $true
-
-while ($processStillRunning -and ($elapsed -lt $timeout)) {{
-    try {{
-        $process = Get-Process -Id $targetProcessId -ErrorAction SilentlyContinue
-        if ($null -eq $process) {{
-            $processStillRunning = $false
-            Write-Host 'Application closed successfully.' -ForegroundColor Green
-        }} else {{
-            Start-Sleep -Seconds 1
-            $elapsed++
-            if ($elapsed % 5 -eq 0) {{
-                Write-Host ""  Still waiting... ($elapsed seconds)"" -ForegroundColor Yellow
-            }}
-        }}
-    }} catch {{
-        # Process not found - it exited
-        $processStillRunning = $false
-        Write-Host 'Application closed successfully.' -ForegroundColor Green
-    }}
-}}
-
-if ($processStillRunning) {{
-    Write-Host 'Process did not exit in time. Attempting to force close...' -ForegroundColor Yellow
-    try {{
-        Stop-Process -Id $targetProcessId -Force -ErrorAction Stop
-        Start-Sleep -Seconds 2
-        Write-Host 'Process force-closed.' -ForegroundColor Green
-    }} catch {{
-        Write-Host 'Could not force-close process. It may have already exited.' -ForegroundColor Yellow
-        # Continue anyway - process might be gone
-    }}
-}}
-
-# Extra safety: ensure no WinImagePrep processes are running
-Write-Host 'Verifying no WinImagePrep processes remain...'
-$remainingProcesses = Get-Process -Name 'WinImagePrep' -ErrorAction SilentlyContinue
-if ($remainingProcesses) {{
-    Write-Host 'Found remaining WinImagePrep processes. Closing...' -ForegroundColor Yellow
-    $remainingProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
-}}
-Write-Host ''
-
-# Backup current EXE
-Write-Host 'Backing up current version...'
-$backupPath = $currentExe + '.backup'
-try {{
-    if (Test-Path $backupPath) {{
-        Remove-Item $backupPath -Force -ErrorAction Stop
-    }}
-    Copy-Item $currentExe $backupPath -Force -ErrorAction Stop
-    Write-Host 'Backup created.' -ForegroundColor Green
-}} catch {{
-    Write-Host ""Failed to create backup: $($_.Exception.Message)"" -ForegroundColor Red
-    Read-Host 'Press Enter to exit'
-    exit 1
-}}
-
-# Replace with new version
-Write-Host 'Installing update...'
-try {{
-    # Remove any existing file lock
-    [System.GC]::Collect()
-    [System.GC]::WaitForPendingFinalizers()
-
-    Copy-Item $newExe $currentExe -Force -ErrorAction Stop
-    Write-Host 'Update installed successfully!' -ForegroundColor Green
-
-    # Install documentation files if they exist
-    if (Test-Path $docsSource) {{
-        $exeDir = Split-Path $currentExe -Parent
-        $docsDir = Join-Path $exeDir 'docs'
-        if (-not (Test-Path $docsDir)) {{
-            New-Item -ItemType Directory -Path $docsDir -Force | Out-Null
-        }}
-
-        Write-Host 'Installing documentation...'
-        $installedDocs = 0
-        Get-ChildItem -Path $docsSource -File | ForEach-Object {{
-            try {{
-                $destPath = Join-Path $docsDir $_.Name
-                Copy-Item $_.FullName $destPath -Force -ErrorAction Stop
-                Write-Host ""  Installed: $($_.Name)"" -ForegroundColor Gray
-                $installedDocs++
-            }} catch {{
-                Write-Host ""  Failed to copy $($_.Name): $($_.Exception.Message)"" -ForegroundColor Yellow
-            }}
-        }}
-
-        # Also copy README and CHANGELOG to root
-        $readmePath = Join-Path $docsSource 'README.md'
-        $changelogPath = Join-Path $docsSource 'CHANGELOG.md'
-        if (Test-Path $readmePath) {{
-            Copy-Item $readmePath (Join-Path $exeDir 'README.md') -Force -ErrorAction SilentlyContinue
-            Write-Host '  Installed: README.md' -ForegroundColor Gray
-        }}
-        if (Test-Path $changelogPath) {{
-            Copy-Item $changelogPath (Join-Path $exeDir 'CHANGELOG.md') -Force -ErrorAction SilentlyContinue
-            Write-Host '  Installed: CHANGELOG.md' -ForegroundColor Gray
-        }}
-
-        Write-Host ""Installed $installedDocs documentation files"" -ForegroundColor Green
-    }} else {{
-        Write-Host 'No documentation files found to install.' -ForegroundColor Yellow
-    }}
-
-    Write-Host ''
-    Write-Host 'Starting updated application...'
-    Start-Process $currentExe -ErrorAction Stop
-    Start-Sleep -Seconds 1
-}} catch {{
-    Write-Host ""Update failed: $($_.Exception.Message)"" -ForegroundColor Red
-    Write-Host 'Restoring backup...' -ForegroundColor Yellow
-    try {{
-        Copy-Item $backupPath $currentExe -Force -ErrorAction Stop
-        Write-Host 'Backup restored.' -ForegroundColor Green
-    }} catch {{
-        Write-Host ""Failed to restore backup: $($_.Exception.Message)"" -ForegroundColor Red
-    }}
-    Read-Host 'Press Enter to exit'
-    exit 1
-}}
-
-# Cleanup
-Write-Host 'Cleaning up temporary files...'
-Start-Sleep -Seconds 1
-$tempUpdateDir = Split-Path $newExe -Parent
-Remove-Item $tempUpdateDir -Recurse -Force -ErrorAction SilentlyContinue
-
-Write-Host ''
-Write-Host 'Update complete!' -ForegroundColor Green
-Write-Host 'This window will close in 5 seconds...' -ForegroundColor Cyan
-Start-Sleep -Seconds 5
-";
         }
     }
 

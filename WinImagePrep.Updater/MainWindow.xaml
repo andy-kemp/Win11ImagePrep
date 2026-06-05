@@ -1,0 +1,48 @@
+﻿<Window x:Class="WinImagePrep.Updater.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WinImagePrep Updater" 
+        Height="250" Width="500"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" 
+                   Text="Updating WinImagePrep..." 
+                   FontSize="18" 
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"/>
+
+        <TextBlock Grid.Row="2" 
+                   x:Name="StatusText"
+                   Text="Preparing update..."
+                   FontSize="14"
+                   HorizontalAlignment="Center"/>
+
+        <ProgressBar Grid.Row="4" 
+                     x:Name="ProgressBar"
+                     Height="30"
+                     Minimum="0"
+                     Maximum="100"
+                     Value="0"/>
+
+        <Button Grid.Row="6"
+                x:Name="CloseButton"
+                Content="Close"
+                Width="100"
+                Height="30"
+                HorizontalAlignment="Center"
+                Visibility="Collapsed"
+                Click="CloseButton_Click"/>
+    </Grid>
+</Window>

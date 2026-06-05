@@ -1,5 +1,5 @@
 {
-  "version": "5.0.21",
+  "version": "5.0.22",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🔧 FIX: First-run updates now deferred until main window loads - prevents process lock issues"
+  "releaseNotes": "✨ NEW: Dedicated updater app replaces fragile PowerShell script - more reliable with visible progress"
 }
