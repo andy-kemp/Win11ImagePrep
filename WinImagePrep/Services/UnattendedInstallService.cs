@@ -228,8 +228,9 @@ namespace WinImagePrep.Services
 
             sb.AppendLine("            </OOBE>");
 
-            // User accounts - Only create local admin if NOT in Autopilot mode
-            if (!config.AutopilotMode)
+            // User accounts - Only create local admin if we're skipping OOBE (need a way to log in)
+            // If NOT skipping OOBE, let Windows setup create accounts (allows domain join, etc.)
+            if (!config.AutopilotMode && config.SkipOOBE)
             {
                 sb.AppendLine("            <UserAccounts>");
                 sb.AppendLine("                <LocalAccounts>");
@@ -251,9 +252,9 @@ namespace WinImagePrep.Services
                 sb.AppendLine("            </UserAccounts>");
             }
 
-            // Add FirstLogonCommands ONLY for non-Autopilot mode
-            // Autopilot needs a clean OOBE experience - don't interfere with registry tweaks
-            if (!config.AutopilotMode)
+            // Add FirstLogonCommands ONLY when skipping OOBE
+            // If going through normal OOBE, don't need these registry tweaks
+            if (!config.AutopilotMode && config.SkipOOBE)
             {
                 sb.AppendLine("            <FirstLogonCommands>");
 
