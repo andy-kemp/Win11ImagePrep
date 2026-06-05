@@ -1,5 +1,5 @@
 {
-  "version": "5.0.41",
+  "version": "5.0.42",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Final validation of JSON-based updater with admin elevation from v5.0.40 → v5.0.41"
+  "releaseNotes": "🧪 TEST: Updater fix using ProgramData for JSON handoff (v5.0.41 → v5.0.42)"
 }

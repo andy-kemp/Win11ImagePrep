@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.42] - 2025-01-29
+
+### Fixed
+- 🔧 **Critical updater fix**: Changed JSON handoff location from user TEMP to `C:\ProgramData`
+  - Resolved issue where elevated updater couldn't access user's temp folder
+  - Update process now works reliably with UAC elevation
+  - Fixed updater logging to maintain consistent log file path
+  - Removed broken `ContinueOnStartup` method from updater
+
+### Changed
+- 🧪 Test release for complete update validation v5.0.41 → v5.0.42
+
 ## [5.0.41] - 2025-01-29
 
 ### Changed
