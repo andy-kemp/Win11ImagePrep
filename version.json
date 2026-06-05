@@ -1,5 +1,5 @@
 {
-  "version": "5.0.35",
+  "version": "5.0.36",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🔧 FIX: Added aggressive no-cache headers (Cache-Control, Pragma) to version check requests"
+  "releaseNotes": "🔧 FIX: Better updater error handling - shows clear UAC prompts and detailed logging for silent exit issues"
 }

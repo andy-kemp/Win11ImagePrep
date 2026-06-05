@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using WinImagePrep.Helpers;
 
 namespace WinImagePrep.Services
@@ -219,7 +220,13 @@ namespace WinImagePrep.Services
                     if (process == null)
                     {
                         progress?.Report("Failed to start updater. Please try again.");
-                        Logger.Error("Process.Start returned null");
+                        Logger.Error("Process.Start returned null - likely UAC was declined");
+                        MessageBox.Show(
+                            "Administrator privileges are required to update WinImagePrep.\n\n" +
+                            "Please click 'Yes' on the User Account Control prompt.",
+                            "Admin Rights Required",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
                         return false;
                     }
 
@@ -231,10 +238,28 @@ namespace WinImagePrep.Services
                     // Signal that we should close
                     return true;
                 }
+                catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+                {
+                    // ERROR_CANCELLED - user clicked "No" on UAC prompt
+                    progress?.Report("Update cancelled - admin rights required");
+                    Logger.Warning("User declined UAC prompt");
+                    MessageBox.Show(
+                        "Administrator privileges are required to update WinImagePrep.\n\n" +
+                        "The update has been cancelled.",
+                        "Update Cancelled",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return false;
+                }
                 catch (Exception ex)
                 {
                     progress?.Report($"Failed to launch updater: {ex.Message}");
                     Logger.Error($"Failed to launch updater: {ex.Message}");
+                    MessageBox.Show(
+                        $"Failed to launch updater:\n\n{ex.Message}",
+                        "Update Failed",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
                     return false;
                 }
             }

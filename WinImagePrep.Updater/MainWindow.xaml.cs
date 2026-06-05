@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
@@ -12,9 +13,9 @@ namespace WinImagePrep.Updater;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly string _targetExePath;
-    private readonly string _downloadUrl;
-    private readonly string _targetProcessName;
+    private readonly string _targetExePath = string.Empty;
+    private readonly string _downloadUrl = string.Empty;
+    private readonly string _targetProcessName = string.Empty;
     private readonly int _targetProcessId;
     private bool _updateSuccessful = false;
 
@@ -37,18 +38,23 @@ public partial class MainWindow : Window
         // Parse command line args: updater.exe <targetExePath> <downloadUrl> <processName> <processId>
         var args = Environment.GetCommandLineArgs();
         App.Log($"Command line args count: {args.Length}");
-
-        App.Log($"Command line args count: {args.Length}");
+        for (int i = 0; i < args.Length; i++)
+        {
+            App.Log($"  args[{i}] = '{args[i]}'");
+        }
 
         if (args.Length < 5)
         {
-            App.Log($"ERROR: Invalid arguments. Args: {string.Join(", ", args)}");
-            MessageBox.Show(
-                "Invalid arguments. Usage: updater.exe <targetExePath> <downloadUrl> <processName> <processId>",
-                "Updater Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-            Application.Current.Shutdown(1);
+            App.Log($"ERROR: Invalid arguments. Expected 5, got {args.Length}");
+            var errorMsg = $"Invalid arguments.\n\nExpected: updater.exe <targetExePath> <downloadUrl> <processName> <processId>\n\n" +
+                          $"Received {args.Length} arguments:\n" + string.Join("\n", args.Select((a, i) => $"[{i}] {a}"));
+
+            App.Log($"Showing error dialog: {errorMsg}");
+            MessageBox.Show(errorMsg, "Updater Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+            // Keep window open to see the error
+            StatusText.Text = "Invalid command-line arguments. See logs in %TEMP%\\WinImagePrep_Updater_*.log";
+            CloseButton.Visibility = Visibility.Visible;
             return;
         }
 
