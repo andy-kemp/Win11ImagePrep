@@ -1,5 +1,5 @@
 {
-  "version": "5.0.33",
+  "version": "5.0.34",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🔧 FIX: Updater now explicitly requests admin elevation to ensure it can replace files"
+  "releaseNotes": "🧪 TEST: Version bump to validate complete update flow with admin elevation"
 }

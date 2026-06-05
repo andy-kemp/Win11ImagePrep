@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.34] - 2025-01-29
+
+### Changed
+- 🧪 TEST: Version bump to validate complete update flow with admin elevation
+
 ## [5.0.33] - 2025-01-29
 
 ### Fixed
