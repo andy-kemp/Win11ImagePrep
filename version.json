@@ -1,5 +1,6 @@
 {
-  "version": "5.0.42",
+  "version": "5.0.43",
+  "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Updater fix using ProgramData for JSON handoff (v5.0.41 → v5.0.42)"
+  "releaseNotes": "✅ Update fixes: First-run updates now work, app restarts properly after update, updater only downloads if newer version available"
 }

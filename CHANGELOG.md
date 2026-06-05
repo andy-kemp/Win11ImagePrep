@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.43] - 2025-01-29
+
+### Fixed
+- ✅ **First-run update now works**: Fixed first-run window to download and apply updates immediately
+  - Previously deferred update to main window which didn't trigger properly
+  - Now downloads and applies update right from the welcome screen
+  - Application properly shuts down after update initiated
+- ✅ **App restarts after update**: Fixed batch script that restarts main application
+  - Changed from direct batch execution to `cmd.exe /c` for reliable execution
+  - Increased timeout to 3 seconds for safer file replacement
+  - Added explicit `exit` command for proper cleanup
+- ✅ **Smart updater downloads**: Updater only downloads when newer version available
+  - Checks local updater version using `FileVersionInfo`
+  - Compares against remote updater version from `version.json`
+  - Skips 68MB download if updater is already current
+  - Added `updaterVersion` field to `version.json` for version tracking
+
+### Technical
+- Improved batch script reliability using cmd.exe wrapper
+- Enhanced version checking with local file version inspection
+- Fixed first-run shutdown flow to work correctly with updater handoff
+
 ## [5.0.42] - 2025-01-29
 
 ### Fixed

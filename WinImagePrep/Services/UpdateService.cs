@@ -114,7 +114,7 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
-        /// Download and apply the update by first downloading the latest updater, then launching it
+        /// Download and apply the update by first downloading the latest updater (if needed), then launching it
         /// </summary>
         public async Task<bool> DownloadAndApplyUpdateAsync(IProgress<string>? progress = null, CancellationToken cancellationToken = default)
         {
@@ -140,55 +140,125 @@ namespace WinImagePrep.Services
                     return false;
                 }
 
-                // Step 1: Download the latest updater from GitHub
                 var updaterPath = Path.Combine(exeDirectory, "WinImagePrep.Updater.exe");
-                progress?.Report("Downloading latest updater...");
-                Logger.Info($"Downloading updater from: {UpdaterDownloadUrl}");
-                Logger.Info($"Updater destination: {updaterPath}");
 
-                try
-                {
-                    var response = await _httpClient.GetAsync(UpdaterDownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                    response.EnsureSuccessStatusCode();
+                // Step 1: Check if we need to download the updater
+                bool needsUpdaterDownload = false;
 
-                    var totalBytes = response.Content.Headers.ContentLength ?? 0;
-                    var totalMB = totalBytes / (1024.0 * 1024.0);
-
-                    await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                    await using var fileStream = new FileStream(updaterPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-
-                    var buffer = new byte[8192];
-                    long totalRead = 0;
-                    int bytesRead;
-
-                    while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
-                    {
-                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
-                        totalRead += bytesRead;
-
-                        if (totalBytes > 0)
-                        {
-                            var readMB = totalRead / (1024.0 * 1024.0);
-                            var percent = (int)((totalRead * 100) / totalBytes);
-                            progress?.Report($"Downloading updater: {readMB:F1} MB / {totalMB:F1} MB ({percent}%)");
-                        }
-                    }
-
-                    Logger.Info($"Updater downloaded successfully ({totalRead} bytes)");
-                    progress?.Report("Updater downloaded successfully");
-                }
-                catch (Exception ex)
-                {
-                    progress?.Report($"Failed to download updater: {ex.Message}");
-                    Logger.Error($"Failed to download updater: {ex.Message}");
-                    return false;
-                }
-
-                // Step 2: Verify the updater was downloaded
                 if (!File.Exists(updaterPath))
                 {
-                    progress?.Report("Error: Updater download failed");
-                    Logger.Error("Updater file does not exist after download");
+                    progress?.Report("Updater not found, will download...");
+                    Logger.Info("Updater does not exist locally");
+                    needsUpdaterDownload = true;
+                }
+                else
+                {
+                    // Check updater version
+                    try
+                    {
+                        var localUpdaterVersion = FileVersionInfo.GetVersionInfo(updaterPath);
+                        var localVersion = new Version(localUpdaterVersion.FileMajorPart, 
+                                                      localUpdaterVersion.FileMinorPart, 
+                                                      localUpdaterVersion.FileBuildPart);
+
+                        Logger.Info($"Local updater version: {localVersion}");
+
+                        // Fetch remote version info
+                        var versionCheckUrlWithCacheBust = $"{VersionCheckUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+                        var request = new HttpRequestMessage(HttpMethod.Get, versionCheckUrlWithCacheBust);
+                        request.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue
+                        {
+                            NoCache = true,
+                            NoStore = true,
+                            MaxAge = TimeSpan.Zero
+                        };
+
+                        var response = await _httpClient.SendAsync(request, cancellationToken);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var json = await response.Content.ReadAsStringAsync();
+                            var versionInfo = JsonSerializer.Deserialize<VersionInfo>(json, new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                            if (!string.IsNullOrEmpty(versionInfo?.UpdaterVersion))
+                            {
+                                var remoteUpdaterVersion = Version.Parse(versionInfo.UpdaterVersion);
+                                Logger.Info($"Remote updater version: {remoteUpdaterVersion}");
+
+                                if (remoteUpdaterVersion > localVersion)
+                                {
+                                    progress?.Report($"Newer updater available: v{remoteUpdaterVersion}");
+                                    Logger.Info($"Remote updater is newer ({remoteUpdaterVersion} > {localVersion})");
+                                    needsUpdaterDownload = true;
+                                }
+                                else
+                                {
+                                    progress?.Report("Updater is up to date");
+                                    Logger.Info("Local updater is current");
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warning($"Could not check updater version, will re-download: {ex.Message}");
+                        needsUpdaterDownload = true;
+                    }
+                }
+
+                // Step 2: Download the updater if needed
+                if (needsUpdaterDownload)
+                {
+                    progress?.Report("Downloading latest updater...");
+                    Logger.Info($"Downloading updater from: {UpdaterDownloadUrl}");
+                    Logger.Info($"Updater destination: {updaterPath}");
+
+                    try
+                    {
+                        var response = await _httpClient.GetAsync(UpdaterDownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                        response.EnsureSuccessStatusCode();
+
+                        var totalBytes = response.Content.Headers.ContentLength ?? 0;
+                        var totalMB = totalBytes / (1024.0 * 1024.0);
+
+                        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                        await using var fileStream = new FileStream(updaterPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+
+                        var buffer = new byte[8192];
+                        long totalRead = 0;
+                        int bytesRead;
+
+                        while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
+                        {
+                            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                            totalRead += bytesRead;
+
+                            if (totalBytes > 0)
+                            {
+                                var readMB = totalRead / (1024.0 * 1024.0);
+                                var percent = (int)((totalRead * 100) / totalBytes);
+                                progress?.Report($"Downloading updater: {readMB:F1} MB / {totalMB:F1} MB ({percent}%)");
+                            }
+                        }
+
+                        Logger.Info($"Updater downloaded successfully ({totalRead} bytes)");
+                        progress?.Report("Updater downloaded successfully");
+                    }
+                    catch (Exception ex)
+                    {
+                        progress?.Report($"Failed to download updater: {ex.Message}");
+                        Logger.Error($"Failed to download updater: {ex.Message}");
+                        return false;
+                    }
+                }
+
+                // Step 3: Verify the updater exists
+                if (!File.Exists(updaterPath))
+                {
+                    progress?.Report("Error: Updater not available");
+                    Logger.Error("Updater file does not exist");
                     return false;
                 }
 
@@ -197,7 +267,7 @@ namespace WinImagePrep.Services
                 var currentProcessId = currentProcess.Id;
                 var currentProcessName = currentProcess.ProcessName;
 
-                // Step 3: Write update info to a file (arguments can get mangled through UAC)
+                // Step 4: Write update info to a file (arguments can get mangled through UAC)
                 // Use ProgramData which is accessible to both user and elevated processes
                 var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
                 var updateInfoPath = Path.Combine(programData, "WinImagePrep_UpdateInfo.json");
@@ -211,7 +281,7 @@ namespace WinImagePrep.Services
                 File.WriteAllText(updateInfoPath, JsonSerializer.Serialize(updateInfo));
                 Logger.Info($"Wrote update info to: {updateInfoPath}");
 
-                // Step 4: Launch the updater WITHOUT arguments (they get lost through UAC)
+                // Step 5: Launch the updater WITHOUT arguments (they get lost through UAC)
                 // The updater will look for the JSON in the fixed ProgramData location
                 progress?.Report("Launching updater...");
                 Logger.Info($"Starting updater: {updaterPath}");
@@ -264,6 +334,7 @@ namespace WinImagePrep.Services
     internal class VersionInfo
     {
         public string? Version { get; set; }
+        public string? UpdaterVersion { get; set; }
         public string? ReleaseDate { get; set; }
         public string? ReleaseNotes { get; set; }
     }

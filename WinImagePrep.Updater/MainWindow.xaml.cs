@@ -183,12 +183,12 @@ public partial class MainWindow : Window
             // Create a batch script to replace the updater after we exit
             var batchScript = Path.Combine(Path.GetTempPath(), $"UpdaterSelfUpdate_{Guid.NewGuid()}.bat");
             var batchContent = $@"@echo off
-timeout /t 2 /nobreak >nul
-echo Replacing updater...
+timeout /t 3 /nobreak >nul
 copy /Y ""{tempUpdaterExe}"" ""{updaterPath}""
-del ""{tempUpdaterExe}""
-del ""{batchScript}""
+if exist ""{tempUpdaterExe}"" del ""{tempUpdaterExe}""
+if exist ""{batchScript}"" del ""{batchScript}""
 start """" ""{_targetExePath}""
+exit
 ";
             File.WriteAllText(batchScript, batchContent);
             App.Log($"Created self-update batch script: {batchScript}");
@@ -197,8 +197,9 @@ start """" ""{_targetExePath}""
             App.Log("Launching self-update script");
             Process.Start(new ProcessStartInfo
             {
-                FileName = batchScript,
-                UseShellExecute = true,
+                FileName = "cmd.exe",
+                Arguments = $"/c \"{batchScript}\"",
+                UseShellExecute = false,
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden
             });

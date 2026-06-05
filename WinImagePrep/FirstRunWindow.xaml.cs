@@ -89,20 +89,41 @@ namespace WinImagePrep
                             $"Current version: {currentVersion}\n" +
                             $"Latest version: {latestVersionStr}\n\n" +
                             $"Would you like to update now?\n\n" +
-                            $"The app will load, download the update in the background,\n" +
-                            $"then automatically apply it when ready.",
+                            $"The update will download and install automatically.\n" +
+                            $"Estimated time: ~1 minute (depending on download speed)",
                             "Update Available",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Information);
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            Logger.Info("User accepted update - will download after main window loads");
+                            Logger.Info("User accepted update - starting download immediately");
 
-                            // Store the pending update info so MainWindow can pick it up
-                            var pendingSettings = _settingsService.CurrentSettings.Clone();
-                            pendingSettings.PendingUpdateVersion = latestVersionStr;
-                            await _settingsService.SaveSettingsAsync(pendingSettings);
+                            // Download and apply the update immediately
+                            var success = await updateService.DownloadAndApplyUpdateAsync(
+                                new Progress<string>(msg => Logger.Info($"Update progress: {msg}")));
+
+                            if (success)
+                            {
+                                Logger.Info("Update downloaded successfully - application will close for update");
+
+                                // Close this window
+                                UserAccepted = false; // Don't continue to main app
+                                Close();
+
+                                // Shutdown the application to let updater take over
+                                System.Windows.Application.Current.Shutdown();
+                                return;
+                            }
+                            else
+                            {
+                                Logger.Warning("Update failed - continuing to main application");
+                                MessageBox.Show(
+                                    "Update failed. You can check for updates later from the Tools menu.",
+                                    "Update Failed",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                            }
                         }
                         else
                         {
