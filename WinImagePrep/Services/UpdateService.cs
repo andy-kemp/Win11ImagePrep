@@ -194,11 +194,13 @@ namespace WinImagePrep.Services
                     FileName = updaterPath,
                     Arguments = $"\"{currentExePath}\" \"{ExeDownloadUrl}\" \"{currentProcessName}\" {currentProcessId}",
                     UseShellExecute = true,
+                    Verb = "runas", // Request admin elevation
                     WorkingDirectory = exeDirectory
                 };
 
                 Logger.Info($"Arguments: {startInfo.Arguments}");
                 Logger.Info($"Working directory: {exeDirectory}");
+                Logger.Info("Requesting admin elevation for updater");
 
                 try
                 {

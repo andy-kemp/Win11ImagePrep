@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.33] - 2025-01-29
+
+### Fixed
+- 🔧 Updater now explicitly requests admin elevation (Verb = "runas") to ensure it can replace EXE files
+- 🔧 Fixes issue where updater would download but not run when main app was running as admin
+
 ## [5.0.32] - 2025-01-29
 
 ### Changed

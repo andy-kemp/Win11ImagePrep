@@ -1,5 +1,5 @@
 {
-  "version": "5.0.32",
+  "version": "5.0.33",
   "releaseDate": "2025-01-29",
-  "releaseNotes": "🧪 TEST: Version bump to validate auto-download updater functionality"
+  "releaseNotes": "🔧 FIX: Updater now explicitly requests admin elevation to ensure it can replace files"
 }
