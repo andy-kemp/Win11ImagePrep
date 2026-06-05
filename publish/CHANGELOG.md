@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.39] - 2025-01-29
+
+### Fixed
+- 🔧 **Major updater architecture change**:
+  - Arguments now passed via JSON file instead of command-line
+  - Fixes UAC elevation argument mangling/loss
+  - Updater reads from `%TEMP%\WinImagePrep_UpdateInfo.json`
+  - Simpler, more reliable argument passing through admin elevation
+- 🔧 Updater version bumped to 1.6.0
+
+## [5.0.38] - 2025-01-29
+
+### Fixed
+- 🔧 Added deep crash diagnostics to updater:
+  - Static constructor logging (runs before anything)
+  - Custom Main() method with full exception handling
+  - Logs to WinImagePrep_Updater_MAIN.log and WinImagePrep_Updater_CRASH.log
+  - Captures crashes at every initialization stage
+- 🔧 Updater version bumped to 1.5.0
+
 ## [5.0.37] - 2025-01-29
 
 ### Changed
