@@ -92,16 +92,16 @@ namespace WinImagePrep
             ComputerNamePanel.Visibility = isAutopilot ? Visibility.Collapsed : Visibility.Visible;
             SetupExperiencePanel.Visibility = isAutopilot ? Visibility.Collapsed : Visibility.Visible;
 
-            // Hide disk configuration in Autopilot mode (manual partition deletion required)
+            // Show disk configuration (needed for both Autopilot and standard)
             if (DiskConfigPanel != null)
             {
-                DiskConfigPanel.Visibility = isAutopilot ? Visibility.Collapsed : Visibility.Visible;
+                DiskConfigPanel.Visibility = Visibility.Visible;
             }
 
             // Force sensible defaults for Autopilot
             if (isAutopilot)
             {
-                AutoPartitionCheckBox.IsChecked = false; // No auto-partition in Autopilot mode
+                AutoPartitionCheckBox.IsChecked = true; // Auto-partition enabled for Autopilot (zero-touch)
                 HideEULACheckBox.IsChecked = true;
                 HideWirelessCheckBox.IsChecked = false;
                 SkipOOBECheckBox.IsChecked = false;
@@ -198,22 +198,6 @@ namespace WinImagePrep
                     {
                         return;
                     }
-                }
-                else if (isAutopilot)
-                {
-                    // Info for Autopilot mode
-                    MessageBox.Show(
-                        "📋 Autopilot Mode - Manual Partition Deletion Required\n\n" +
-                        "During Windows installation, you will need to:\n\n" +
-                        "1. Boot from this USB drive\n" +
-                        "2. Select language and proceed\n" +
-                        "3. At the disk selection screen, manually DELETE all existing partitions\n" +
-                        "4. Windows will create fresh partitions automatically\n" +
-                        "5. Complete Autopilot enrollment after installation\n\n" +
-                        "The autounattend.xml will handle EULA acceptance and language settings only.",
-                        "Autopilot Information",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
                 }
 
                 DialogResult = true;

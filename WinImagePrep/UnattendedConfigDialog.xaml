@@ -37,10 +37,10 @@
                                   Checked="AutopilotMode_Changed" Unchecked="AutopilotMode_Changed"/>
                         <TextBlock TextWrapping="Wrap" Foreground="#1976D2" FontSize="12">
                             <Run Text="✓ Auto-accepts license agreement"/><LineBreak/>
+                            <Run Text="✓ Auto-wipes and partitions disk"/><LineBreak/>
                             <Run Text="✓ Preserves OOBE for Autopilot enrollment"/><LineBreak/>
                             <Run Text="✓ Company branding will appear during setup"/><LineBreak/>
-                            <Run Text="✓ Azure AD user accounts only (no local admin)"/><LineBreak/>
-                            <Run Text="⚠️ Manually delete disk partitions before install" FontWeight="SemiBold" Foreground="#E65100"/>
+                            <Run Text="✓ Azure AD user accounts only (no local admin)"/>
                         </TextBlock>
                     </StackPanel>
                 </Border>
