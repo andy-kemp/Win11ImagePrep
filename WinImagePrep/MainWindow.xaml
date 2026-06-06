@@ -72,7 +72,7 @@
         </Menu>
 
         <!-- Main Content -->
-        <Grid Margin="15" DockPanel.Dock="Top">
+        <Grid Margin="15" DockPanel.Dock="Top" VerticalAlignment="Top">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <!-- Title -->
