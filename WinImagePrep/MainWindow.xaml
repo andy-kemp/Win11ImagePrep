@@ -96,8 +96,8 @@
             <!-- Overall Progress -->
             <RowDefinition Height="Auto"/>
             <!-- Current Operation Progress -->
-            <RowDefinition Height="*"/>
-            <!-- Operation Log - grows to fill remaining space when expanded -->
+            <RowDefinition Height="Auto"/>
+            <!-- Operation Log - collapses when not expanded -->
         </Grid.RowDefinitions>
 
         <!-- Title -->
