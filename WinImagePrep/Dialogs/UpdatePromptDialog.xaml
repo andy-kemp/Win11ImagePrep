@@ -8,52 +8,6 @@
         ResizeMode="NoResize"
         Background="White"
         ShowInTaskbar="False">
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Icon and Title -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
-            <TextBlock Text="🔄" FontSize="32" Margin="0,0,15,0" VerticalAlignment="Center"/>
-            <TextBlock Text="Update Available" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
-        </StackPanel>
-
-        <!-- Message Content -->
-        <Border Grid.Row="1" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="1" 
-                CornerRadius="5" Padding="15" Margin="0,0,0,15">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <TextBlock x:Name="MessageText" TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
-            </ScrollViewer>
-        </Border>
-
-        <!-- Don't Ask Again Checkbox -->
-        <CheckBox x:Name="DontAskAgainCheckBox" Grid.Row="2" 
-                  Content="Don't check for updates automatically on startup"
-                  Margin="0,0,0,15"
-                  VerticalAlignment="Center"
-                  FontSize="12"/>
-
-        <!-- Buttons -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Update Now" 
-                    Width="100" 
-                    Height="32"
-                    Margin="0,0,10,0"
-                    IsDefault="True"
-                    Click="UpdateNow_Click"
-                    Style="{StaticResource PrimaryButtonStyle}"/>
-            <Button Content="Later" 
-                    Width="100" 
-                    Height="32"
-                    IsCancel="True"
-                    Click="Later_Click"
-                    Style="{StaticResource SecondaryButtonStyle}"/>
-        </StackPanel>
-    </Grid>
 
     <Window.Resources>
         <!-- Primary Button Style -->
@@ -108,4 +62,51 @@
             </Style.Triggers>
         </Style>
     </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Icon and Title -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+            <TextBlock Text="🔄" FontSize="32" Margin="0,0,15,0" VerticalAlignment="Center"/>
+            <TextBlock Text="Update Available" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Message Content -->
+        <Border Grid.Row="1" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="1" 
+                CornerRadius="5" Padding="15" Margin="0,0,0,15">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="MessageText" TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Don't Ask Again Checkbox -->
+        <CheckBox x:Name="DontAskAgainCheckBox" Grid.Row="2" 
+                  Content="Don't check for updates automatically on startup"
+                  Margin="0,0,0,15"
+                  VerticalAlignment="Center"
+                  FontSize="12"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Update Now" 
+                    Width="100" 
+                    Height="32"
+                    Margin="0,0,10,0"
+                    IsDefault="True"
+                    Click="UpdateNow_Click"
+                    Style="{StaticResource PrimaryButtonStyle}"/>
+            <Button Content="Later" 
+                    Width="100" 
+                    Height="32"
+                    IsCancel="True"
+                    Click="Later_Click"
+                    Style="{StaticResource SecondaryButtonStyle}"/>
+        </StackPanel>
+    </Grid>
 </Window>
