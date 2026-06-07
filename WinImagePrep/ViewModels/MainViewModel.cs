@@ -2698,8 +2698,10 @@ namespace WinImagePrep.ViewModels
                 // Mark first-run check as complete if this was the first run
                 if (isFirstRun)
                 {
-                    settings.FirstRunUpdateCheckComplete = true;
-                    await _settingsService.SaveSettingsAsync(settings);
+                    // Clone settings to avoid modifying the shared reference
+                    var updatedSettings = settings.Clone();
+                    updatedSettings.FirstRunUpdateCheckComplete = true;
+                    await _settingsService.SaveSettingsAsync(updatedSettings);
                 }
 
                 if (updateAvailable && latestVersion != null)
