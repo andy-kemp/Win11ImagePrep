@@ -1,6 +1,6 @@
 {
-  "version": "5.3.2",
+  "version": "5.3.5",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "🔧 Fixed: Update prompt dialog StaticResourceExtension error (moved Window.Resources before Grid content)"
+  "releaseNotes": "🎨 Fixed: Window height increased to 950px and replaced emoji icons with proper WPF gear icons for consistent professional appearance"
 }
