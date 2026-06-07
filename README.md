@@ -2,7 +2,7 @@
 
 A professional WPF application for preparing Windows 11 installation images with injected drivers, dynamic app discovery and removal, unattended and Autopilot-friendly installation, and creating bootable USB drives (UEFI-compatible, FAT32, 14GB+). This tool is especially useful for creating custom Windows 11 USB installers with integrated drivers from MSI packages and streamlined Windows app configurations, specifically designed for Microsoft Surface devices and other hardware requiring driver slipstreaming.
 
-![Version](https://img.shields.io/badge/version-5.0.44-blue.svg)
+![Version](https://img.shields.io/badge/version-5.4.4-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Proprietary-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue.svg)
@@ -33,7 +33,30 @@ A professional WPF application for preparing Windows 11 installation images with
 
 ## ✨ Features
 
-### Version 5.0.5 (Latest) - June 2026
+### Version 5.4.4 (Latest) - January 2026
+- 🔧 **CRITICAL UPDATE FIX: Automatic Updates Now Work Correctly**
+  - Fixed "Update Now" button that was showing "Update postponed" instead
+  - Resolved async dispatcher bug that prevented updates from applying
+  - Update dialog now properly waits for user response before continuing
+- 📏 **Update Dialog Improvements**
+  - Increased dialog height to show full update message
+  - Version numbers (current and latest) now clearly visible
+  - Complete update instructions displayed without truncation
+- 🔗 **Reliable Update Downloads**
+  - Fixed 404 errors by changing from GitHub Releases to raw content URLs
+  - All versions can now successfully download and apply updates
+  - Created GitHub releases for backward compatibility
+- 📝 **Better Update Notifications**
+  - Removed confusing "Welcome to WinImagePrep!" startup text
+  - Clear version information in update prompts
+  - Professional and informative update dialogs
+
+### Version 5.0.44 - January 2026
+- 🔧 **App restart after update now works**: Fixed batch script execution
+  - Changed to `UseShellExecute = true` for proper batch script execution
+  - Application properly restarts after updater completes
+
+### Version 5.0.5 - June 2026
 - 🚀 **NEW: Autopilot Mode**
   - Dedicated "This device is enrolled in Autopilot" option
   - Preserves Windows Autopilot OOBE experience and company branding

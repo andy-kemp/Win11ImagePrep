@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.4.4] - 2026-01-25
+
+### Fixed
+- 🔧 **Update dialog now shows full message**: Increased dialog height from 280px to 350px
+  - Version numbers (current and latest) now fully visible
+  - Complete update instructions displayed
+  - Better user experience with clear information
+
+### Technical
+- Dialog height increased to accommodate full multi-line update message
+- ScrollViewer properly displays all content without truncation
+
+## [5.4.3] - 2026-01-25
+
+### Added
+- 🔍 **Debug logging for update flow**: Added detailed operation log messages
+  - "📋 Showing update dialog..." message
+  - "🔄 Waiting for user response..." message
+  - "✓ Dialog result" message with UpdateNow/DialogResult values
+  - "📋 Dialog complete" message with final updateNow/dontAskAgain values
+  - Helps diagnose update dialog behavior issues
+
+### Technical
+- Enhanced logging throughout update prompt workflow
+- Better visibility into update dialog state transitions
+
+## [5.4.2] - 2026-01-25
+
+### Fixed
+- 🔧 **CRITICAL: Update Now button now actually updates**: Fixed async dispatcher bug
+  - Changed from `InvokeAsync(async () =>)` to `Invoke(() =>)`
+  - Removed unnecessary `await Task.Delay(500)` inside dialog invocation
+  - Code now properly waits for user to click button before continuing
+  - Previously, code continued immediately and `updateNow` remained false
+  - "Update postponed" message no longer appears when clicking "Update Now"
+
+### Technical
+- Synchronous `Dispatcher.Invoke` ensures dialog completion before proceeding
+- Lambda no longer async, preventing race condition
+- User choice properly captured before update logic executes
+
+## [5.4.1] - 2026-01-25
+
+### Changed
+- 🧪 Test release to verify automatic updates work correctly from both old and new installations
+  - Validates update URL changes from v5.4.0
+  - Confirms GitHub raw content downloads work
+  - Tests backward compatibility with older versions
+
+## [5.4.0] - 2026-01-25
+
+### Fixed
+- 🔧 **CRITICAL: Update download URLs fixed**: Changed from GitHub Releases to raw GitHub content
+  - Old URL: `https://github.com/andy-kemp/Win11ImagePrep/releases/latest/download/WinImagePrep.exe`
+  - New URL: `https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/WinImagePrep.exe`
+  - Old URL: `https://github.com/andy-kemp/Win11ImagePrep/releases/latest/download/WinImagePrep.Updater.exe`
+  - New URL: `https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/WinImagePrep.Updater.exe`
+  - Eliminates 404 errors from missing GitHub releases
+  - All versions can now download updates successfully
+
+### Added
+- 📦 **GitHub Release v5.4.0 created**: Provides backward compatibility for older installations
+  - Contains `WinImagePrep.exe` and `WinImagePrep.Updater.exe`
+  - Allows versions still using old URLs to find update files
+  - Bridge for smooth transition to new download mechanism
+
+### Changed
+- 📝 **Startup update message improved**: Removed confusing "Welcome to WinImagePrep!" text
+  - Now clearly shows: "A new version of WinImagePrep is available!"
+  - Displays current version: "Current version: v5.X.X"
+  - Displays latest version: "Latest version: v5.X.X"
+  - More professional and informative update notification
+
+### Technical
+- UpdateService URLs point to raw GitHub content instead of release artifacts
+- Version check URL unchanged: `https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/version.json`
+- Hybrid approach: new versions use raw files, old versions can still use release
+
 ## [5.0.44] - 2025-01-29
 
 ### Fixed
