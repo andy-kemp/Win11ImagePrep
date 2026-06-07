@@ -2734,16 +2734,13 @@ namespace WinImagePrep.ViewModels
 
                     try
                     {
-                        await Application.Current.Dispatcher.InvokeAsync(async () =>
+                        Application.Current.Dispatcher.Invoke(() =>
                         {
                             try
                             {
-                                // Small delay to ensure window is fully rendered
-                                await Task.Delay(500);
-
                                 string message = $"A new version of WinImagePrep is available!\n\n" +
-                                    $"Current version: {currentVersionStr}\n" +
-                                    $"Latest version: {latestVersionStr}\n\n" +
+                                    $"Current version: v{currentVersionStr}\n" +
+                                    $"Latest version: v{latestVersionStr}\n\n" +
                                     $"Would you like to download and install the update now?\n\n" +
                                     $"The application will close, download the update, and restart automatically.\n" +
                                     $"Estimated time: ~1 minute (depending on download speed)";
