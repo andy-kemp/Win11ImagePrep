@@ -37,11 +37,17 @@
                                   Checked="AutopilotMode_Changed" Unchecked="AutopilotMode_Changed"/>
                         <TextBlock TextWrapping="Wrap" Foreground="#1976D2" FontSize="12">
                             <Run Text="✓ Auto-accepts license agreement"/><LineBreak/>
-                            <Run Text="✓ Auto-wipes and partitions disk"/><LineBreak/>
+                            <Run Text="✓ Auto-wipes and partitions disk (including BitLocker encrypted)"/><LineBreak/>
                             <Run Text="✓ Preserves OOBE for Autopilot enrollment"/><LineBreak/>
                             <Run Text="✓ Company branding will appear during setup"/><LineBreak/>
                             <Run Text="✓ Azure AD user accounts only (no local admin)"/>
                         </TextBlock>
+                        <Border Background="#FFF9C4" BorderBrush="#FBC02D" BorderThickness="1" Padding="8" Margin="0,10,0,0">
+                            <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#F57C00">
+                                <Run Text="ℹ️ Encrypted Disks:" FontWeight="Bold"/><LineBreak/>
+                                <Run Text="If the target disk is BitLocker encrypted, the autounattend.xml will automatically clean it using diskpart before Windows Setup runs. This ensures a truly zero-touch deployment."/>
+                            </TextBlock>
+                        </Border>
                     </StackPanel>
                 </Border>
 

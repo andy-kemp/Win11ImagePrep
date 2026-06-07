@@ -1,6 +1,6 @@
 {
-  "version": "5.1.4",
+  "version": "5.1.5",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "✅ Fixed startup update check + added 'Don't ask again' option + improved update logging"
+  "releaseNotes": "✅ Fixed Autopilot EULA + disk prompts - now handles BitLocker encrypted disks automatically with pre-setup diskpart cleaning"
 }

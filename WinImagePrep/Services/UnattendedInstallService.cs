@@ -72,6 +72,12 @@ namespace WinImagePrep.Services
             sb.AppendLine($"                <AcceptEula>{config.HideEULA.ToString().ToLower()}</AcceptEula>");
             sb.AppendLine("                <FullName>User</FullName>");
             sb.AppendLine("                <Organization></Organization>");
+
+            // Add product key section even if empty - helps skip some EULA prompts
+            sb.AppendLine("                <ProductKey>");
+            sb.AppendLine("                    <WillShowUI>Never</WillShowUI>");
+            sb.AppendLine("                </ProductKey>");
+
             sb.AppendLine("            </UserData>");
 
             // Disk configuration - Auto-partition when enabled (includes Autopilot mode)
@@ -79,6 +85,34 @@ namespace WinImagePrep.Services
             // For standard: Only if user enables auto-partition
             if (config.AutoPartitionDisk)
             {
+                // Add RunSynchronous commands to clean the disk BEFORE Setup tries to partition
+                // This is necessary for encrypted disks (BitLocker) that Setup cannot auto-wipe
+                sb.AppendLine("            <RunSynchronous>");
+
+                // Create diskpart script to clean the disk
+                sb.AppendLine("                <RunSynchronousCommand wcm:action=\"add\">");
+                sb.AppendLine("                    <Order>1</Order>");
+                sb.AppendLine("                    <Path>cmd /c \"echo select disk " + config.TargetDiskId + " > X:\\diskpart.txt\"</Path>");
+                sb.AppendLine("                </RunSynchronousCommand>");
+
+                sb.AppendLine("                <RunSynchronousCommand wcm:action=\"add\">");
+                sb.AppendLine("                    <Order>2</Order>");
+                sb.AppendLine("                    <Path>cmd /c \"echo clean >> X:\\diskpart.txt\"</Path>");
+                sb.AppendLine("                </RunSynchronousCommand>");
+
+                sb.AppendLine("                <RunSynchronousCommand wcm:action=\"add\">");
+                sb.AppendLine("                    <Order>3</Order>");
+                sb.AppendLine("                    <Path>cmd /c \"echo convert gpt >> X:\\diskpart.txt\"</Path>");
+                sb.AppendLine("                </RunSynchronousCommand>");
+
+                // Execute the diskpart script
+                sb.AppendLine("                <RunSynchronousCommand wcm:action=\"add\">");
+                sb.AppendLine("                    <Order>4</Order>");
+                sb.AppendLine("                    <Path>diskpart /s X:\\diskpart.txt</Path>");
+                sb.AppendLine("                </RunSynchronousCommand>");
+
+                sb.AppendLine("            </RunSynchronous>");
+
                 sb.AppendLine("            <DiskConfiguration>");
                 sb.AppendLine("                <Disk wcm:action=\"add\">");
                 sb.AppendLine($"                    <DiskID>{config.TargetDiskId}</DiskID>");
@@ -193,6 +227,12 @@ namespace WinImagePrep.Services
             // Always hide EULA page if configured - this doesn't interfere with Autopilot enrollment
             // EULA acceptance happens during windowsPE, Autopilot enrollment happens after OOBE
             sb.AppendLine($"                <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
+
+            // Additional settings to ensure EULA is fully hidden
+            if (config.HideEULA)
+            {
+                sb.AppendLine("                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>");
+            }
 
             // For Autopilot: don't hide wireless setup (needed for Azure AD join)
             if (!config.AutopilotMode)
