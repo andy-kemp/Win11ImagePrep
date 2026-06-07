@@ -6,7 +6,7 @@
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
         Width="920"
-        Height="950"
+        Height="850"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="920"
@@ -71,8 +71,7 @@
             </MenuItem>
         </Menu>
 
-        <!-- Main Content in ScrollViewer -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <!-- Main Content -->
         <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -412,7 +411,6 @@
                 </ScrollViewer>
             </Border>
         </GroupBox>
-                                               </Grid>
-                                               </ScrollViewer>
-                                               </DockPanel>
-                                           </Window>
+                                                </Grid>
+                                                </DockPanel>
+                                            </Window>

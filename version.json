@@ -1,6 +1,6 @@
 {
-  "version": "5.2.7",
+  "version": "5.3.1",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "🛠️ Fixed: Update prompt now displays correctly during startup checks (StaticResourceExtension error resolved)"
+  "releaseNotes": "🎨 UI Polish: Removed unnecessary scrollbar from main window + All stability fixes from 5.2.x series (first-run, updates, settings persistence)"
 }
