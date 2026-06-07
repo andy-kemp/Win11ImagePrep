@@ -1,6 +1,6 @@
 {
-  "version": "5.1.8",
+  "version": "5.1.9",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "🐛 CRITICAL FIX: Startup update checks now work correctly! Settings save was resetting FirstRunUpdateCheckComplete to false."
+  "releaseNotes": "✅ Test release - verifying startup update check fix from v5.1.8 is working correctly"
 }
