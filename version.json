@@ -1,6 +1,6 @@
 {
-  "version": "5.4.3",
+  "version": "5.4.4",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "🔍 Debug version with detailed logging to diagnose update dialog issue"
+  "releaseNotes": "🔧 Fixed update dialog height to show full message with version numbers"
 }
