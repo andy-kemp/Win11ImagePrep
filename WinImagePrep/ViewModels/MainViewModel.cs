@@ -2651,6 +2651,8 @@ namespace WinImagePrep.ViewModels
         /// </summary>
         public async Task PerformFirstRunUpdateCheckAsync()
         {
+            AddLog("📥 PerformFirstRunUpdateCheckAsync() called");
+
             try
             {
                 var settings = _settingsService.CurrentSettings;
@@ -2659,6 +2661,8 @@ namespace WinImagePrep.ViewModels
 
                 // Check if user has enabled automatic update checks
                 bool shouldCheck = !settings.FirstRunUpdateCheckComplete || settings.CheckForUpdates;
+
+                AddLog($"🔍 shouldCheck = {shouldCheck} (!{settings.FirstRunUpdateCheckComplete} || {settings.CheckForUpdates})");
 
                 if (!shouldCheck)
                 {
@@ -2763,21 +2767,24 @@ namespace WinImagePrep.ViewModels
                                                 else
                                                 {
                                                     AddLog("Update postponed. You can update later from Tools > Check for Updates");
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            var currentVersionStr = _updateService.GetCurrentVersionString();
+                                                            AddLog($"✓ You are running the latest version (v{currentVersionStr})");
+                                                        }
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        AddLog($"✗ Update check failed: {ex.Message}");
+                                                        AddLog($"✗ Exception type: {ex.GetType().Name}");
+                                                        AddLog($"✗ Stack trace: {ex.StackTrace}");
+                                                        // Don't show an error dialog for failed update checks - it's not critical
+                                                        Logger.Warning($"Update check failed: {ex.Message}");
+                                                        Logger.Warning($"Stack trace: {ex.StackTrace}");
+                                                    }
                                                 }
-                                            }
-                                            else
-                                            {
-                                                var currentVersionStr = _updateService.GetCurrentVersionString();
-                                                AddLog($"✓ You are running the latest version (v{currentVersionStr})");
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            AddLog($"✗ Update check failed: {ex.Message}");
-                                            // Don't show an error dialog for failed update checks - it's not critical
-                                            Logger.Warning($"Update check failed: {ex.Message}");
-                                        }
-                                    }
 
         /// <summary>
         /// Checks if there's a pending update and prompts user after operation completes

@@ -1,6 +1,6 @@
 {
-  "version": "5.1.5",
+  "version": "5.1.6",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "✅ Fixed Autopilot EULA + disk prompts - now handles BitLocker encrypted disks automatically with pre-setup diskpart cleaning"
+  "releaseNotes": "🐛 Debug logging for startup update check issue - added detailed diagnostics"
 }
