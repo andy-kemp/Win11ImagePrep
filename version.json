@@ -1,6 +1,6 @@
 {
-  "version": "5.0.52",
+  "version": "5.1.0",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "✅ Fixed: Operation Log no longer leaves empty space when collapsed (again, properly this time!)"
+  "releaseNotes": "🎉 Major Update: Autopilot mode now fully automated (EULA + disk partitioning) + Improved UI scrolling"
 }

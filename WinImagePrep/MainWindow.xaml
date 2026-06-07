@@ -71,8 +71,9 @@
             </MenuItem>
         </Menu>
 
-        <!-- Main Content -->
-        <Grid Margin="15" DockPanel.Dock="Top" VerticalAlignment="Top">
+        <!-- Main Content in ScrollViewer -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <!-- Title -->
@@ -406,13 +407,14 @@
                                            FontFamily="Consolas"
                                            Padding="2"
                                            Margin="0"
-                                           TextWrapping="Wrap"/>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </Border>
-        </Expander>
-    </Grid>
-    </DockPanel>
-</Window>
+                                                                                       TextWrapping="Wrap"/>
+                                                                       </DataTemplate>
+                                                                   </ItemsControl.ItemTemplate>
+                                                               </ItemsControl>
+                                                           </ScrollViewer>
+                                                       </Border>
+                                                   </Expander>
+                                               </Grid>
+                                               </ScrollViewer>
+                                               </DockPanel>
+                                           </Window>
