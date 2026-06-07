@@ -1,6 +1,6 @@
 {
-  "version": "5.3.9",
+  "version": "5.4.0",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "🔄 Fixed: Startup update dialog now clearly shows current and latest version numbers"
+  "releaseNotes": "🔧 CRITICAL FIX: Update download URLs now point to correct location (raw GitHub files instead of releases)"
 }
