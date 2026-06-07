@@ -357,6 +357,7 @@ namespace WinImagePrep.ViewModels
                 AutoCleanupMounts = AutoCleanupMounts,
                 CheckForUpdates = CheckForUpdates,
                 FirstRunComplete = _originalSettings.FirstRunComplete, // Preserve FirstRunComplete
+                FirstRunUpdateCheckComplete = _originalSettings.FirstRunUpdateCheckComplete, // Preserve FirstRunUpdateCheckComplete
                 LogLevel = LogLevel
             };
         }
