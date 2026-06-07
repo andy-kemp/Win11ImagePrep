@@ -1,6 +1,6 @@
 {
-  "version": "5.3.5",
+  "version": "5.3.8",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "🎨 Fixed: Window height increased to 950px and replaced emoji icons with proper WPF gear icons for consistent professional appearance"
+  "releaseNotes": "🎨 Fixed: Window height to 950px and gear icons now use Segoe MDL2 Assets font for proper display"
 }
