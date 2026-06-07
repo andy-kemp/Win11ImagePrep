@@ -333,17 +333,19 @@ namespace WinImagePrep
             {
                 try
                 {
+                    // Close splash screen FIRST
                     if (_splashScreen != null)
                     {
-                        _splashScreen.UpdateStatus("Loading main window...");
+                        _splashScreen.Close();
+                        _splashScreen = null;
                     }
+
+                    // Small delay to ensure splash is fully closed
+                    System.Threading.Thread.Sleep(100);
 
                     var mainWindow = new MainWindow();
                     MainWindow = mainWindow;
                     mainWindow.Show();
-
-                    _splashScreen?.Close();
-                    _splashScreen = null;
                 }
                 catch (Exception ex)
                 {

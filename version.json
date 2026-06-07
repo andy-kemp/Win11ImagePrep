@@ -1,6 +1,6 @@
 {
-  "version": "5.1.9",
+  "version": "5.1.10",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "✅ Test release - verifying startup update check fix from v5.1.8 is working correctly"
+  "releaseNotes": "🔧 Fixed: Startup update checks now work reliably - DISM cleanup no longer blocks startup flow"
 }

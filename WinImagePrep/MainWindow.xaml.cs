@@ -12,6 +12,8 @@ namespace WinImagePrep
     {
         private MainViewModel? _viewModel;
 
+        private bool _startupTasksRun = false;
+
         public MainWindow()
         {
             try
@@ -24,8 +26,8 @@ namespace WinImagePrep
                 // Subscribe to log entries changes for auto-scroll
                 _viewModel.LogEntries.CollectionChanged += LogEntries_CollectionChanged;
 
-                // Run cleanup in background after window is loaded
-                Loaded += MainWindow_Loaded;
+                // Use ONLY ContentRendered for startup tasks (it's more reliable than Loaded)
+                ContentRendered += MainWindow_ContentRendered;
             }
             catch (Exception ex)
             {
@@ -35,6 +37,64 @@ namespace WinImagePrep
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 throw;
+            }
+        }
+
+        private async void MainWindow_ContentRendered(object? sender, EventArgs e)
+        {
+            // Unsubscribe to prevent running twice
+            ContentRendered -= MainWindow_ContentRendered;
+
+            // Ensure we only run once
+            if (_startupTasksRun) return;
+            _startupTasksRun = true;
+
+            // Run the startup tasks
+            await RunStartupTasksAsync();
+        }
+
+        private async Task RunStartupTasksAsync()
+        {
+            try
+            {
+                // Small delay to let the window fully render first
+                await Task.Delay(100);
+
+                // Fire-and-forget cleanup in background - DON'T WAIT FOR IT
+                // (DISM cleanup can hang/take too long and block startup)
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        CleanupHelper.CleanupMountedImages();
+                        Logger.Info("Background cleanup completed");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warning($"Background cleanup failed: {ex.Message}");
+                    }
+                });
+
+                // Check for existing work and prompt user
+                if (_viewModel != null)
+                {
+                    await _viewModel.CheckForExistingWorkAsync();
+                    await _viewModel.CheckPendingFirstRunUpdateAsync();
+
+                    // Perform startup update check
+                    Logger.Info("🚀 MainWindow: About to call PerformFirstRunUpdateCheckAsync...");
+                    await _viewModel.PerformFirstRunUpdateCheckAsync();
+                    Logger.Info("✅ MainWindow: PerformFirstRunUpdateCheckAsync completed");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Startup tasks failed: {ex.Message}");
+                MessageBox.Show(
+                    $"Startup tasks encountered an error:\n\n{ex.Message}",
+                    "Startup Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
         }
 
@@ -52,33 +112,8 @@ namespace WinImagePrep
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Perform cleanup in background after window is shown
-            await Task.Run(() =>
-            {
-                try
-                {
-                    CleanupHelper.CleanupMountedImages();
-                    Logger.Info("Background cleanup completed");
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warning($"Background cleanup failed: {ex.Message}");
-                }
-            });
-
-            // Check for existing work and prompt user
-            if (_viewModel != null)
-            {
-                await _viewModel.CheckForExistingWorkAsync();
-
-                // Check if there's a pending update from first-run
-                await _viewModel.CheckPendingFirstRunUpdateAsync();
-
-                // Perform first-run update check if needed
-                Logger.Info("🚀 MainWindow: About to call PerformFirstRunUpdateCheckAsync...");
-                await _viewModel.PerformFirstRunUpdateCheckAsync();
-                Logger.Info("✅ MainWindow: PerformFirstRunUpdateCheckAsync completed");
-            }
+            // This event might not fire reliably - ContentRendered is used as primary trigger
+            MessageBox.Show("Loaded event fired (backup)", "DEBUG - Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

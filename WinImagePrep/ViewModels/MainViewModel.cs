@@ -2769,22 +2769,18 @@ namespace WinImagePrep.ViewModels
                                                     AddLog("Update postponed. You can update later from Tools > Check for Updates");
                                                             }
                                                         }
-                                                        else
-                                                        {
-                                                            var currentVersionStr = _updateService.GetCurrentVersionString();
-                                                            AddLog($"✓ You are running the latest version (v{currentVersionStr})");
+                                                                else
+                                                                {
+                                                                    var currentVersionStr = _updateService.GetCurrentVersionString();
+                                                                    AddLog($"✓ You are running the latest version (v{currentVersionStr})");
+                                                                }
+                                                            }
+                                                            catch (Exception ex)
+                                                            {
+                                                                AddLog($"✗ Update check failed: {ex.Message}");
+                                                                Logger.Warning($"Update check failed: {ex.Message}");
+                                                            }
                                                         }
-                                                    }
-                                                    catch (Exception ex)
-                                                    {
-                                                        AddLog($"✗ Update check failed: {ex.Message}");
-                                                        AddLog($"✗ Exception type: {ex.GetType().Name}");
-                                                        AddLog($"✗ Stack trace: {ex.StackTrace}");
-                                                        // Don't show an error dialog for failed update checks - it's not critical
-                                                        Logger.Warning($"Update check failed: {ex.Message}");
-                                                        Logger.Warning($"Stack trace: {ex.StackTrace}");
-                                                    }
-                                                }
 
         /// <summary>
         /// Checks if there's a pending update and prompts user after operation completes
