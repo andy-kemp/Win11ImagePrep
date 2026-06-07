@@ -2655,12 +2655,14 @@ namespace WinImagePrep.ViewModels
             {
                 var settings = _settingsService.CurrentSettings;
 
+                AddLog($"🔍 Update check: FirstRunComplete={settings.FirstRunUpdateCheckComplete}, CheckForUpdates={settings.CheckForUpdates}");
+
                 // Check if user has enabled automatic update checks
                 bool shouldCheck = !settings.FirstRunUpdateCheckComplete || settings.CheckForUpdates;
 
                 if (!shouldCheck)
                 {
-                    AddLog("Automatic update checks disabled in settings");
+                    AddLog("⚙ Automatic update checks disabled in settings");
                     return;
                 }
 
@@ -2668,7 +2670,11 @@ namespace WinImagePrep.ViewModels
 
                 if (isFirstRun)
                 {
-                    AddLog($"First-run update check: FirstRunUpdateCheckComplete={settings.FirstRunUpdateCheckComplete}");
+                    AddLog($"🆕 First-run update check initiated");
+                }
+                else
+                {
+                    AddLog("🔄 Startup update check initiated (CheckForUpdates=true)");
                 }
 
                 // Wait a moment for the window to fully load
@@ -2711,20 +2717,27 @@ namespace WinImagePrep.ViewModels
                     }
 
                     string messagePrefix = isFirstRun ? "Welcome to WinImagePrep!\n\n" : "";
-
-                    var result = MessageBox.Show(
-                        $"{messagePrefix}" +
+                    string message = $"{messagePrefix}" +
                         $"A newer version is available for download:\n\n" +
                         $"Current version: {currentVersionStr}\n" +
                         $"Latest version: {latestVersionStr}\n\n" +
                         $"Would you like to update now?\n\n" +
                         $"The update will download and install automatically.\n" +
-                        $"Estimated time: ~1 minute (depending on download speed)",
-                        "Update Available",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
+                        $"Estimated time: ~1 minute (depending on download speed)";
 
-                    if (result == MessageBoxResult.Yes)
+                    var dialog = new Dialogs.UpdatePromptDialog(message);
+                    dialog.Owner = Application.Current.MainWindow;
+                    var dialogResult = dialog.ShowDialog();
+
+                    // Handle "Don't ask again" checkbox
+                    if (dialog.DontAskAgain)
+                    {
+                        settings.CheckForUpdates = false;
+                        await _settingsService.SaveSettingsAsync(settings);
+                        AddLog("⚙ Automatic update checks disabled");
+                    }
+
+                    if (dialog.UpdateNow && dialogResult == true)
                     {
                         AddLog("Starting update download...");
 
