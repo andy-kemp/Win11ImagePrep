@@ -1,6 +1,6 @@
 {
-  "version": "5.2.6",
+  "version": "5.2.7",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "🎯 Fixed: First-run wizard no longer appears after updates (only on true first install) + All startup/update fixes from 5.2.5"
+  "releaseNotes": "🛠️ Fixed: Update prompt now displays correctly during startup checks (StaticResourceExtension error resolved)"
 }

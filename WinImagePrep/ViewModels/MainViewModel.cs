@@ -2728,28 +2728,58 @@ namespace WinImagePrep.ViewModels
                         return;
                     }
 
-                    string messagePrefix = isFirstRun ? "Welcome to WinImagePrep!\n\n" : "";
-                    string message = $"{messagePrefix}" +
-                        $"A newer version is available for download:\n\n" +
-                        $"Current version: {currentVersionStr}\n" +
-                        $"Latest version: {latestVersionStr}\n\n" +
-                        $"Would you like to update now?\n\n" +
-                        $"The update will download and install automatically.\n" +
-                        $"Estimated time: ~1 minute (depending on download speed)";
+                    // Ensure we're on the UI thread and window is fully loaded
+                    bool updateNow = false;
+                    bool dontAskAgain = false;
 
-                    var dialog = new Dialogs.UpdatePromptDialog(message);
-                    dialog.Owner = Application.Current.MainWindow;
-                    var dialogResult = dialog.ShowDialog();
+                    try
+                    {
+                        await Application.Current.Dispatcher.InvokeAsync(async () =>
+                        {
+                            try
+                            {
+                                // Small delay to ensure window is fully rendered
+                                await Task.Delay(500);
+
+                                string messagePrefix = isFirstRun ? "Welcome to WinImagePrep!\n\n" : "";
+                                string message = $"{messagePrefix}" +
+                                    $"A newer version is available for download:\n\n" +
+                                    $"Current version: {currentVersionStr}\n" +
+                                    $"Latest version: {latestVersionStr}\n\n" +
+                                    $"Would you like to update now?\n\n" +
+                                    $"The update will download and install automatically.\n" +
+                                    $"Estimated time: ~1 minute (depending on download speed)";
+
+                                var dialog = new Dialogs.UpdatePromptDialog(message);
+                                dialog.Owner = Application.Current.MainWindow;
+                                var dialogResult = dialog.ShowDialog();
+
+                                updateNow = dialog.UpdateNow && dialogResult == true;
+                                dontAskAgain = dialog.DontAskAgain;
+                            }
+                            catch (Exception ex)
+                            {
+                                AddLog($"⚠ Error showing update dialog: {ex.Message}");
+                                Logger.Error($"Update dialog error: {ex.Message}");
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        AddLog($"✗ Update check failed: {ex.Message}");
+                        Logger.Error($"Update check failed: {ex}");
+                        return;
+                    }
 
                     // Handle "Don't ask again" checkbox
-                    if (dialog.DontAskAgain)
+                    if (dontAskAgain)
                     {
                         settings.CheckForUpdates = false;
                         await _settingsService.SaveSettingsAsync(settings);
                         AddLog("⚙ Automatic update checks disabled");
                     }
 
-                    if (dialog.UpdateNow && dialogResult == true)
+                    if (updateNow)
                     {
                         AddLog("Starting update download...");
 
@@ -2767,16 +2797,16 @@ namespace WinImagePrep.ViewModels
                             AddLog("⚠ Update failed. Please download manually from GitHub.");
                             MessageBox.Show(
                                 "Update failed. You can check for updates later from the Tools menu.",
-                                                            "Update Failed",
-                                                            MessageBoxButton.OK,
-                                                            MessageBoxImage.Warning);
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    AddLog("Update postponed. You can update later from Tools > Check for Updates");
-                                                            }
-                                                        }
+                                "Update Failed",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                        }
+                    }
+                    else
+                    {
+                        AddLog("Update postponed. You can update later from Tools > Check for Updates");
+                    }
+                }
                                                                 else
                                                                 {
                                                                     var currentVersionStr = _updateService.GetCurrentVersionString();
