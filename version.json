@@ -1,5 +1,5 @@
 {
-  "version": "5.2.2",
+  "version": "5.2.3",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
   "releaseNotes": "🔧 Fixed: Startup update checks now work reliably (DISM cleanup non-blocking) + First-run wizard no longer repeats on every launch"
