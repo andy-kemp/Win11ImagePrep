@@ -1,6 +1,6 @@
 {
-  "version": "5.1.2",
+  "version": "5.1.3",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "✅ Fixed version numbering - now shows correct v5.1.2 + automatic update check on startup"
+  "releaseNotes": "✅ Fixed GitHub CDN caching - downloads now use cache-busting to ensure latest version + version numbers now display correctly everywhere"
 }

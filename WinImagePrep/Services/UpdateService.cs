@@ -212,12 +212,15 @@ namespace WinImagePrep.Services
                 if (needsUpdaterDownload)
                 {
                     progress?.Report("Downloading latest updater...");
-                    Logger.Info($"Downloading updater from: {UpdaterDownloadUrl}");
+
+                    // Add cache-busting parameter to ensure we get the latest updater
+                    var updaterDownloadUrlWithCacheBust = $"{UpdaterDownloadUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+                    Logger.Info($"Downloading updater from: {updaterDownloadUrlWithCacheBust}");
                     Logger.Info($"Updater destination: {updaterPath}");
 
                     try
                     {
-                        var response = await _httpClient.GetAsync(UpdaterDownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                        var response = await _httpClient.GetAsync(updaterDownloadUrlWithCacheBust, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                         response.EnsureSuccessStatusCode();
 
                         var totalBytes = response.Content.Headers.ContentLength ?? 0;
@@ -271,10 +274,14 @@ namespace WinImagePrep.Services
                 // Use ProgramData which is accessible to both user and elevated processes
                 var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
                 var updateInfoPath = Path.Combine(programData, "WinImagePrep_UpdateInfo.json");
+
+                // Add cache-busting parameter to download URL to ensure we get the latest version
+                var exeDownloadUrlWithCacheBust = $"{ExeDownloadUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+
                 var updateInfo = new
                 {
                     TargetExePath = currentExePath,
-                    DownloadUrl = ExeDownloadUrl,
+                    DownloadUrl = exeDownloadUrlWithCacheBust,
                     ProcessName = currentProcessName,
                     ProcessId = currentProcessId
                 };
