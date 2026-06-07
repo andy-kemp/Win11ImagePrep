@@ -1,6 +1,6 @@
 {
-  "version": "5.1.1",
+  "version": "5.1.2",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "✅ Automatic update check now runs on every startup (can be disabled in Options)"
+  "releaseNotes": "✅ Fixed version numbering - now shows correct v5.1.2 + automatic update check on startup"
 }
