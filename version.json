@@ -1,6 +1,6 @@
 {
-  "version": "5.3.8",
+  "version": "5.3.9",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "🎨 Fixed: Window height to 950px and gear icons now use Segoe MDL2 Assets font for proper display"
+  "releaseNotes": "🔄 Fixed: Startup update dialog now clearly shows current and latest version numbers"
 }

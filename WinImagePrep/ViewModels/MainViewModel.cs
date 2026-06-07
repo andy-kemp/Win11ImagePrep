@@ -2741,13 +2741,11 @@ namespace WinImagePrep.ViewModels
                                 // Small delay to ensure window is fully rendered
                                 await Task.Delay(500);
 
-                                string messagePrefix = isFirstRun ? "Welcome to WinImagePrep!\n\n" : "";
-                                string message = $"{messagePrefix}" +
-                                    $"A newer version is available for download:\n\n" +
+                                string message = $"A new version of WinImagePrep is available!\n\n" +
                                     $"Current version: {currentVersionStr}\n" +
                                     $"Latest version: {latestVersionStr}\n\n" +
-                                    $"Would you like to update now?\n\n" +
-                                    $"The update will download and install automatically.\n" +
+                                    $"Would you like to download and install the update now?\n\n" +
+                                    $"The application will close, download the update, and restart automatically.\n" +
                                     $"Estimated time: ~1 minute (depending on download speed)";
 
                                 var dialog = new Dialogs.UpdatePromptDialog(message);
