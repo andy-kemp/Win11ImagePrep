@@ -151,11 +151,13 @@ namespace WinImagePrep.Models
                 AutoCleanupMounts = this.AutoCleanupMounts,
                 CheckForUpdates = this.CheckForUpdates,
                 FirstRunComplete = this.FirstRunComplete,
+                FirstRunUpdateCheckComplete = this.FirstRunUpdateCheckComplete,
                 LogLevel = this.LogLevel,
                 RemoveWindowsApps = this.RemoveWindowsApps,
                 SelectedAppsForRemoval = new List<string>(this.SelectedAppsForRemoval),
                 EnableUnattendedInstall = this.EnableUnattendedInstall,
-                UnattendedInstallConfig = this.UnattendedInstallConfig?.Clone()
+                UnattendedInstallConfig = this.UnattendedInstallConfig?.Clone(),
+                PendingUpdateVersion = this.PendingUpdateVersion
             };
         }
 

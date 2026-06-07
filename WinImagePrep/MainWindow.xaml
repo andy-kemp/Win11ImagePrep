@@ -380,21 +380,19 @@
             </StackPanel>
         </GroupBox>
 
-        <!-- Operation Log (Collapsible) -->
-        <Expander Grid.Row="11"
+        <!-- Operation Log -->
+        <GroupBox Grid.Row="11" 
                   Header="Operation Log" 
-                  IsExpanded="True"
+                  Padding="5"
                   Margin="0,0,0,0">
             <Border BorderThickness="1"
                     BorderBrush="#0078D4"
                     Background="Black"
-                    Padding="0"
-                    Margin="0,5,0,0">
+                    Padding="0">
                 <ScrollViewer x:Name="LogScrollViewer"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
-                              MinHeight="100"
-                              MaxHeight="400"
+                              Height="150"
                               Padding="0,0,2,2">
                     <ItemsControl ItemsSource="{Binding LogEntries}"
                                   x:Name="LogItemsControl">
@@ -407,13 +405,13 @@
                                            FontFamily="Consolas"
                                            Padding="2"
                                            Margin="0"
-                                                                                       TextWrapping="Wrap"/>
-                                                                       </DataTemplate>
-                                                                   </ItemsControl.ItemTemplate>
-                                                               </ItemsControl>
-                                                           </ScrollViewer>
-                                                       </Border>
-                                                   </Expander>
+                                           TextWrapping="Wrap"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </GroupBox>
                                                </Grid>
                                                </ScrollViewer>
                                                </DockPanel>

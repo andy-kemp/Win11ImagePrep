@@ -2698,9 +2698,15 @@ namespace WinImagePrep.ViewModels
                 // Mark first-run check as complete if this was the first run
                 if (isFirstRun)
                 {
-                    // Clone settings to avoid modifying the shared reference
-                    var updatedSettings = settings.Clone();
+                    // Reload settings to ensure we have the latest (especially FirstRunComplete from wizard)
+                    await _settingsService.ReloadSettingsAsync();
+                    var currentSettings = _settingsService.CurrentSettings;
+
+                    // Clone and only update FirstRunUpdateCheckComplete
+                    var updatedSettings = currentSettings.Clone();
                     updatedSettings.FirstRunUpdateCheckComplete = true;
+
+                    AddLog($"Marking first-run update check complete. Current FirstRunComplete={currentSettings.FirstRunComplete}");
                     await _settingsService.SaveSettingsAsync(updatedSettings);
                 }
 

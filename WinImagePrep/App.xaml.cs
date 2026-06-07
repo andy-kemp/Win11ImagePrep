@@ -223,6 +223,13 @@ namespace WinImagePrep
             await Task.Delay(500);
 
             // Check for first run
+            Logger.Info($"═══ FIRST-RUN CHECK ═══");
+            Logger.Info($"_appSettings is null: {_appSettings == null}");
+            if (_appSettings != null)
+            {
+                Logger.Info($"_appSettings.FirstRunComplete: {_appSettings.FirstRunComplete}");
+            }
+
             if (_appSettings != null && !_appSettings.FirstRunComplete)
             {
                 try
@@ -300,9 +307,25 @@ namespace WinImagePrep
                     {
                         try
                         {
+                            Logger.Info("═══ RELOADING SETTINGS AFTER FIRST-RUN ═══");
                             await _settingsService.ReloadSettingsAsync();
                             _appSettings = _settingsService.CurrentSettings;
-                            Logger.Info("Settings reloaded from disk after first-run");
+                            Logger.Info($"Settings reloaded - FirstRunComplete: {_appSettings.FirstRunComplete}");
+
+                            // Double-check the file
+                            var settingsPath = Models.AppSettings.SettingsFilePath;
+                            if (System.IO.File.Exists(settingsPath))
+                            {
+                                var fileContent = await System.IO.File.ReadAllTextAsync(settingsPath);
+                                if (fileContent.Contains("\"FirstRunComplete\": true"))
+                                {
+                                    Logger.Info("✓ File verification: FirstRunComplete=true in file");
+                                }
+                                else if (fileContent.Contains("\"FirstRunComplete\": false"))
+                                {
+                                    Logger.Error("✗ File verification: FirstRunComplete=false in file (THIS IS THE BUG!)");
+                                }
+                            }
                         }
                         catch (Exception ex)
                         {
