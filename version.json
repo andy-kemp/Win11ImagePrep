@@ -1,6 +1,6 @@
 {
-  "version": "5.1.6",
+  "version": "5.1.7",
   "updaterVersion": "1.6.0",
   "releaseDate": "2025-01-30",
-  "releaseNotes": "🐛 Debug logging for startup update check issue - added detailed diagnostics"
+  "releaseNotes": "🐛 Continued diagnostics for startup update check + all previous fixes (BitLocker support, cache-busting, etc.)"
 }
