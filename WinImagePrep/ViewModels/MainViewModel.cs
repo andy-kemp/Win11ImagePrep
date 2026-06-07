@@ -2734,6 +2734,7 @@ namespace WinImagePrep.ViewModels
 
                     try
                     {
+                        AddLog("📋 Showing update dialog...");
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             try
@@ -2747,7 +2748,9 @@ namespace WinImagePrep.ViewModels
 
                                 var dialog = new Dialogs.UpdatePromptDialog(message);
                                 dialog.Owner = Application.Current.MainWindow;
+                                AddLog("🔄 Waiting for user response...");
                                 var dialogResult = dialog.ShowDialog();
+                                AddLog($"✓ Dialog result: {dialogResult}, UpdateNow: {dialog.UpdateNow}");
 
                                 updateNow = dialog.UpdateNow && dialogResult == true;
                                 dontAskAgain = dialog.DontAskAgain;
@@ -2758,6 +2761,7 @@ namespace WinImagePrep.ViewModels
                                 Logger.Error($"Update dialog error: {ex.Message}");
                             }
                         });
+                        AddLog($"📋 Dialog complete. updateNow={updateNow}, dontAskAgain={dontAskAgain}");
                     }
                     catch (Exception ex)
                     {
