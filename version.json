@@ -1,6 +1,6 @@
 {
-  "version": "5.4.4",
+  "version": "5.4.5",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "🔧 Fixed update dialog height to show full message with version numbers"
+  "releaseNotes": "✅ Enhanced update dialog: Taller window (400px), resizable, additional logging to verify version display"
 }

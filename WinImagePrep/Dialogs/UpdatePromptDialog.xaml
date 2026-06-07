@@ -2,10 +2,11 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Update Available"
-        Width="500"
-        Height="350"
+        Width="520"
+        Height="400"
+        MinHeight="350"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         Background="White"
         ShowInTaskbar="False">
 

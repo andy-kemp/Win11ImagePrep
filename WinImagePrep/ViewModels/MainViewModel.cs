@@ -2735,6 +2735,7 @@ namespace WinImagePrep.ViewModels
                     try
                     {
                         AddLog("📋 Showing update dialog...");
+                        AddLog($"   Current: v{currentVersionStr}, Latest: v{latestVersionStr}");
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             try
@@ -2746,6 +2747,7 @@ namespace WinImagePrep.ViewModels
                                     $"The application will close, download the update, and restart automatically.\n" +
                                     $"Estimated time: ~1 minute (depending on download speed)";
 
+                                AddLog($"📝 Message length: {message.Length} characters");
                                 var dialog = new Dialogs.UpdatePromptDialog(message);
                                 dialog.Owner = Application.Current.MainWindow;
                                 AddLog("🔄 Waiting for user response...");
