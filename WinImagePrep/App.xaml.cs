@@ -225,12 +225,23 @@ namespace WinImagePrep
             // Check for first run
             Logger.Info($"═══ FIRST-RUN CHECK ═══");
             Logger.Info($"_appSettings is null: {_appSettings == null}");
+
+            // Additional safety: if settings file exists, treat as already initialized
+            bool settingsFileExists = System.IO.File.Exists(Models.AppSettings.SettingsFilePath);
+            Logger.Info($"Settings file exists: {settingsFileExists}");
+
             if (_appSettings != null)
             {
                 Logger.Info($"_appSettings.FirstRunComplete: {_appSettings.FirstRunComplete}");
             }
 
-            if (_appSettings != null && !_appSettings.FirstRunComplete)
+            // Only show first-run if BOTH conditions are met:
+            // 1. FirstRunComplete flag is false
+            // 2. Settings file doesn't exist (truly first time)
+            bool shouldShowFirstRun = _appSettings != null && !_appSettings.FirstRunComplete && !settingsFileExists;
+            Logger.Info($"Should show first-run wizard: {shouldShowFirstRun}");
+
+            if (shouldShowFirstRun)
             {
                 try
                 {
