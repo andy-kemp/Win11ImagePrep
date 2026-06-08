@@ -69,7 +69,18 @@ namespace WinImagePrep.Services
 
             // User data (accept EULA, etc.)
             sb.AppendLine("            <UserData>");
-            sb.AppendLine($"                <AcceptEula>{config.HideEULA.ToString().ToLower()}</AcceptEula>");
+
+            // For Autopilot: Still accept EULA during setup to avoid manual click
+            // But we'll let the OOBE flow naturally so Autopilot can take over
+            if (config.AutopilotMode)
+            {
+                sb.AppendLine("                <AcceptEula>true</AcceptEula>");
+            }
+            else
+            {
+                sb.AppendLine($"                <AcceptEula>{config.HideEULA.ToString().ToLower()}</AcceptEula>");
+            }
+
             sb.AppendLine("                <FullName>User</FullName>");
             sb.AppendLine("                <Organization></Organization>");
 
@@ -224,48 +235,47 @@ namespace WinImagePrep.Services
             // OOBE settings
             sb.AppendLine("            <OOBE>");
 
-            // Always hide EULA page if configured - this doesn't interfere with Autopilot enrollment
-            // EULA acceptance happens during windowsPE, Autopilot enrollment happens after OOBE
-            sb.AppendLine($"                <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
-
-            // Additional settings to ensure EULA is fully hidden
-            if (config.HideEULA)
+            // For Autopilot mode: Let Autopilot handle EVERYTHING in OOBE
+            // Don't hide EULA or any other screens - Autopilot needs the full OOBE flow
+            if (config.AutopilotMode)
             {
-                sb.AppendLine("                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>");
+                // Minimal settings for Autopilot - let the device boot to OOBE naturally
+                // Autopilot will detect the device hash and apply the deployment profile
+                sb.AppendLine("                <HideEULAPage>false</HideEULAPage>");
+                sb.AppendLine("                <HideOEMRegistrationScreen>false</HideOEMRegistrationScreen>");
+                sb.AppendLine("                <HideOnlineAccountScreens>false</HideOnlineAccountScreens>");
+                sb.AppendLine("                <HideLocalAccountScreen>false</HideLocalAccountScreen>");
+                sb.AppendLine("                <HideWirelessSetupInOOBE>false</HideWirelessSetupInOOBE>");
+                sb.AppendLine("                <ProtectYourPC>1</ProtectYourPC>"); // Let user choose
             }
-
-            // For Autopilot: don't hide wireless setup (needed for Azure AD join)
-            if (!config.AutopilotMode)
+            else
             {
+                // Standard unattended installation - hide everything we can
+                // Always hide EULA page if configured - this doesn't interfere with Autopilot enrollment
+                // EULA acceptance happens during windowsPE, Autopilot enrollment happens after OOBE
+                sb.AppendLine($"                <HideEULAPage>{config.HideEULA.ToString().ToLower()}</HideEULAPage>");
+
+                // Additional settings to ensure EULA is fully hidden
+                if (config.HideEULA)
+                {
+                    sb.AppendLine("                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>");
+                }
+
                 sb.AppendLine($"                <HideWirelessSetupInOOBE>{config.HideWirelessSetup.ToString().ToLower()}</HideWirelessSetupInOOBE>");
-            }
-
-            // NetworkLocation: Only set for non-Autopilot (Autopilot handles network config)
-            if (!config.AutopilotMode)
-            {
                 sb.AppendLine("                <NetworkLocation>1</NetworkLocation>");
-            }
-
-            // ProtectYourPC: Only for standard unattended (Autopilot policies control this)
-            if (!config.AutopilotMode)
-            {
                 sb.AppendLine("                <ProtectYourPC>3</ProtectYourPC>");
-            }
 
-            // Hide OOBE privacy/telemetry screens - Only for standard unattended
-            if (!config.AutopilotMode)
-            {
+                // Hide OOBE privacy/telemetry screens
                 sb.AppendLine("                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>");
                 sb.AppendLine("                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>");
                 sb.AppendLine("                <HideLocalAccountScreen>true</HideLocalAccountScreen>");
-            }
 
-            // SkipMachineOOBE and SkipUserOOBE control whether OOBE runs
-            // For Autopilot: NEVER skip OOBE (Autopilot needs it for enrollment)
-            if (config.SkipOOBE && !config.AutopilotMode)
-            {
-                sb.AppendLine("                <SkipMachineOOBE>true</SkipMachineOOBE>");
-                sb.AppendLine("                <SkipUserOOBE>true</SkipUserOOBE>");
+                // SkipMachineOOBE and SkipUserOOBE control whether OOBE runs
+                if (config.SkipOOBE)
+                {
+                    sb.AppendLine("                <SkipMachineOOBE>true</SkipMachineOOBE>");
+                    sb.AppendLine("                <SkipUserOOBE>true</SkipUserOOBE>");
+                }
             }
 
             sb.AppendLine("            </OOBE>");

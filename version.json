@@ -1,6 +1,6 @@
 {
-  "version": "5.6.0",
+  "version": "5.7.0",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "✨ Added drag-and-drop support: Drop ISO files onto the ISO textbox and MSI/ZIP driver packages onto the driver source textbox for quick selection"
+  "releaseNotes": "🔧 Fixed Autopilot deployment: Autopilot mode now allows full OOBE flow so Azure AD enrollment works correctly and company branding/restrictions are applied"
 }
