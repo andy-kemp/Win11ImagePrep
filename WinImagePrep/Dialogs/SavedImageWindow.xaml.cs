@@ -166,10 +166,12 @@ namespace WinImagePrep.Dialogs
                     AddLog($"[{p.PercentComplete}%] {p.CurrentOperation}");
                 });
 
+                // SavedImageWindow does not have unattended config - pass null
                 var success = await _usbService.CreateBootableUsbAsync(
                     usbDrive.DiskNumber,
                     imagePath,
                     label,
+                    null, // No unattended config for saved images
                     progress);
 
                 if (success)

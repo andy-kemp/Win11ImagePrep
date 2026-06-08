@@ -1862,10 +1862,19 @@ namespace WinImagePrep.ViewModels
                     AddLog($"[{p.PercentComplete}%] {p.CurrentOperation}");
                 });
 
+                // Get unattended config if enabled
+                UnattendedConfig? unattendedConfig = null;
+                if (EnableUnattendedInstall && _settingsService.CurrentSettings.UnattendedInstallConfig != null)
+                {
+                    unattendedConfig = _settingsService.CurrentSettings.UnattendedInstallConfig;
+                    AddLog("ℹ Unattended installation is enabled - autounattend.xml will be created");
+                }
+
                 var success = await _usbService.CreateBootableUsbAsync(
                     SelectedUsbDrive.DiskNumber,
                     _config.Windows11Directory,
                     IsoVolumeLabel,
+                    unattendedConfig,
                     usbProgress);
 
                 if (success)
@@ -1995,10 +2004,19 @@ namespace WinImagePrep.ViewModels
                     AddLog($"[{p.PercentComplete}%] {p.CurrentOperation}");
                 });
 
+                // Get unattended config if enabled
+                UnattendedConfig? unattendedConfig = null;
+                if (EnableUnattendedInstall && _settingsService.CurrentSettings.UnattendedInstallConfig != null)
+                {
+                    unattendedConfig = _settingsService.CurrentSettings.UnattendedInstallConfig;
+                    AddLog("ℹ Unattended installation is enabled - autounattend.xml will be created");
+                }
+
                 var success = await _usbService.CreateBootableUsbAsync(
                     SelectedUsbDrive.DiskNumber,
                     _config.Windows11Directory,
                     IsoVolumeLabel,
+                    unattendedConfig,
                     progress);
 
                 if (success)

@@ -115,6 +115,7 @@ namespace WinImagePrep.Services
             uint diskNumber,
             string sourcePath,
             string volumeLabel,
+            UnattendedConfig? unattendedConfig = null,
             IProgress<OperationProgress>? progress = null,
             CancellationToken cancellationToken = default)
         {
@@ -163,6 +164,27 @@ namespace WinImagePrep.Services
                 if (!await CopyFilesToUsbAsync(sourcePath, $"{driveLetter}:\\", progress, cancellationToken))
                 {
                     return false;
+                }
+
+                // Generate autounattend.xml if unattended install is enabled
+                if (unattendedConfig != null)
+                {
+                    ReportProgress(progress, 96, "Generating unattended installation file...", OperationStage.CreatingUSB);
+                    Logger.Info("Generating autounattend.xml for unattended installation");
+
+                    var unattendedService = new UnattendedInstallService();
+                    var autounattendPath = Path.Combine($"{driveLetter}:\\", "autounattend.xml");
+
+                    if (unattendedService.GenerateAutounattendXml(unattendedConfig, autounattendPath))
+                    {
+                        Logger.Info($"✓ autounattend.xml created at: {autounattendPath}");
+                        ReportProgress(progress, 98, "Unattended installation file created", OperationStage.CreatingUSB);
+                    }
+                    else
+                    {
+                        Logger.Warning("⚠ Failed to generate autounattend.xml - USB will require manual installation");
+                        ReportProgress(progress, 98, "Warning: Unattended file generation failed", OperationStage.CreatingUSB);
+                    }
                 }
 
                 ReportProgress(progress, 100, "USB creation complete!", OperationStage.Complete);

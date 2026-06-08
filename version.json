@@ -1,6 +1,6 @@
 {
-  "version": "5.4.5",
+  "version": "5.5.0",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-07",
-  "releaseNotes": "✅ Enhanced update dialog: Taller window (400px), resizable, additional logging to verify version display"
+  "releaseNotes": "🎯 Fixed unattended installation: autounattend.xml now correctly generated and copied to USB root for automated EULA acceptance and disk partitioning"
 }
