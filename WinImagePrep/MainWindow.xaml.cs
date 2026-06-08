@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Specialized;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,6 +30,9 @@ namespace WinImagePrep
 
                 // Use ONLY ContentRendered for startup tasks (it's more reliable than Loaded)
                 ContentRendered += MainWindow_ContentRendered;
+
+                // Setup drag-and-drop handlers
+                SetupDragAndDrop();
             }
             catch (Exception ex)
             {
@@ -182,6 +187,188 @@ namespace WinImagePrep
                 await Task.Delay(500);
                 Environment.Exit(0);
             });
+        }
+
+        private void SetupDragAndDrop()
+        {
+            // ISO TextBox drag-and-drop
+            IsoTextBox.PreviewDragEnter += IsoTextBox_PreviewDragEnter;
+            IsoTextBox.PreviewDragOver += IsoTextBox_PreviewDragOver;
+            IsoTextBox.Drop += IsoTextBox_Drop;
+
+            // Driver Source TextBox drag-and-drop
+            DriverSourceTextBox.PreviewDragEnter += DriverSourceTextBox_PreviewDragEnter;
+            DriverSourceTextBox.PreviewDragOver += DriverSourceTextBox_PreviewDragOver;
+            DriverSourceTextBox.Drop += DriverSourceTextBox_Drop;
+        }
+
+        // ISO drag-and-drop handlers
+        private void IsoTextBox_PreviewDragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void IsoTextBox_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void IsoTextBox_Drop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                    if (files != null && files.Length > 0)
+                    {
+                        string filePath = files[0]; // Take first file only
+                        string extension = Path.GetExtension(filePath).ToLowerInvariant();
+
+                        if (extension == ".iso")
+                        {
+                            if (_viewModel != null)
+                            {
+                                _viewModel.SelectedIsoPath = filePath;
+                                _viewModel.AddLog($"📁 ISO file loaded via drag-and-drop: {Path.GetFileName(filePath)}");
+                                Logger.Info($"ISO file loaded via drag-and-drop: {filePath}");
+                            }
+                        }
+                        else
+                        {
+                            MessageBox.Show(
+                                "Please drop a valid ISO file (.iso extension).",
+                                "Invalid File Type",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling ISO drop: {ex.Message}");
+                MessageBox.Show(
+                    $"Error loading dropped file:\n\n{ex.Message}",
+                    "Drag-and-Drop Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            e.Handled = true;
+        }
+
+        // Driver Source drag-and-drop handlers
+        private void DriverSourceTextBox_PreviewDragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void DriverSourceTextBox_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void DriverSourceTextBox_Drop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    string[] items = (string[])e.Data.GetData(DataFormats.FileDrop);
+                    if (items != null && items.Length > 0)
+                    {
+                        string itemPath = items[0]; // Take first item only
+
+                        if (Directory.Exists(itemPath))
+                        {
+                            // Folder dropped
+                            if (_viewModel != null)
+                            {
+                                _viewModel.IsDriverSourceFolder = true;
+                                _viewModel.SelectedDriverSourcePath = itemPath;
+                                _viewModel.AddLog($"📁 Driver folder loaded via drag-and-drop: {Path.GetFileName(itemPath)}");
+                                Logger.Info($"Driver folder loaded via drag-and-drop: {itemPath}");
+                            }
+                        }
+                        else if (File.Exists(itemPath))
+                        {
+                            // File dropped
+                            string extension = Path.GetExtension(itemPath).ToLowerInvariant();
+
+                            if (extension == ".msi")
+                            {
+                                if (_viewModel != null)
+                                {
+                                    _viewModel.IsDriverSourceMsi = true;
+                                    _viewModel.SelectedDriverSourcePath = itemPath;
+                                    _viewModel.AddLog($"📦 MSI file loaded via drag-and-drop: {Path.GetFileName(itemPath)}");
+                                    Logger.Info($"MSI file loaded via drag-and-drop: {itemPath}");
+                                }
+                            }
+                            else if (extension == ".zip")
+                            {
+                                if (_viewModel != null)
+                                {
+                                    _viewModel.IsDriverSourceZip = true;
+                                    _viewModel.SelectedDriverSourcePath = itemPath;
+                                    _viewModel.AddLog($"📦 ZIP file loaded via drag-and-drop: {Path.GetFileName(itemPath)}");
+                                    Logger.Info($"ZIP file loaded via drag-and-drop: {itemPath}");
+                                }
+                            }
+                            else
+                            {
+                                MessageBox.Show(
+                                    "Please drop a valid driver file (.msi or .zip) or a folder containing drivers.",
+                                    "Invalid File Type",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling driver source drop: {ex.Message}");
+                MessageBox.Show(
+                    $"Error loading dropped file:\n\n{ex.Message}",
+                    "Drag-and-Drop Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            e.Handled = true;
         }
     }
 }

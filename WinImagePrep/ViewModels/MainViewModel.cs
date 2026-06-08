@@ -3076,7 +3076,7 @@ namespace WinImagePrep.ViewModels
             }
         }
 
-        private void AddLog(string message)
+        public void AddLog(string message)
         {
             Application.Current?.Dispatcher.Invoke(() =>
             {
