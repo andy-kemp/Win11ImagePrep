@@ -310,8 +310,8 @@ namespace WinImagePrep.Services
                     var process = Process.Start(startInfo);
                     if (process == null)
                     {
-                        progress?.Report("Failed to start updater. Please try again.");
-                        Logger.Error("Process.Start returned null - likely UAC was declined");
+                        progress?.Report("Update cancelled - Administrator privileges required.");
+                        Logger.Error("Process.Start returned null - UAC was declined by user");
                         return false;
                     }
 
@@ -322,6 +322,13 @@ namespace WinImagePrep.Services
 
                     // Signal that we should close
                     return true;
+                }
+                catch (System.ComponentModel.Win32Exception win32Ex) when (win32Ex.NativeErrorCode == 1223)
+                {
+                    // ERROR_CANCELLED = 1223 - The operation was canceled by the user (UAC prompt declined)
+                    progress?.Report("Update cancelled - Administrator privileges are required to update.");
+                    Logger.Info("User cancelled UAC elevation prompt for updater");
+                    return false;
                 }
                 catch (Exception ex)
                 {

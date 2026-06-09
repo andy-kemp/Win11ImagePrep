@@ -2975,7 +2975,15 @@ namespace WinImagePrep.ViewModels
                         }
                         else
                         {
-                            AddLog("⚠ Update failed. Please download manually from GitHub.");
+                            AddLog("⚠ Update cancelled or failed.");
+                            MessageBox.Show(
+                                "Update was cancelled or failed.\n\n" +
+                                "Administrator privileges are required to update the application.\n\n" +
+                                "You can manually download the latest version from:\n" +
+                                "https://github.com/andy-kemp/Win11ImagePrep/releases",
+                                "Update Failed",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
                         }
                     }
                     else
