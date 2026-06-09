@@ -1,0 +1,40 @@
+=================================================
+Windows Image Preparation Tool - Build Summary
+=================================================
+Build Date: 2026-06-09 15:39:54
+
+NEW FEATURES:
+✅ Multiple Driver Pack Support
+   - Add multiple Surface Pro (6, 7, 8) driver packs to one image
+   - Supports MSI files, ZIP archives, and folders
+   - Each pack shown in a list with individual remove buttons
+   - Two browse buttons: 'Add Driver Pack(s)' and 'Add Driver Folder'
+
+✅ Enhanced Driver Injection
+   - Automatically extracts MSI and ZIP files during injection
+   - Processes all driver packs sequentially
+   - Injects into boot.wim (WinPE + Setup), install.wim, and WinRE
+   - Detailed logging for each driver pack
+
+FIXED:
+✅ App now requires administrator privileges (always runs elevated)
+✅ Generic title: 'Windows Image Preparation Tool' (not 'Windows 11')
+✅ Enhanced drag-and-drop support with UIPI bypass (6 message filters)
+
+FILES:
+- publish\WinImagePrep.exe (latest build)
+- publish\docs\UserGuide.html
+- publish\WinImagePrep.Updater.exe
+
+TESTING:
+1. Run publish\WinImagePrep.exe - should prompt for admin
+2. Check title displays 'Windows Image Preparation Tool'
+3. Try drag-and-drop of ISO/driver files (enhanced but UIPI may still block)
+4. Browse buttons are the reliable method to add files
+5. Add multiple driver packs and verify they all appear in the list
+6. Remove individual packs using the X button
+
+DRAG-AND-DROP NOTE:
+Windows UIPI security can still block drag-and-drop from Explorer to elevated apps.
+The code includes the most comprehensive workaround available (6 message filters),
+but if it still shows the 'no access' cursor, use the browse buttons instead.

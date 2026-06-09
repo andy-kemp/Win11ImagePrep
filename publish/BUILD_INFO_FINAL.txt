@@ -1,0 +1,66 @@
+==========================================================
+Windows Image Preparation Tool - FINAL BUILD
+==========================================================
+Build Date: 2026-06-09 15:48:52
+
+✅ JUST-IN-TIME ELEVATION (NEW!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The app now runs WITHOUT admin privileges by default!
+This completely fixes the drag-and-drop issue.
+
+WHEN does it request admin?
+- Only when you click "Prepare USB with Drivers" (InjectDrivers)
+- Only when you click "Create Bootable USB" 
+- The app will show a dialog and restart with elevation
+- All your selections (ISO, drivers, settings) are preserved
+
+WHY is this better?
+✅ Drag-and-drop from Explorer WORKS (no more red circle!)
+✅ Safer: Only elevate when DISM operations actually need it
+✅ Better UX: No scary UAC prompt on startup
+✅ Windows security best practice
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ MULTIPLE DRIVER PACK SUPPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Add multiple Surface Pro 6, 7, 8 driver packs to one image
+- Supports MSI files, ZIP archives, and folders
+- List view shows all added packs with remove buttons
+- Two browse buttons:
+  • 📦 Add Driver Pack(s)... - Multi-select MSI/ZIP
+  • 📁 Add Driver Folder... - Browse for driver folders
+
+✅ ENHANCED DRIVER INJECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Automatically extracts MSI and ZIP files during injection
+- Processes all driver packs sequentially
+- Injects into boot.wim (WinPE + Setup), install.wim, and WinRE
+- Detailed logging for each driver pack
+
+✅ OTHER IMPROVEMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Generic title: 'Windows Image Preparation Tool'
+- Enhanced drag-and-drop with 6 UIPI message filters
+- Better error handling and logging
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📁 FILES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ publish\WinImagePrep.exe (68.8 MB) - LATEST BUILD
+   publish\docs\UserGuide.html
+   publish\WinImagePrep.Updater.exe
+
+🧪 TESTING STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Run WinImagePrep.exe - NO UAC prompt!
+2. Verify title: 'Windows Image Preparation Tool'
+3. TEST DRAG-AND-DROP: Drag ISO/driver files - should work!
+4. Browse for ISO and add multiple driver packs
+5. Click 'Prepare USB with Drivers'
+   → NOW it asks for admin and restarts elevated
+6. Complete the workflow and create USB
+
+🎉 KEY WIN: Drag-and-drop is FIXED!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

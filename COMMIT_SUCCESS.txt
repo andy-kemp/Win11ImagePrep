@@ -1,0 +1,74 @@
+═══════════════════════════════════════════════════════════════
+  COMMIT SUCCESSFUL - Latest Version Pushed to GitHub
+═══════════════════════════════════════════════════════════════
+
+✅ Commit: 8665d51
+✅ Branch: main
+✅ Remote: origin/main
+✅ Repository: https://github.com/andy-kemp/Win11ImagePrep
+
+═══════════════════════════════════════════════════════════════
+  WHAT'S NEW IN THIS VERSION
+═══════════════════════════════════════════════════════════════
+
+🎯 JUST-IN-TIME ELEVATION (MAJOR FEATURE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ App runs as normal user (no UAC on startup)
+✅ Drag-and-drop WORKS from File Explorer
+✅ Admin requested only when DISM operations need it
+✅ Safer and follows Windows security best practices
+
+📦 MULTIPLE DRIVER PACK SUPPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Add Surface Pro 6, 7, 8 (or any drivers) to one image
+✅ Supports MSI files, ZIP archives, and folders
+✅ List view shows all packs with individual remove buttons
+✅ Two browse buttons: "Add Driver Pack(s)" and "Add Driver Folder"
+✅ Sequential processing with detailed logging
+
+🔧 IMPROVEMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Fixed drag-and-drop (works when not elevated)
+✅ Generic title: "Windows Image Preparation Tool"
+✅ Enhanced UIPI bypass with 6 message filters
+✅ Auto-extract MSI/ZIP during injection
+✅ Better error handling and logging
+
+═══════════════════════════════════════════════════════════════
+  FILES CHANGED
+═══════════════════════════════════════════════════════════════
+
+NEW FILES:
+  + WinImagePrep/Models/DriverSourceInfo.cs
+
+MODIFIED FILES:
+  ~ WinImagePrep/ViewModels/MainViewModel.cs
+  ~ WinImagePrep/MainWindow.xaml
+  ~ WinImagePrep/MainWindow.xaml.cs
+  ~ WinImagePrep/app.manifest
+  ~ publish/WinImagePrep.exe (68.8 MB)
+  ~ publish/WinImagePrep.Updater.exe
+
+═══════════════════════════════════════════════════════════════
+  TESTING CONFIRMED
+═══════════════════════════════════════════════════════════════
+
+✅ App launches without UAC prompt
+✅ Drag-and-drop works from File Explorer
+✅ Multiple driver packs can be added
+✅ Admin elevation prompt shown when needed
+✅ Generic title displays correctly
+
+═══════════════════════════════════════════════════════════════
+  NEXT STEPS
+═══════════════════════════════════════════════════════════════
+
+The changes are now live on GitHub!
+
+You can:
+1. Clone/pull the latest version
+2. Create a release tag if needed
+3. Share with users
+4. Continue developing new features
+
+═══════════════════════════════════════════════════════════════
