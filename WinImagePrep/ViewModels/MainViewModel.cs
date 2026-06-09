@@ -100,23 +100,53 @@ namespace WinImagePrep.ViewModels
         }
 
         /// <summary>
+        /// Capture current application state for preservation across admin elevation
+        /// </summary>
+        private AppState CaptureCurrentState()
+        {
+            return new AppState
+            {
+                IsoPath = SelectedIsoPath,
+                IsoVolumeLabel = IsoVolumeLabel,
+                DriverPaths = DriverSources?.Select(d => d.Path).Where(p => !string.IsNullOrEmpty(p)).ToList(),
+                RemoveWindowsApps = RemoveWindowsApps,
+                SelectedAppsForRemoval = WindowsApps?
+                    .Where(a => a.IsSelected)
+                    .SelectMany(a => a.PackageNames)
+                    .ToList(),
+                EnableUnattendedInstall = EnableUnattendedInstall,
+                SelectedEditions = SelectedEditions?.ToList()
+            };
+        }
+
+        /// <summary>
         /// Restore application state from command-line arguments (used after elevation restart)
         /// </summary>
-        public void RestoreStateFromArgs(string? isoPath, IEnumerable<string>? driverPaths)
+        public void RestoreState(AppState? state)
         {
+            if (state == null)
+                return;
+
             try
             {
                 // Restore ISO path
-                if (!string.IsNullOrEmpty(isoPath) && File.Exists(isoPath))
+                if (!string.IsNullOrEmpty(state.IsoPath) && File.Exists(state.IsoPath))
                 {
-                    SelectedIsoPath = isoPath;
-                    AddLog($"✓ Restored ISO path: {Path.GetFileName(isoPath)}");
+                    SelectedIsoPath = state.IsoPath;
+                    AddLog($"✓ Restored ISO path: {Path.GetFileName(state.IsoPath)}");
+                }
+
+                // Restore ISO volume label
+                if (!string.IsNullOrEmpty(state.IsoVolumeLabel))
+                {
+                    IsoVolumeLabel = state.IsoVolumeLabel;
+                    AddLog($"✓ Restored ISO volume label: {state.IsoVolumeLabel}");
                 }
 
                 // Restore driver sources
-                if (driverPaths != null)
+                if (state.DriverPaths != null)
                 {
-                    foreach (var driverPath in driverPaths)
+                    foreach (var driverPath in state.DriverPaths)
                     {
                         if (!string.IsNullOrEmpty(driverPath))
                         {
@@ -151,14 +181,77 @@ namespace WinImagePrep.ViewModels
                     }
                 }
 
-                if (!string.IsNullOrEmpty(isoPath) || (driverPaths?.Any() ?? false))
+                // Restore app removal setting
+                RemoveWindowsApps = state.RemoveWindowsApps;
+                if (state.RemoveWindowsApps)
                 {
-                    AddLog("✓ Application state restored after elevation");
+                    AddLog($"✓ Restored Windows app removal setting: ENABLED");
                 }
+
+                // Restore selected apps for removal (will be applied when apps are loaded)
+                if (state.SelectedAppsForRemoval != null && state.SelectedAppsForRemoval.Any())
+                {
+                    // Store for later restoration when WindowsApps collection is populated
+                    _pendingAppSelectionsRestore = state.SelectedAppsForRemoval;
+                    AddLog($"✓ Will restore {state.SelectedAppsForRemoval.Count} app selections once app list loads");
+                }
+
+                // Restore unattended install setting
+                EnableUnattendedInstall = state.EnableUnattendedInstall;
+                if (state.EnableUnattendedInstall)
+                {
+                    AddLog($"✓ Restored unattended install setting: ENABLED");
+                }
+
+                // Restore selected editions
+                if (state.SelectedEditions != null && state.SelectedEditions.Any())
+                {
+                    SelectedEditions = state.SelectedEditions;
+                    AddLog($"✓ Restored {state.SelectedEditions.Count} selected edition(s)");
+                }
+
+                AddLog("✓ Application state fully restored after elevation");
             }
             catch (Exception ex)
             {
                 AddLog($"⚠ Warning: Failed to restore some state: {ex.Message}");
+            }
+        }
+
+        private List<string>? _pendingAppSelectionsRestore;
+
+        /// <summary>
+        /// Apply pending app selections after WindowsApps collection is loaded
+        /// </summary>
+        private void ApplyPendingAppSelections()
+        {
+            if (_pendingAppSelectionsRestore == null || !_pendingAppSelectionsRestore.Any())
+                return;
+
+            try
+            {
+                int restoredCount = 0;
+                foreach (var app in WindowsApps)
+                {
+                    // Check if any of this app's packages were selected
+                    if (app.PackageNames.Any(pkg => _pendingAppSelectionsRestore.Contains(pkg)))
+                    {
+                        app.IsSelected = true;
+                        restoredCount++;
+                    }
+                }
+
+                if (restoredCount > 0)
+                {
+                    AddLog($"✓ Restored {restoredCount} app selection(s)");
+                    OnPropertyChanged(nameof(SelectedAppsCountText));
+                }
+
+                _pendingAppSelectionsRestore = null; // Clear after applying
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Failed to restore app selections: {ex.Message}");
             }
         }
 
@@ -721,8 +814,11 @@ namespace WinImagePrep.ViewModels
 
                     AddLog($"✓ Loaded {WindowsApps.Count} apps from GitHub");
 
-                    // Restore saved app selections
+                    // Restore saved app selections from settings
                     RestoreSavedAppSelections();
+
+                    // Apply any pending app selections from elevation state restoration
+                    ApplyPendingAppSelections();
 
                     AppLoadingStatusText = $"✓ {WindowsApps.Count} apps loaded";
 
@@ -1050,11 +1146,11 @@ namespace WinImagePrep.ViewModels
                 {
                     try
                     {
-                        // Collect current driver paths to preserve state
-                        var driverPaths = DriverSources?.Select(d => d.Path).Where(p => !string.IsNullOrEmpty(p)).ToList();
+                        // Capture complete application state for preservation
+                        var state = CaptureCurrentState();
 
                         // Restart with state preservation
-                        AdminHelper.RestartAsAdministrator(SelectedIsoPath, driverPaths);
+                        AdminHelper.RestartAsAdministrator(state);
                     }
                     catch (Exception ex)
                     {
@@ -2022,11 +2118,11 @@ namespace WinImagePrep.ViewModels
 
                 if (adminResult == MessageBoxResult.OK)
                 {
-                    // Collect current driver paths to preserve state
-                    var driverPaths = DriverSources?.Select(d => d.Path).Where(p => !string.IsNullOrEmpty(p)).ToList();
+                    // Capture complete application state for preservation
+                    var state = CaptureCurrentState();
 
                     // Restart with state preservation
-                    AdminHelper.RestartAsAdministrator(SelectedIsoPath, driverPaths);
+                    AdminHelper.RestartAsAdministrator(state);
                     Application.Current.Shutdown();
                 }
                 return;

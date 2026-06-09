@@ -16,8 +16,7 @@ namespace WinImagePrep
         private SplashScreen? _splashScreen;
         private ISettingsService? _settingsService;
         private AppSettings? _appSettings;
-        private string? _restoreIsoPath;
-        private List<string>? _restoreDriverPaths;
+        private AppState? _restoreState;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -78,35 +77,19 @@ namespace WinImagePrep
             {
                 for (int i = 0; i < args.Length; i++)
                 {
-                    if (args[i] == "--iso" && i + 1 < args.Length)
+                    if (args[i] == "--state" && i + 1 < args.Length)
                     {
                         try
                         {
-                            // Decode base64-encoded JSON ISO path
+                            // Decode base64-encoded JSON state
                             var base64 = args[i + 1];
                             var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
-                            _restoreIsoPath = JsonSerializer.Deserialize<string>(json);
-                            Logger.Info($"Parsed ISO path for restoration: {_restoreIsoPath}");
+                            _restoreState = JsonSerializer.Deserialize<AppState>(json);
+                            Logger.Info($"Parsed application state for restoration");
                         }
                         catch (Exception ex)
                         {
-                            Logger.Error($"Failed to parse ISO path argument: {ex.Message}");
-                        }
-                        i++; // Skip next arg since we consumed it
-                    }
-                    else if (args[i] == "--drivers" && i + 1 < args.Length)
-                    {
-                        try
-                        {
-                            // Decode base64-encoded JSON driver paths
-                            var base64 = args[i + 1];
-                            var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
-                            _restoreDriverPaths = JsonSerializer.Deserialize<List<string>>(json);
-                            Logger.Info($"Parsed {_restoreDriverPaths?.Count ?? 0} driver paths for restoration");
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error($"Failed to parse driver paths argument: {ex.Message}");
+                            Logger.Error($"Failed to parse state argument: {ex.Message}");
                         }
                         i++; // Skip next arg since we consumed it
                     }
@@ -410,10 +393,10 @@ namespace WinImagePrep
                     MainWindow = mainWindow;
 
                     // Restore state from command-line args if present (after elevation)
-                    if ((_restoreIsoPath != null || _restoreDriverPaths != null) && mainWindow.DataContext is ViewModels.MainViewModel viewModel)
+                    if (_restoreState != null && mainWindow.DataContext is ViewModels.MainViewModel viewModel)
                     {
                         Logger.Info("Restoring application state from command-line arguments...");
-                        viewModel.RestoreStateFromArgs(_restoreIsoPath, _restoreDriverPaths);
+                        viewModel.RestoreState(_restoreState);
                     }
 
                     mainWindow.Show();
