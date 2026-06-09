@@ -102,13 +102,13 @@
         <!-- Title -->
         <TextBlock Grid.Row="0" 
                    Text="Windows Image Preparation Tool" 
-                   FontSize="24" 
+                   FontSize="22" 
                    FontWeight="Bold" 
                    Foreground="#0078D4" 
-                   Margin="0,0,0,15"/>
+                   Margin="0,0,0,10"/>
 
         <!-- Unified Drop Zone for ISO and Drivers -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,15">
+        <StackPanel Grid.Row="1" Margin="0,0,0,10">
             <TextBlock Text="1. Select Files:" 
                        FontWeight="Bold"
                        Margin="0,0,0,5"/>
@@ -119,9 +119,9 @@
                     BorderThickness="2"
                     Background="#F8F8F8"
                     CornerRadius="4"
-                    Padding="15"
+                    Padding="12"
                     AllowDrop="True"
-                    MinHeight="120">
+                    MinHeight="100">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -225,20 +225,20 @@
                         <Button Content="📁 Browse for ISO..." 
                                 Command="{Binding BrowseIsoCommand}"
                                 Width="150" 
-                                Height="35"
+                                Height="30"
                                 Margin="0,0,10,0"
-                                FontSize="13"/>
+                                FontSize="12"/>
                         <Button Content="📦 Add Driver Pack(s)..." 
                                 Command="{Binding BrowseDriverSourceCommand}"
                                 Width="170" 
-                                Height="35"
-                                FontSize="13"/>
+                                Height="30"
+                                FontSize="12"/>
                         <Button Content="📁 Add Driver Folder..." 
                                 Command="{Binding BrowseDriverFolderCommand}"
                                 Width="170" 
-                                Height="35"
+                                Height="30"
                                 Margin="10,0,0,0"
-                                FontSize="13"/>
+                                FontSize="12"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -312,43 +312,43 @@
         <!-- Main Action Buttons -->
         <StackPanel Grid.Row="4"
                     Orientation="Horizontal" 
-                    Margin="0,10,0,10" 
+                    Margin="0,5,0,5" 
                     HorizontalAlignment="Center">
             <Button Content="Create USB from ISO" 
                     Command="{Binding CreateUsbFromIsoCommand}"
                     Style="{StaticResource PrimaryButton}"
                     Width="180" 
-                    Height="40" 
+                    Height="35" 
                     Margin="5"
-                    FontSize="13"
+                    FontSize="12"
                     ToolTip="Create bootable USB directly from ISO without driver injection"/>
             <Button Content="Prepare Image with Drivers" 
                     Command="{Binding InjectDriversCommand}"
                     Style="{StaticResource PrimaryButton}"
                     Width="220" 
-                    Height="40" 
+                    Height="35" 
                     Margin="5"
-                    FontSize="13"
+                    FontSize="12"
                     ToolTip="Inject drivers into ISO, then optionally create USB"/>
             <Button Content="Create USB" 
                     Command="{Binding CreateUsbCommand}"
                     Style="{StaticResource PrimaryButton}"
                     Width="140" 
-                    Height="40" 
+                    Height="35" 
                     Margin="5"
-                    FontSize="13"
+                    FontSize="12"
                     ToolTip="Create USB from previously prepared image"/>
             <Button Content="From Saved Image" 
                     Command="{Binding FromSavedImageCommand}"
                     Width="160" 
-                    Height="40" 
+                    Height="35" 
                     Margin="5"
-                    FontSize="13"
+                    FontSize="12"
                     ToolTip="Load a previously saved image"/>
         </StackPanel>
 
         <!-- USB Selection -->
-        <Grid Grid.Row="5" Margin="0,10,0,10">
+        <Grid Grid.Row="5" Margin="0,5,0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -389,8 +389,8 @@
                 BorderBrush="#0078D4" 
                 BorderThickness="1" 
                 Background="#F0F0F0" 
-                Padding="10" 
-                Margin="0,0,0,10">
+                Padding="8" 
+                Margin="0,0,0,8">
             <StackPanel>
                 <TextBlock Text="USB Drive Information:" 
                            FontWeight="Bold" 
@@ -416,34 +416,34 @@
         </Border>
 
         <!-- Overall Progress -->
-        <GroupBox Grid.Row="8" Header="Overall Progress" Padding="10" Margin="0,0,0,5">
+        <GroupBox Grid.Row="8" Header="Overall Progress" Padding="8" Margin="0,0,0,3">
             <StackPanel>
                 <TextBlock Text="{Binding OverallProgressText}" 
                            FontWeight="SemiBold" 
-                           Margin="0,0,0,5"
+                           Margin="0,0,0,3"
                            Foreground="#0078D4"/>
                 <ProgressBar Value="{Binding OverallProgress}" 
-                             Height="24" 
+                             Height="20" 
                              Minimum="0" 
                              Maximum="100"
                              Foreground="#0078D4"/>
                 <TextBlock Text="{Binding OverallProgress, StringFormat={}{0}% Complete}" 
                            HorizontalAlignment="Center" 
-                           FontSize="11" 
-                           Margin="0,3,0,0"
+                           FontSize="10" 
+                           Margin="0,2,0,0"
                            Foreground="Gray"/>
             </StackPanel>
         </GroupBox>
 
         <!-- Current Operation Progress -->
-        <GroupBox Grid.Row="9" Header="Current Operation" Padding="10" Margin="0,0,0,10">
+        <GroupBox Grid.Row="9" Header="Current Operation" Padding="8" Margin="0,0,0,5">
             <StackPanel>
                 <TextBlock Text="{Binding CurrentOperationText}" 
                            FontWeight="SemiBold" 
-                           Margin="0,0,0,5"
+                           Margin="0,0,0,3"
                            Foreground="#107C10"/>
                 <ProgressBar Value="{Binding CurrentOperationProgress}" 
-                             Height="20" 
+                             Height="18" 
                              Minimum="0" 
                              Maximum="100"
                              Foreground="#107C10"/>
@@ -462,7 +462,7 @@
                 <ScrollViewer x:Name="LogScrollViewer"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
-                              Height="150"
+                              Height="200"
                               Padding="0,0,2,2">
                     <ItemsControl ItemsSource="{Binding LogEntries}"
                                   x:Name="LogItemsControl">

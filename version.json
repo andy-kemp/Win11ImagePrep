@@ -1,6 +1,6 @@
 {
-  "version": "5.8.2",
+  "version": "5.8.3",
   "updaterVersion": "1.6.0",
   "releaseDate": "2026-06-09",
-  "releaseNotes": "📐 Optimized window height (950px) for Surface devices - no more off-screen content!"
+  "releaseNotes": "🔧 Optimized layout: Operation log increased to 200px height, compact margins throughout for better Surface experience"
 }
