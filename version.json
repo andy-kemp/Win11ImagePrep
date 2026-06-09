@@ -1,6 +1,6 @@
 {
-  "version": "5.7.0",
+  "version": "5.8.0",
   "updaterVersion": "1.6.0",
-  "releaseDate": "2026-06-07",
-  "releaseNotes": "🔧 Fixed Autopilot deployment: Autopilot mode now allows full OOBE flow so Azure AD enrollment works correctly and company branding/restrictions are applied"
+  "releaseDate": "2026-06-09",
+  "releaseNotes": "🎯 Just-in-time elevation: App runs as normal user, drag-and-drop now works! 📦 Multiple driver pack support: Add Surface Pro 6, 7, 8 drivers to one image. Generic 'Windows Image Preparation Tool' title."
 }
