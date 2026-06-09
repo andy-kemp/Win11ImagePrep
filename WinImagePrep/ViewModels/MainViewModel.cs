@@ -48,8 +48,12 @@ namespace WinImagePrep.ViewModels
             // Initialize commands
             BrowseIsoCommand = new RelayCommand(BrowseIso);
             VerifyIsoCommand = new RelayCommand(VerifyIso, () => !string.IsNullOrEmpty(SelectedIsoPath));
+            ClearIsoCommand = new RelayCommand(ClearIso, () => !string.IsNullOrEmpty(SelectedIsoPath));
             BrowseMsiCommand = new RelayCommand(BrowseMsi);
             BrowseDriverSourceCommand = new RelayCommand(BrowseDriverSource);
+            BrowseDriverFolderCommand = new RelayCommand(BrowseDriverFolder);
+            RemoveDriverSourceCommand = new RelayCommand<DriverSourceInfo>(RemoveDriverSource);
+            ClearDriverSourceCommand = new RelayCommand(ClearDriverSource, () => !string.IsNullOrEmpty(SelectedDriverSourcePath));
             SelectEditionsCommand = new RelayCommand(SelectEditions, () => !string.IsNullOrEmpty(SelectedIsoPath));
             SelectAppsToRemoveCommand = new RelayCommand(SelectAppsToRemove, () => WindowsApps?.Count > 0);
             LoadAppsCommand = new RelayCommand(async () => await LoadAppsAsync(), () => !IsProcessing);
@@ -79,6 +83,7 @@ namespace WinImagePrep.ViewModels
             LogEntries = new ObservableCollection<string>();
             UsbDrives = new ObservableCollection<UsbDriveInfo>();
             WindowsApps = new ObservableCollection<WindowsApp>();
+            DriverSources = new ObservableCollection<DriverSourceInfo>();
 
             // Load initial USB drives
             RefreshUsbDrives();
@@ -89,7 +94,7 @@ namespace WinImagePrep.ViewModels
             // Load saved unattended install settings
             EnableUnattendedInstall = settings.EnableUnattendedInstall;
 
-            AddLog("Windows Image Preparation Tool V4 - Ready");
+            AddLog("Windows Image Preparation Tool - Ready");
             AddLog("NEW: Windows app removal + Edition selection features");
             AddLog("Please select a Windows ISO and driver source to begin");
         }
@@ -101,7 +106,7 @@ namespace WinImagePrep.ViewModels
             get
             {
                 var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                return $"WinImagePrep v{version?.Major}.{version?.Minor}.{version?.Build}";
+                return $"Windows Image Preparation Tool v{version?.Major}.{version?.Minor}.{version?.Build}";
             }
         }
 
@@ -114,9 +119,12 @@ namespace WinImagePrep.ViewModels
                 if (SetProperty(ref _selectedIsoPath, value))
                 {
                     OnPropertyChanged(nameof(CanExecuteInject));
+                    OnPropertyChanged(nameof(HasIsoPath));
                 }
             }
         }
+
+        public bool HasIsoPath => !string.IsNullOrEmpty(SelectedIsoPath);
 
         private string _isoVolumeLabel = "WIN11USB";
         public string IsoVolumeLabel
@@ -142,7 +150,13 @@ namespace WinImagePrep.ViewModels
         public DriverSourceType DriverSourceType
         {
             get => _driverSourceType;
-            set => SetProperty(ref _driverSourceType, value);
+            set
+            {
+                if (SetProperty(ref _driverSourceType, value))
+                {
+                    OnPropertyChanged(nameof(DriverSourceTypeLabel));
+                }
+            }
         }
 
         public bool IsDriverSourceMsi
@@ -174,7 +188,22 @@ namespace WinImagePrep.ViewModels
                     // Also update SelectedMsiPath for backward compatibility
                     SelectedMsiPath = value;
                     OnPropertyChanged(nameof(CanExecuteInject));
+                    OnPropertyChanged(nameof(HasDriverSourcePath));
+                    OnPropertyChanged(nameof(DriverSourceTypeLabel));
                 }
+            }
+        }
+
+        public bool HasDriverSourcePath => !string.IsNullOrEmpty(SelectedDriverSourcePath);
+
+        public string DriverSourceTypeLabel
+        {
+            get
+            {
+                if (IsDriverSourceMsi) return "(MSI)";
+                if (IsDriverSourceZip) return "(ZIP)";
+                if (IsDriverSourceFolder) return "(Folder)";
+                return "";
             }
         }
 
@@ -336,6 +365,9 @@ namespace WinImagePrep.ViewModels
         public ObservableCollection<string> LogEntries { get; }
         public ObservableCollection<UsbDriveInfo> UsbDrives { get; }
         public ObservableCollection<WindowsApp> WindowsApps { get; }
+        public ObservableCollection<DriverSourceInfo> DriverSources { get; }
+
+        public bool HasDriverSources => DriverSources.Count > 0;
 
         #endregion
 
@@ -343,8 +375,12 @@ namespace WinImagePrep.ViewModels
 
         public ICommand BrowseIsoCommand { get; }
         public ICommand VerifyIsoCommand { get; }
+        public ICommand ClearIsoCommand { get; }
         public ICommand BrowseMsiCommand { get; }
         public ICommand BrowseDriverSourceCommand { get; }
+        public ICommand BrowseDriverFolderCommand { get; }
+        public ICommand RemoveDriverSourceCommand { get; }
+        public ICommand ClearDriverSourceCommand { get; }
         public ICommand SelectEditionsCommand { get; }
         public ICommand SelectAppsToRemoveCommand { get; }
         public ICommand LoadAppsCommand { get; }
@@ -387,6 +423,12 @@ namespace WinImagePrep.ViewModels
                 SelectedIsoPath = dialog.FileName;
                 AddLog($"Selected ISO: {Path.GetFileName(dialog.FileName)}");
             }
+        }
+
+        private void ClearIso()
+        {
+            SelectedIsoPath = string.Empty;
+            AddLog("ISO file removed");
         }
 
         private async void VerifyIso()
@@ -444,47 +486,84 @@ namespace WinImagePrep.ViewModels
 
         private void BrowseDriverSource()
         {
-            switch (DriverSourceType)
+            // Show dialog to select multiple driver packs - for now just one at a time
+            var dialog = new OpenFileDialog
             {
-                case DriverSourceType.Msi:
-                    var msiDialog = new OpenFileDialog
-                    {
-                        Filter = "MSI Files (*.msi)|*.msi|All Files (*.*)|*.*",
-                        Title = "Select Driver MSI File"
-                    };
-                    if (msiDialog.ShowDialog() == true)
-                    {
-                        SelectedDriverSourcePath = msiDialog.FileName;
-                        AddLog($"Selected MSI: {Path.GetFileName(msiDialog.FileName)}");
-                    }
-                    break;
+                Filter = "Driver Packs (*.msi;*.zip)|*.msi;*.zip|MSI Files (*.msi)|*.msi|ZIP Files (*.zip)|*.zip|All Files (*.*)|*.*",
+                Title = "Select Driver Pack(s)",
+                Multiselect = true
+            };
 
-                case DriverSourceType.Folder:
-                    var folderDialog = new System.Windows.Forms.FolderBrowserDialog
+            if (dialog.ShowDialog() == true)
+            {
+                foreach (var file in dialog.FileNames)
+                {
+                    var ext = Path.GetExtension(file).ToLowerInvariant();
+                    DriverSourceType type = ext switch
                     {
-                        Description = "Select Driver Folder",
-                        ShowNewFolderButton = false
+                        ".msi" => DriverSourceType.Msi,
+                        ".zip" => DriverSourceType.Zip,
+                        _ => DriverSourceType.Folder
                     };
-                    if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                    {
-                        SelectedDriverSourcePath = folderDialog.SelectedPath;
-                        AddLog($"Selected folder: {folderDialog.SelectedPath}");
-                    }
-                    break;
 
-                case DriverSourceType.Zip:
-                    var zipDialog = new OpenFileDialog
+                    var driverSource = new DriverSourceInfo
                     {
-                        Filter = "ZIP Files (*.zip)|*.zip|All Files (*.*)|*.*",
-                        Title = "Select Driver ZIP File"
+                        Path = file,
+                        Type = type
                     };
-                    if (zipDialog.ShowDialog() == true)
-                    {
-                        SelectedDriverSourcePath = zipDialog.FileName;
-                        AddLog($"Selected ZIP: {Path.GetFileName(zipDialog.FileName)}");
-                    }
-                    break;
+
+                    DriverSources.Add(driverSource);
+                    AddLog($"📦 Added driver pack: {driverSource.DisplayName} ({driverSource.TypeLabel})");
+                }
+
+                OnPropertyChanged(nameof(HasDriverSources));
+                OnPropertyChanged(nameof(CanExecuteInject));
             }
+        }
+
+        private void BrowseDriverFolder()
+        {
+            var folderDialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = "Select Driver Folder",
+                ShowNewFolderButton = false
+            };
+
+            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var driverSource = new DriverSourceInfo
+                {
+                    Path = folderDialog.SelectedPath,
+                    Type = DriverSourceType.Folder
+                };
+
+                DriverSources.Add(driverSource);
+                AddLog($"📁 Added driver folder: {driverSource.DisplayName}");
+
+                OnPropertyChanged(nameof(HasDriverSources));
+                OnPropertyChanged(nameof(CanExecuteInject));
+            }
+        }
+
+        private void RemoveDriverSource(DriverSourceInfo? driverSource)
+        {
+            if (driverSource != null && DriverSources.Contains(driverSource))
+            {
+                DriverSources.Remove(driverSource);
+                AddLog($"🗑️ Removed driver pack: {driverSource.DisplayName}");
+
+                OnPropertyChanged(nameof(HasDriverSources));
+                OnPropertyChanged(nameof(CanExecuteInject));
+            }
+        }
+
+        private void ClearDriverSource()
+        {
+            SelectedDriverSourcePath = string.Empty;
+            IsDriverSourceMsi = false;
+            IsDriverSourceFolder = false;
+            IsDriverSourceZip = false;
+            AddLog("Driver source removed");
         }
 
         private async void SelectEditions()
@@ -855,9 +934,8 @@ namespace WinImagePrep.ViewModels
         {
             return !IsProcessing &&
                    !string.IsNullOrEmpty(SelectedIsoPath) &&
-                   !string.IsNullOrEmpty(SelectedMsiPath) &&
-                   File.Exists(SelectedIsoPath) &&
-                   File.Exists(SelectedMsiPath);
+                   HasDriverSources &&
+                   File.Exists(SelectedIsoPath);
         }
 
         private bool CanCreateUsbFromIso()
@@ -1202,40 +1280,51 @@ namespace WinImagePrep.ViewModels
                     return;
                 }
 
-                // Extract drivers
+                // Prepare driver sources
                 OverallProgress = 25;
-                OverallProgressText = "Step 2/6: Extracting drivers from MSI...";
-                CurrentOperationText = "Extracting drivers from MSI...";
+                OverallProgressText = $"Step 2/6: Preparing {DriverSources.Count} driver source(s)...";
+                CurrentOperationText = $"Validating {DriverSources.Count} driver source(s)...";
                 CurrentOperationProgress = 0;
-                AddLog("Extracting drivers from MSI...");
-                var driversExtracted = await _driverService.ExtractDriverMsiAsync(
-                    SelectedMsiPath,
-                    _config.DriversDirectory,
-                    new Progress<string>(msg => 
-                    { 
-                        AddLog(msg); 
-                        CurrentOperationText = msg;
-                        CurrentOperationProgress = 50;
-                    }),
-                    _cancellationTokenSource.Token);
+                AddLog($"Preparing {DriverSources.Count} driver source(s)...");
 
-                if (!driversExtracted)
+                // Validate all driver sources exist
+                int validSources = 0;
+                foreach (var source in DriverSources)
                 {
-                    AddLog("✗ Failed to extract drivers");
+                    if (source.Type == DriverSourceType.Folder)
+                    {
+                        if (Directory.Exists(source.Path))
+                        {
+                            validSources++;
+                            AddLog($"  ✓ Valid folder: {source.DisplayName}");
+                        }
+                        else
+                        {
+                            AddLog($"  ✗ Folder not found: {source.Path}");
+                        }
+                    }
+                    else // MSI or ZIP
+                    {
+                        if (File.Exists(source.Path))
+                        {
+                            validSources++;
+                            AddLog($"  ✓ Valid {source.TypeLabel}: {source.DisplayName}");
+                        }
+                        else
+                        {
+                            AddLog($"  ✗ File not found: {source.Path}");
+                        }
+                    }
+                }
+
+                if (validSources == 0)
+                {
+                    AddLog("✗ No valid driver sources found");
                     return;
                 }
 
-                // Validate drivers
+                AddLog($"✓ Found {validSources}/{DriverSources.Count} valid driver source(s)");
                 OverallProgress = 30;
-                OverallProgressText = "Step 3/6: Validating drivers...";
-                var driverValidation = _driverService.ValidateDrivers(_config.DriversDirectory);
-                if (!driverValidation.IsValid)
-                {
-                    AddLog($"✗ Driver validation failed: {driverValidation.Message}");
-                    return;
-                }
-
-                AddLog($"✓ Found {driverValidation.DriverCount} driver(s)");
 
                 // Inject drivers into WinPE and Setup
                 OverallProgress = 40;
@@ -1424,12 +1513,9 @@ namespace WinImagePrep.ViewModels
 
             CurrentOperationText = "Adding drivers to WinPE...";
             CurrentOperationProgress = 50;
-            await _dismService.AddDriversAsync(mountPE, _config.DriversDirectory, new Progress<string>(msg => 
-            { 
-                AddLog(msg); 
-                CurrentOperationText = msg;
-                CurrentOperationProgress = 75;
-            }), cancellationToken);
+
+            // Inject drivers from all driver sources
+            await InjectAllDriverSourcesAsync(mountPE, cancellationToken);
 
             CurrentOperationText = "Unmounting WinPE...";
             await _dismService.UnmountWimAsync(mountPE, true, new Progress<string>(msg => 
@@ -1454,12 +1540,9 @@ namespace WinImagePrep.ViewModels
 
             CurrentOperationText = "Adding drivers to Windows Setup...";
             CurrentOperationProgress = 50;
-            await _dismService.AddDriversAsync(mountSetup, _config.DriversDirectory, new Progress<string>(msg => 
-            { 
-                AddLog(msg); 
-                CurrentOperationText = msg;
-                CurrentOperationProgress = 75;
-            }), cancellationToken);
+
+            // Inject drivers from all driver sources
+            await InjectAllDriverSourcesAsync(mountSetup, cancellationToken);
 
             CurrentOperationText = "Unmounting Windows Setup...";
             await _dismService.UnmountWimAsync(mountSetup, true, new Progress<string>(msg => 
@@ -1503,11 +1586,9 @@ namespace WinImagePrep.ViewModels
 
                 CurrentOperationText = $"Adding drivers to {editionName} ({editionCount}/{totalEditions})...";
                 CurrentOperationProgress = 40;
-                await _dismService.AddDriversAsync(mountPath, _config.DriversDirectory, new Progress<string>(msg => 
-                { 
-                    AddLog(msg); 
-                    CurrentOperationText = msg;
-                }), cancellationToken);
+
+                // Inject drivers from all driver sources
+                await InjectAllDriverSourcesAsync(mountPath, cancellationToken);
 
                 // Remove Windows apps if option is enabled
                 if (RemoveWindowsApps)
@@ -1550,11 +1631,9 @@ namespace WinImagePrep.ViewModels
 
                     CurrentOperationText = $"Adding drivers to WinRE for {editionName}...";
                     CurrentOperationProgress = 70;
-                    await _dismService.AddDriversAsync(mountWinRE, _config.DriversDirectory, new Progress<string>(msg => 
-                    { 
-                        AddLog(msg); 
-                        CurrentOperationText = msg;
-                    }), cancellationToken);
+
+                    // Inject drivers from all driver sources
+                    await InjectAllDriverSourcesAsync(mountWinRE, cancellationToken);
 
                     CurrentOperationText = $"Unmounting WinRE for {editionName}...";
                     CurrentOperationProgress = 80;
@@ -1575,6 +1654,98 @@ namespace WinImagePrep.ViewModels
 
                 CurrentOperationProgress = 100;
             }
+        }
+
+        /// <summary>
+        /// Inject drivers from all driver sources (MSI, ZIP, folders) into a mounted image
+        /// </summary>
+        private async Task InjectAllDriverSourcesAsync(string mountPath, CancellationToken cancellationToken)
+        {
+            if (!DriverSources.Any())
+            {
+                AddLog("⚠ No driver sources configured");
+                return;
+            }
+
+            AddLog($"Injecting drivers from {DriverSources.Count} driver pack(s)...");
+
+            int sourceCount = 0;
+            foreach (var driverSource in DriverSources)
+            {
+                sourceCount++;
+                AddLog($"[{sourceCount}/{DriverSources.Count}] Processing: {driverSource.DisplayName} ({driverSource.TypeLabel})");
+
+                string? driverPath = null;
+
+                try
+                {
+                    // Prepare driver path based on source type
+                    switch (driverSource.Type)
+                    {
+                        case DriverSourceType.Msi:
+                            var msiTempPath = Path.Combine(_config.DriversDirectory, $"MSI_Extract_{sourceCount}");
+                            FileSystemHelper.EnsureDirectoryExists(msiTempPath);
+
+                            AddLog($"  Extracting MSI: {driverSource.DisplayName}...");
+                            var msiExtracted = await _driverService.ExtractDriverMsiAsync(
+                                driverSource.Path,
+                                msiTempPath,
+                                new Progress<string>(msg => AddLog($"    {msg}")),
+                                cancellationToken);
+
+                            if (msiExtracted)
+                            {
+                                driverPath = msiTempPath;
+                            }
+                            break;
+
+                        case DriverSourceType.Zip:
+                            var zipTempPath = Path.Combine(_config.DriversDirectory, $"ZIP_Extract_{sourceCount}");
+                            FileSystemHelper.EnsureDirectoryExists(zipTempPath);
+
+                            AddLog($"  Extracting ZIP: {driverSource.DisplayName}...");
+                            var zipExtracted = await _driverService.ExtractDriverZipAsync(
+                                driverSource.Path,
+                                zipTempPath,
+                                new Progress<string>(msg => AddLog($"    {msg}")),
+                                cancellationToken);
+
+                            if (zipExtracted)
+                            {
+                                driverPath = zipTempPath;
+                            }
+                            break;
+
+                        case DriverSourceType.Folder:
+                            driverPath = driverSource.Path;
+                            AddLog($"  Using folder: {driverSource.DisplayName}");
+                            break;
+                    }
+
+                    // Inject drivers if path is valid
+                    if (!string.IsNullOrEmpty(driverPath) && Directory.Exists(driverPath))
+                    {
+                        AddLog($"  Injecting drivers from: {driverPath}");
+                        await _dismService.AddDriversAsync(
+                            mountPath,
+                            driverPath,
+                            new Progress<string>(msg => AddLog($"    {msg}")),
+                            cancellationToken);
+                        AddLog($"  ✓ Completed: {driverSource.DisplayName}");
+                    }
+                    else
+                    {
+                        AddLog($"  ✗ Failed to prepare driver source: {driverSource.DisplayName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"  ✗ Error processing {driverSource.DisplayName}: {ex.Message}");
+                    // Continue with next driver source rather than failing completely
+                }
+            }
+
+            AddLog($"✓ All driver packs processed ({DriverSources.Count} total)");
         }
 
         private async Task DeleteUnselectedEditionsAsync(CancellationToken cancellationToken)
@@ -3227,5 +3398,42 @@ namespace WinImagePrep.ViewModels
 
         public bool CanExecute(object? parameter) => _canExecute?.Invoke() ?? true;
         public void Execute(object? parameter) => _execute();
+    }
+
+    // Generic RelayCommand implementation
+    public class RelayCommand<T> : ICommand
+    {
+        private readonly Action<T?> _execute;
+        private readonly Func<T?, bool>? _canExecute;
+
+        public RelayCommand(Action<T?> execute, Func<T?, bool>? canExecute = null)
+        {
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _canExecute = canExecute;
+        }
+
+        public event EventHandler? CanExecuteChanged
+        {
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
+        }
+
+        public bool CanExecute(object? parameter)
+        {
+            if (_canExecute == null) return true;
+            if (parameter is T typedParam)
+                return _canExecute(typedParam);
+            if (parameter == null && default(T) == null)
+                return _canExecute(default(T));
+            return false;
+        }
+
+        public void Execute(object? parameter)
+        {
+            if (parameter is T typedParam)
+                _execute(typedParam);
+            else if (parameter == null && default(T) == null)
+                _execute(default(T));
+        }
     }
 }

@@ -4,8 +4,8 @@
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
 	<security>
 	  <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
-		<!-- Request administrator privileges -->
-		<requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+		<!-- Run as normal user, elevate only when needed for DISM operations -->
+		<requestedExecutionLevel level="asInvoker" uiAccess="false" />
 	  </requestedPrivileges>
 	</security>
   </trustInfo>
@@ -16,4 +16,14 @@
 	  <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
 	</application>
   </compatibility>
+
+  <!-- Enable drag-and-drop from non-elevated File Explorer -->
+  <asmv3:application xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+	<asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">
+	  <dpiAware>true</dpiAware>
+	</asmv3:windowsSettings>
+	<asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
+	  <dpiAwareness>PerMonitorV2</dpiAwareness>
+	</asmv3:windowsSettings>
+  </asmv3:application>
 </assembly>

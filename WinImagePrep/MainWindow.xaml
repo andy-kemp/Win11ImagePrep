@@ -6,12 +6,13 @@
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
         Width="920"
-        Height="950"
+        Height="1050"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="920"
-        MinHeight="900"
-        Background="White">
+        MinHeight="1000"
+        Background="White"
+        AllowDrop="True">
 
     <DockPanel>
         <!-- Menu Bar -->
@@ -77,9 +78,7 @@
             <RowDefinition Height="Auto"/>
             <!-- Title -->
             <RowDefinition Height="Auto"/>
-            <!-- ISO -->
-            <RowDefinition Height="Auto"/>
-            <!-- MSI -->
+            <!-- Unified Drop Zone for ISO & Drivers -->
             <RowDefinition Height="Auto"/>
             <!-- Windows Apps Removal -->
             <RowDefinition Height="Auto"/>
@@ -102,89 +101,152 @@
 
         <!-- Title -->
         <TextBlock Grid.Row="0" 
-                   Text="Windows 11 Image Preparation Tool" 
+                   Text="Windows Image Preparation Tool" 
                    FontSize="24" 
                    FontWeight="Bold" 
                    Foreground="#0078D4" 
                    Margin="0,0,0,15"/>
 
-        <!-- ISO Selection -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="1. Select Windows ISO:" 
-                       VerticalAlignment="Center" 
-                       Width="180" 
-                       FontWeight="Bold"/>
-            <TextBox x:Name="IsoTextBox"
-                     Text="{Binding SelectedIsoPath}" 
-                     Width="420" 
-                     IsReadOnly="True" 
-                     Margin="5,0,0,0" 
-                     Height="26"
-                     AllowDrop="True"
-                     ToolTip="Drag and drop an ISO file here, or click Browse..."/>
-            <Button Content="Browse..." 
-                    Command="{Binding BrowseIsoCommand}"
-                    Margin="5,0,0,0" 
-                    Width="90" 
-                    Height="26"/>
-            <Button Content="Verify" 
-                    Command="{Binding VerifyIsoCommand}"
-                    Margin="5,0,0,0" 
-                    Width="90" 
-                    Height="26"
-                    Background="#0078D4"
-                    Foreground="White"/>
-        </StackPanel>
+        <!-- Unified Drop Zone for ISO and Drivers -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,15">
+            <TextBlock Text="1. Select Files:" 
+                       FontWeight="Bold"
+                       Margin="0,0,0,5"/>
 
-        <!-- Driver Source Selection -->
-        <StackPanel Grid.Row="2" Margin="0,0,0,10">
-            <!-- Driver Source Type -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                <TextBlock Text="2. Select Driver Source:" 
-                           VerticalAlignment="Center" 
-                           Width="180" 
-                           FontWeight="Bold"/>
-                <RadioButton Content="MSI File" 
-                             IsChecked="{Binding IsDriverSourceMsi}"
-                             GroupName="DriverSource"
-                             Margin="5,0,15,0"
-                             VerticalAlignment="Center"/>
-                <RadioButton Content="Folder" 
-                             IsChecked="{Binding IsDriverSourceFolder}"
-                             GroupName="DriverSource"
-                             Margin="0,0,15,0"
-                             VerticalAlignment="Center"/>
-                <RadioButton Content="ZIP File" 
-                             IsChecked="{Binding IsDriverSourceZip}"
-                             GroupName="DriverSource"
-                             Margin="0,0,0,0"
-                             VerticalAlignment="Center"/>
-            </StackPanel>
+            <!-- Drop Zone with Browse Buttons -->
+            <Border x:Name="DropZone"
+                    BorderBrush="#0078D4"
+                    BorderThickness="2"
+                    Background="#F8F8F8"
+                    CornerRadius="4"
+                    Padding="15"
+                    AllowDrop="True"
+                    MinHeight="120">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-            <!-- Driver Source Path -->
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="" 
-                           VerticalAlignment="Center" 
-                           Width="180"/>
-                <TextBox x:Name="DriverSourceTextBox"
-                         Text="{Binding SelectedDriverSourcePath}" 
-                         Width="420" 
-                         IsReadOnly="True" 
-                         Margin="5,0,0,0" 
-                         Height="26"
-                         AllowDrop="True"
-                         ToolTip="Drag and drop an MSI or ZIP file here, or click Browse..."/>
-                <Button Content="Browse..." 
-                        Command="{Binding BrowseDriverSourceCommand}"
-                        Margin="5,0,0,0" 
-                        Width="90" 
-                        Height="26"/>
-            </StackPanel>
+                    <!-- Drop Zone Instructions -->
+                    <TextBlock Grid.Row="0"
+                               Text="📁 Drag files here or use Browse buttons below"
+                               HorizontalAlignment="Center"
+                               Foreground="#666"
+                               FontStyle="Italic"
+                               FontSize="13"
+                               Margin="0,5,0,15"/>
+
+                    <!-- ISO File Display -->
+                    <StackPanel Grid.Row="1" 
+                                Orientation="Horizontal" 
+                                Margin="0,0,0,8"
+                                Visibility="{Binding HasIsoPath, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="ISO:" 
+                                   FontWeight="Bold"
+                                   Width="60"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding SelectedIsoPath}" 
+                                   TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center"
+                                   Width="600"
+                                   ToolTip="{Binding SelectedIsoPath}"/>
+                        <Button Content="❌" 
+                                Command="{Binding ClearIsoCommand}"
+                                Width="28" 
+                                Height="28"
+                                Margin="10,0,0,0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="Red"
+                                FontSize="14"
+                                ToolTip="Remove ISO"
+                                Cursor="Hand"/>
+                        <Button Content="✓" 
+                                Command="{Binding VerifyIsoCommand}"
+                                Width="28" 
+                                Height="28"
+                                Margin="5,0,0,0"
+                                Background="#0078D4"
+                                BorderThickness="0"
+                                Foreground="White"
+                                FontSize="14"
+                                ToolTip="Verify ISO"
+                                Cursor="Hand"/>
+                    </StackPanel>
+
+                    <!-- Driver Packs List -->
+                    <ItemsControl Grid.Row="2" 
+                                  ItemsSource="{Binding DriverSources}"
+                                  Margin="0,0,0,8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <TextBlock Text="Drivers:" 
+                                               FontWeight="Bold"
+                                               Width="60"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Path}" 
+                                               TextWrapping="NoWrap"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"
+                                               Width="600"
+                                               ToolTip="{Binding Path}"/>
+                                    <Button Content="❌" 
+                                            Command="{Binding DataContext.RemoveDriverSourceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            Width="28" 
+                                            Height="28"
+                                            Margin="10,0,0,0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Foreground="Red"
+                                            FontSize="14"
+                                            ToolTip="Remove driver pack"
+                                            Cursor="Hand"/>
+                                    <TextBlock Text="{Binding FullDisplayText}" 
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0"
+                                               FontStyle="Italic"
+                                               Foreground="#666"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Browse Buttons -->
+                    <StackPanel Grid.Row="3" 
+                                Orientation="Horizontal" 
+                                HorizontalAlignment="Center"
+                                Margin="0,10,0,5">
+                        <Button Content="📁 Browse for ISO..." 
+                                Command="{Binding BrowseIsoCommand}"
+                                Width="150" 
+                                Height="35"
+                                Margin="0,0,10,0"
+                                FontSize="13"/>
+                        <Button Content="📦 Add Driver Pack(s)..." 
+                                Command="{Binding BrowseDriverSourceCommand}"
+                                Width="170" 
+                                Height="35"
+                                FontSize="13"/>
+                        <Button Content="📁 Add Driver Folder..." 
+                                Command="{Binding BrowseDriverFolderCommand}"
+                                Width="170" 
+                                Height="35"
+                                Margin="10,0,0,0"
+                                FontSize="13"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
         </StackPanel>
 
         <!-- Windows Apps Removal Button -->
-        <StackPanel Grid.Row="3" Orientation="Vertical" Margin="0,5,0,10">
-            <TextBlock Text="3. Remove Windows Apps (Optional):" 
+        <StackPanel Grid.Row="2" Orientation="Vertical" Margin="0,5,0,10">
+            <TextBlock Text="2. Remove Windows Apps (Optional):"
                        FontWeight="Bold"
                        Margin="0,0,0,5"/>
             <StackPanel Orientation="Horizontal">
@@ -217,10 +279,10 @@
         </StackPanel>
 
         <!-- Unattended Installation Section -->
-        <StackPanel Grid.Row="4" Margin="0,15,0,10">
+        <StackPanel Grid.Row="3" Margin="0,15,0,10">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                 <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                <TextBlock Text="Unattended Installation"
+                <TextBlock Text="3. Unattended Installation"
                            FontSize="14"
                            FontWeight="Bold"
                            VerticalAlignment="Center"/>
@@ -248,7 +310,7 @@
         </StackPanel>
 
         <!-- Main Action Buttons -->
-        <StackPanel Grid.Row="5"
+        <StackPanel Grid.Row="4"
                     Orientation="Horizontal" 
                     Margin="0,10,0,10" 
                     HorizontalAlignment="Center">
@@ -286,7 +348,7 @@
         </StackPanel>
 
         <!-- USB Selection -->
-        <Grid Grid.Row="6" Margin="0,10,0,10">
+        <Grid Grid.Row="5" Margin="0,10,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -323,7 +385,7 @@
         </Grid>
 
         <!-- USB Drive Information -->
-        <Border Grid.Row="7"
+        <Border Grid.Row="6"
                 BorderBrush="#0078D4" 
                 BorderThickness="1" 
                 Background="#F0F0F0" 
@@ -339,7 +401,7 @@
         </Border>
 
         <!-- Warning Banner -->
-        <Border Grid.Row="8"
+        <Border Grid.Row="7"
                 BorderBrush="#E81123" 
                 BorderThickness="2" 
                 Background="#FFF4CE" 
@@ -354,7 +416,7 @@
         </Border>
 
         <!-- Overall Progress -->
-        <GroupBox Grid.Row="9" Header="Overall Progress" Padding="10" Margin="0,0,0,5">
+        <GroupBox Grid.Row="8" Header="Overall Progress" Padding="10" Margin="0,0,0,5">
             <StackPanel>
                 <TextBlock Text="{Binding OverallProgressText}" 
                            FontWeight="SemiBold" 
@@ -374,7 +436,7 @@
         </GroupBox>
 
         <!-- Current Operation Progress -->
-        <GroupBox Grid.Row="10" Header="Current Operation" Padding="10" Margin="0,0,0,10">
+        <GroupBox Grid.Row="9" Header="Current Operation" Padding="10" Margin="0,0,0,10">
             <StackPanel>
                 <TextBlock Text="{Binding CurrentOperationText}" 
                            FontWeight="SemiBold" 
