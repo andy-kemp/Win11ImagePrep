@@ -6,11 +6,11 @@
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
         Width="920"
-        Height="1050"
+        Height="950"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="920"
-        MinHeight="1000"
+        MinHeight="950"
         Background="White"
         AllowDrop="True">
 
