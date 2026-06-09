@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using WinImagePrep.Helpers;
@@ -12,12 +16,17 @@ namespace WinImagePrep
         private SplashScreen? _splashScreen;
         private ISettingsService? _settingsService;
         private AppSettings? _appSettings;
+        private string? _restoreIsoPath;
+        private List<string>? _restoreDriverPaths;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             try
             {
                 base.OnStartup(e);
+
+                // Parse command-line arguments for state restoration
+                ParseCommandLineArgs(e.Args);
 
                 // Show splash screen
                 _splashScreen = new SplashScreen();
@@ -60,37 +69,57 @@ namespace WinImagePrep
             }
         }
 
-        private async Task InitializeApplicationAsync()
+        /// <summary>
+        /// Parse command-line arguments for state restoration after elevation
+        /// </summary>
+        private void ParseCommandLineArgs(string[] args)
         {
-            // Check for administrator privileges (WARNING ONLY)
-            await Dispatcher.InvokeAsync(() =>
+            try
             {
-                _splashScreen?.UpdateStatus("Checking permissions...");
-            });
-
-            if (!AdminHelper.IsRunningAsAdministrator())
-            {
-                var continueStartup = false;
-                await Dispatcher.InvokeAsync(() =>
+                for (int i = 0; i < args.Length; i++)
                 {
-                    var result = MessageBox.Show(
-                        "WARNING: This application is not running with administrator privileges.\n\n" +
-                        "Some features may not work correctly without admin rights.\n\n" +
-                        "Do you want to continue anyway?",
-                        "Administrator Rights Warning",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Warning);
-
-                    continueStartup = result == MessageBoxResult.Yes;
-                });
-
-                if (!continueStartup)
-                {
-                    await Dispatcher.InvokeAsync(() => Current.Shutdown());
-                    return;
+                    if (args[i] == "--iso" && i + 1 < args.Length)
+                    {
+                        try
+                        {
+                            // Decode base64-encoded JSON ISO path
+                            var base64 = args[i + 1];
+                            var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                            _restoreIsoPath = JsonSerializer.Deserialize<string>(json);
+                            Logger.Info($"Parsed ISO path for restoration: {_restoreIsoPath}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Failed to parse ISO path argument: {ex.Message}");
+                        }
+                        i++; // Skip next arg since we consumed it
+                    }
+                    else if (args[i] == "--drivers" && i + 1 < args.Length)
+                    {
+                        try
+                        {
+                            // Decode base64-encoded JSON driver paths
+                            var base64 = args[i + 1];
+                            var json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                            _restoreDriverPaths = JsonSerializer.Deserialize<List<string>>(json);
+                            Logger.Info($"Parsed {_restoreDriverPaths?.Count ?? 0} driver paths for restoration");
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Failed to parse driver paths argument: {ex.Message}");
+                        }
+                        i++; // Skip next arg since we consumed it
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error parsing command-line arguments: {ex.Message}");
+            }
+        }
 
+        private async Task InitializeApplicationAsync()
+        {
             // Load settings
             await Dispatcher.InvokeAsync(() =>
             {
@@ -379,6 +408,14 @@ namespace WinImagePrep
 
                     var mainWindow = new MainWindow();
                     MainWindow = mainWindow;
+
+                    // Restore state from command-line args if present (after elevation)
+                    if ((_restoreIsoPath != null || _restoreDriverPaths != null) && mainWindow.DataContext is ViewModels.MainViewModel viewModel)
+                    {
+                        Logger.Info("Restoring application state from command-line arguments...");
+                        viewModel.RestoreStateFromArgs(_restoreIsoPath, _restoreDriverPaths);
+                    }
+
                     mainWindow.Show();
                 }
                 catch (Exception ex)

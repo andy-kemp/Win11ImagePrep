@@ -99,6 +99,69 @@ namespace WinImagePrep.ViewModels
             AddLog("Please select a Windows ISO and driver source to begin");
         }
 
+        /// <summary>
+        /// Restore application state from command-line arguments (used after elevation restart)
+        /// </summary>
+        public void RestoreStateFromArgs(string? isoPath, IEnumerable<string>? driverPaths)
+        {
+            try
+            {
+                // Restore ISO path
+                if (!string.IsNullOrEmpty(isoPath) && File.Exists(isoPath))
+                {
+                    SelectedIsoPath = isoPath;
+                    AddLog($"✓ Restored ISO path: {Path.GetFileName(isoPath)}");
+                }
+
+                // Restore driver sources
+                if (driverPaths != null)
+                {
+                    foreach (var driverPath in driverPaths)
+                    {
+                        if (!string.IsNullOrEmpty(driverPath))
+                        {
+                            DriverSourceType sourceType;
+                            if (File.Exists(driverPath))
+                            {
+                                sourceType = Path.GetExtension(driverPath).ToLowerInvariant() switch
+                                {
+                                    ".msi" => DriverSourceType.Msi,
+                                    ".zip" => DriverSourceType.Zip,
+                                    _ => DriverSourceType.Folder
+                                };
+                            }
+                            else if (Directory.Exists(driverPath))
+                            {
+                                sourceType = DriverSourceType.Folder;
+                            }
+                            else
+                            {
+                                continue; // Skip invalid paths
+                            }
+
+                            var driverSource = new DriverSourceInfo
+                            {
+                                Path = driverPath,
+                                Type = sourceType
+                            };
+
+                            DriverSources.Add(driverSource);
+                            AddLog($"✓ Restored driver source: {Path.GetFileName(driverPath)}");
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(isoPath) || (driverPaths?.Any() ?? false))
+                {
+                    AddLog("✓ Application state restored after elevation");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Warning: Failed to restore some state: {ex.Message}");
+            }
+        }
+
         #region Properties
 
         public string WindowTitle
@@ -987,7 +1050,11 @@ namespace WinImagePrep.ViewModels
                 {
                     try
                     {
-                        AdminHelper.RestartAsAdministrator();
+                        // Collect current driver paths to preserve state
+                        var driverPaths = DriverSources?.Select(d => d.Path).Where(p => !string.IsNullOrEmpty(p)).ToList();
+
+                        // Restart with state preservation
+                        AdminHelper.RestartAsAdministrator(SelectedIsoPath, driverPaths);
                     }
                     catch (Exception ex)
                     {
@@ -1955,7 +2022,11 @@ namespace WinImagePrep.ViewModels
 
                 if (adminResult == MessageBoxResult.OK)
                 {
-                    AdminHelper.RestartAsAdministrator();
+                    // Collect current driver paths to preserve state
+                    var driverPaths = DriverSources?.Select(d => d.Path).Where(p => !string.IsNullOrEmpty(p)).ToList();
+
+                    // Restart with state preservation
+                    AdminHelper.RestartAsAdministrator(SelectedIsoPath, driverPaths);
                     Application.Current.Shutdown();
                 }
                 return;
