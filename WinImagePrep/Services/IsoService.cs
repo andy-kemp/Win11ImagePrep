@@ -126,6 +126,23 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// Get total size of a directory (bytes)
+        /// </summary>
+        private long GetDirectorySizeBytes(DirectoryInfo dir)
+        {
+            long size = 0;
+            try
+            {
+                foreach (var file in dir.GetFiles("*.*", SearchOption.AllDirectories))
+                {
+                    try { size += file.Length; } catch { }
+                }
+            }
+            catch { }
+            return size;
+        }
+
+        /// <summary>
         /// Dismount an ISO file
         /// </summary>
         public async Task<bool> DismountIsoAsync(
@@ -435,6 +452,278 @@ namespace WinImagePrep.Services
             }
             catch
             {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Find oscdimg.exe from Windows ADK installation
+        /// </summary>
+        public string? FindOscdimgPath()
+        {
+            // 1) Check explicit override via environment variable
+            var env = Environment.GetEnvironmentVariable("WINIMAGEPREP_OSCDIMG");
+            if (!string.IsNullOrEmpty(env) && File.Exists(env))
+                return env;
+
+            // 2) Check common ADK installation paths
+            var searchPaths = new[]
+            {
+                @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe",
+                @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\x86\Oscdimg\oscdimg.exe",
+                @"C:\Program Files\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe",
+                @"C:\Program Files\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\x86\Oscdimg\oscdimg.exe",
+                @"C:\Program Files (x86)\Windows Kits\11\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe",
+                @"C:\Program Files\Windows Kits\11\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe",
+                // Additional possible subfolders added by some ADK installs
+                @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\arm\Oscdimg\oscdimg.exe",
+                @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\arm64\Oscdimg\oscdimg.exe"
+            };
+
+            foreach (var path in searchPaths)
+            {
+                if (File.Exists(path))
+                    return path;
+            }
+
+            // 3) Search PATH environment for oscdimg.exe
+            var pathEnv = Environment.GetEnvironmentVariable("PATH");
+            if (!string.IsNullOrEmpty(pathEnv))
+            {
+                foreach (var part in pathEnv.Split(';'))
+                {
+                    try
+                    {
+                        var candidate = Path.Combine(part.Trim(), "oscdimg.exe");
+                        if (File.Exists(candidate))
+                            return candidate;
+                    }
+                    catch { }
+                }
+            }
+
+            // 4) Last resort: do a quick probe under Program Files (x86)\Windows Kits
+            try
+            {
+                var kits = new[] { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) };
+                foreach (var root in kits)
+                {
+                    if (string.IsNullOrEmpty(root)) continue;
+                    var candidates = Directory.EnumerateFiles(root, "oscdimg.exe", SearchOption.AllDirectories).Take(5);
+                    var first = candidates.FirstOrDefault();
+                    if (!string.IsNullOrEmpty(first))
+                        return first;
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Create a bootable ISO from a directory using oscdimg
+        /// </summary>
+        public async Task<bool> CreateBootableIsoAsync(
+            string sourceDirectory,
+            string outputIsoPath,
+            string volumeLabel,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                progress?.Report("Searching for oscdimg.exe...");
+
+                var oscdimgPath = FindOscdimgPath();
+                if (string.IsNullOrEmpty(oscdimgPath))
+                {
+                    progress?.Report("✗ oscdimg.exe not found!");
+                    progress?.Report("Please install Windows ADK (Assessment and Deployment Kit)");
+                    progress?.Report("Download from: https://docs.microsoft.com/en-us/windows-hardware/get-started/adk-install");
+                    return false;
+                }
+
+                progress?.Report($"✓ Found oscdimg at: {oscdimgPath}");
+
+                // Validate source directory
+                if (!Directory.Exists(sourceDirectory))
+                {
+                    progress?.Report($"✗ Source directory not found: {sourceDirectory}");
+                    return false;
+                }
+
+                // Check for required boot files
+                var bootDir = Path.Combine(sourceDirectory, "boot");
+                var efiBootDir = Path.Combine(sourceDirectory, "efi", "microsoft", "boot");
+
+                // Check for UEFI boot file (efisys.bin or efisys_noprompt.bin)
+                var efisysPath = Path.Combine(bootDir, "efisys.bin");
+                var efisysNopromptPath = Path.Combine(bootDir, "efisys_noprompt.bin");
+
+                string? bootFile = null;
+                if (File.Exists(efisysPath))
+                {
+                    bootFile = efisysPath;
+                    progress?.Report($"✓ Found UEFI boot file: efisys.bin");
+                }
+                else if (File.Exists(efisysNopromptPath))
+                {
+                    bootFile = efisysNopromptPath;
+                    progress?.Report($"✓ Found UEFI boot file: efisys_noprompt.bin");
+                }
+                else
+                {
+                    progress?.Report($"✗ Boot file not found at: {efisysPath}");
+                    progress?.Report($"✗ Also checked: {efisysNopromptPath}");
+                    progress?.Report($"Boot directory exists: {Directory.Exists(bootDir)}");
+                    if (Directory.Exists(bootDir))
+                    {
+                        var bootFiles = Directory.GetFiles(bootDir);
+                        progress?.Report($"Files in boot directory:");
+                        foreach (var file in bootFiles)
+                        {
+                            progress?.Report($"  - {Path.GetFileName(file)}");
+                        }
+                    }
+                    progress?.Report("The source directory must contain Windows boot files");
+                    return false;
+                }
+
+                // Check for legacy BIOS boot sector (etfsboot.com)
+                var etfsbootPath = Path.Combine(bootDir, "etfsboot.com");
+                if (!File.Exists(etfsbootPath))
+                {
+                    progress?.Report($"⚠ Warning: Legacy BIOS boot file not found: {etfsbootPath}");
+                    progress?.Report($"ISO will be UEFI-only");
+                }
+
+                progress?.Report($"✓ Source directory validated");
+                progress?.Report($"Creating bootable ISO: {Path.GetFileName(outputIsoPath)}");
+                progress?.Report("This may take several minutes...");
+
+                // Ensure output directory exists and is writable
+                var outputDir = Path.GetDirectoryName(outputIsoPath);
+                if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
+                {
+                    Directory.CreateDirectory(outputDir);
+                }
+
+                // Check free disk space on the drive containing the output path
+                try
+                {
+                    var drive = new DriveInfo(Path.GetPathRoot(outputDir ?? Path.GetTempPath()));
+                    // Rough estimate: require at least 1.2x the size of the source directory
+                    long requiredBytes = 0;
+                    try
+                    {
+                        requiredBytes = GetDirectorySizeBytes(new DirectoryInfo(sourceDirectory));
+                    }
+                    catch { requiredBytes = 10L * 1024 * 1024 * 1024; } // fallback 10GB
+
+                    long requiredEstimate = (long)(requiredBytes * 1.2);
+                    progress?.Report($"Checking disk space: available {drive.AvailableFreeSpace / (1024*1024)} MB, required ~{requiredEstimate / (1024*1024)} MB");
+                    if (drive.AvailableFreeSpace < requiredEstimate)
+                    {
+                        progress?.Report("✗ Insufficient disk space for ISO creation");
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"⚠ Warning: Failed to check disk space: {ex.Message}");
+                }
+
+                // Build oscdimg command for UEFI/BIOS hybrid boot
+                // -m = ignore max size limit
+                // -o = optimize storage
+                // -u2 = UDF file system
+                // -udfver102 = UDF version 1.02
+                // -bootdata = boot configuration
+                string arguments;
+
+                if (File.Exists(etfsbootPath))
+                {
+                    // Hybrid UEFI + BIOS boot
+                    //   2 = two boot images
+                    //   #p0 = first boot image (BIOS) 
+                    //   #pEF = second boot image (UEFI)
+                    arguments = $"-m -o -u2 -udfver102 " +
+                        $"-l\"{volumeLabel}\" " +
+                        $"-bootdata:2#p0,e,b\"{etfsbootPath}\"#pEF,e,b\"{bootFile}\" " +
+                        $"\"{sourceDirectory}\" \"{outputIsoPath}\"";
+                    progress?.Report("Creating hybrid UEFI + BIOS bootable ISO");
+                }
+                else
+                {
+                    // UEFI-only boot
+                    arguments = $"-m -o -u2 -udfver102 " +
+                        $"-l\"{volumeLabel}\" " +
+                        $"-bootdata:1#pEF,e,b\"{bootFile}\" " +
+                        $"\"{sourceDirectory}\" \"{outputIsoPath}\"";
+                    progress?.Report("Creating UEFI-only bootable ISO");
+                }
+
+                progress?.Report($"Running oscdimg...");
+                Logger.Info($"oscdimg command: {oscdimgPath} {arguments}");
+
+                var result = await ProcessHelper.ExecuteProcessAsync(oscdimgPath, arguments, cancellationToken);
+
+                // Parse oscdimg output for common errors
+                if (!string.IsNullOrEmpty(result.Error))
+                {
+                    // Common patterns
+                    var stderr = result.Error.ToLowerInvariant();
+                    if (stderr.Contains("access is denied") || stderr.Contains("permission denied") || stderr.Contains("access denied"))
+                    {
+                        progress?.Report("✗ oscdimg reported access denied. Check output path permissions and run as administrator if required.");
+                    }
+                    else if (stderr.Contains("no such file or directory") || stderr.Contains("cannot find the file"))
+                    {
+                        progress?.Report("✗ oscdimg reported missing files. Verify the source directory contains expected boot files.");
+                    }
+                    else if (stderr.Contains("file too large") || stderr.Contains("no space left on device") || stderr.Contains("out of disk space"))
+                    {
+                        progress?.Report("✗ oscdimg reported insufficient disk space. Free up disk or choose another output drive.");
+                    }
+                }
+
+                if (result.Success)
+                {
+                    progress?.Report("✓ ISO created successfully!");
+                    progress?.Report($"Output: {outputIsoPath}");
+
+                    // Verify the ISO was created
+                    if (File.Exists(outputIsoPath))
+                    {
+                        var fileInfo = new FileInfo(outputIsoPath);
+                        var sizeMB = fileInfo.Length / (1024.0 * 1024.0);
+                        progress?.Report($"ISO size: {sizeMB:F2} MB");
+                        return true;
+                    }
+                    else
+                    {
+                        progress?.Report("✗ ISO file was not created");
+                        return false;
+                    }
+                }
+                else
+                {
+                    progress?.Report($"✗ oscdimg failed with exit code {result.ExitCode}");
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        progress?.Report($"Output: {result.Output}");
+                    }
+                    if (!string.IsNullOrEmpty(result.Error))
+                    {
+                        progress?.Report($"Error: {result.Error}");
+                    }
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"✗ Error creating ISO: {ex.Message}");
+                Logger.Error($"CreateBootableIsoAsync exception: {ex}");
                 return false;
             }
         }

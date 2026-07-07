@@ -61,6 +61,7 @@ namespace WinImagePrep.ViewModels
             InjectDriversCommand = new RelayCommand(async () => await InjectDriversAsync(), CanExecuteInject);
             CreateUsbFromIsoCommand = new RelayCommand(async () => await CreateUsbFromIsoAsync(), CanCreateUsbFromIso);
             CreateUsbCommand = new RelayCommand(async () => await CreateUsbAsync(), CanCreateUsb);
+            CreateCustomIsoCommand = new RelayCommand(async () => await CreateCustomIsoAsync(), CanCreateCustomIso);
             FromSavedImageCommand = new RelayCommand(OpenSavedImageDialog);
             RefreshUsbCommand = new RelayCommand(RefreshUsbDrives);
             RepairCleanupCommand = new RelayCommand(RepairCleanup);
@@ -406,8 +407,31 @@ namespace WinImagePrep.ViewModels
                 if (SetProperty(ref _isProcessing, value))
                 {
                     OnPropertyChanged(nameof(CanExecuteInject));
+                // When processing completes, evaluate image-ready state
+                if (!value)
+                {
+                    UpdateImageReadyState();
+                }
                 }
             }
+        }
+
+        private bool _isImageReady;
+        public bool IsImageReady
+        {
+            get => _isImageReady;
+            set => SetProperty(ref _isImageReady, value);
+        }
+
+        private void UpdateImageReadyState()
+        {
+            try
+            {
+                IsImageReady = Directory.Exists(_config.Windows11Directory) &&
+                               (File.Exists(Path.Combine(_config.Windows11Directory, "boot", "efisys.bin")) ||
+                                File.Exists(Path.Combine(_config.Windows11Directory, "boot", "efisys_noprompt.bin")));
+            }
+            catch { IsImageReady = false; }
         }
 
         private int _overallProgress;
@@ -544,6 +568,7 @@ namespace WinImagePrep.ViewModels
         public ICommand InjectDriversCommand { get; }
         public ICommand CreateUsbFromIsoCommand { get; }
         public ICommand CreateUsbCommand { get; }
+        public ICommand CreateCustomIsoCommand { get; }
         public ICommand FromSavedImageCommand { get; }
         public ICommand RefreshUsbCommand { get; }
         public ICommand RepairCleanupCommand { get; }
@@ -861,8 +886,16 @@ namespace WinImagePrep.ViewModels
                 AddLog("✗ ERROR: Administrator privileges required");
                 MessageBox.Show(
                     "This operation requires administrator privileges.\n\n" +
-                    "Please restart the application as Administrator.",
-                    "Administrator Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    "To scan apps from ISO:\n" +
+                    "1. Close this application\n" +
+                    "2. Right-click on WinImagePrep and select 'Run as administrator'\n" +
+                    "3. Your settings and selections will be preserved\n\n" +
+                    "Note: Running as administrator will allow all features to work, " +
+                    "but may affect drag-and-drop from File Explorer. You can use the " +
+                    "Browse buttons or Load Config instead.",
+                    "Administrator Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
 
@@ -1130,39 +1163,24 @@ namespace WinImagePrep.ViewModels
                 return;
             }
 
-            // CRITICAL: Check for administrator privileges
+            // CRITICAL: Check for administrator privileges - auto-restart if needed
             if (!AdminHelper.IsRunningAsAdministrator())
             {
                 AddLog("✗ ERROR: Administrator privileges are required for driver injection!");
-                var result = MessageBox.Show(
-                    "This operation requires administrator privileges.\n\n" +
-                    "The application will now restart with elevated permissions.\n\n" +
-                    "Click OK to restart as administrator, or Cancel to abort.",
-                    "Administrator Rights Required",
-                    MessageBoxButton.OKCancel,
-                    MessageBoxImage.Warning);
+                AddLog("Restarting application as administrator...");
 
-                if (result == MessageBoxResult.OK)
+                // Save current state before restarting
+                var currentState = new AppState
                 {
-                    try
-                    {
-                        // Capture complete application state for preservation
-                        var state = CaptureCurrentState();
+                    IsoPath = SelectedIsoPath,
+                    DriverPaths = DriverSources.Select(d => d.Path).ToList(),
+                    RemoveWindowsApps = RemoveWindowsApps,
+                    SelectedAppsForRemoval = WindowsApps?.Where(a => a.IsSelected).Select(a => a.PackageName).ToList() ?? new List<string>(),
+                    EnableUnattendedInstall = EnableUnattendedInstall
+                };
 
-                        // Restart with state preservation
-                        AdminHelper.RestartAsAdministrator(state);
-                    }
-                    catch (Exception ex)
-                    {
-                        AddLog($"✗ Failed to restart as administrator: {ex.Message}");
-                        MessageBox.Show(
-                            $"Failed to restart as administrator:\n\n{ex.Message}\n\n" +
-                            "Please manually run the application as administrator.",
-                            "Error",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error);
-                    }
-                }
+                AdminHelper.RestartAsAdministrator(currentState);
+                Application.Current.Shutdown();
                 return;
             }
 
@@ -2108,23 +2126,18 @@ namespace WinImagePrep.ViewModels
             if (!AdminHelper.IsRunningAsAdministrator())
             {
                 AddLog("✗ ERROR: Administrator privileges are required for USB creation!");
-                var adminResult = MessageBox.Show(
+                MessageBox.Show(
                     "This operation requires administrator privileges.\n\n" +
-                    "The application will now restart with elevated permissions.\n\n" +
-                    "Click OK to restart as administrator, or Cancel to abort.",
+                    "To create a bootable USB:\n" +
+                    "1. Close this application\n" +
+                    "2. Right-click on WinImagePrep and select 'Run as administrator'\n" +
+                    "3. Your settings and selections will be preserved\n\n" +
+                    "Note: Running as administrator will allow all features to work, " +
+                    "but may affect drag-and-drop from File Explorer. You can use the " +
+                    "Browse buttons or Load Config instead.",
                     "Administrator Required",
-                    MessageBoxButton.OKCancel,
-                    MessageBoxImage.Warning);
-
-                if (adminResult == MessageBoxResult.OK)
-                {
-                    // Capture complete application state for preservation
-                    var state = CaptureCurrentState();
-
-                    // Restart with state preservation
-                    AdminHelper.RestartAsAdministrator(state);
-                    Application.Current.Shutdown();
-                }
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
 
@@ -2268,31 +2281,18 @@ namespace WinImagePrep.ViewModels
             if (!AdminHelper.IsRunningAsAdministrator())
             {
                 AddLog("✗ ERROR: Administrator privileges are required for USB creation!");
-                var adminResult = MessageBox.Show(
+                MessageBox.Show(
                     "This operation requires administrator privileges.\n\n" +
-                    "The application will now restart with elevated permissions.\n\n" +
-                    "Click OK to restart as administrator, or Cancel to abort.",
+                    "To create a bootable USB:\n" +
+                    "1. Close this application\n" +
+                    "2. Right-click on WinImagePrep and select 'Run as administrator'\n" +
+                    "3. Your settings and selections will be preserved\n\n" +
+                    "Note: Running as administrator will allow all features to work, " +
+                    "but may affect drag-and-drop from File Explorer. You can use the " +
+                    "Browse buttons or Load Config instead.",
                     "Administrator Rights Required",
-                    MessageBoxButton.OKCancel,
-                    MessageBoxImage.Warning);
-
-                if (adminResult == MessageBoxResult.OK)
-                {
-                    try
-                    {
-                        AdminHelper.RestartAsAdministrator();
-                    }
-                    catch (Exception ex)
-                    {
-                        AddLog($"✗ Failed to restart as administrator: {ex.Message}");
-                        MessageBox.Show(
-                            $"Failed to restart as administrator:\n\n{ex.Message}\n\n" +
-                            "Please manually run the application as administrator.",
-                            "Error",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error);
-                    }
-                }
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
 
@@ -2462,6 +2462,268 @@ namespace WinImagePrep.ViewModels
             savedImageWindow.ShowDialog();
         }
 
+        private bool CanCreateCustomIso()
+        {
+            if (IsProcessing || !Directory.Exists(_config.Windows11Directory))
+                return false;
+
+            // Check if boot files exist
+            var bootDir = Path.Combine(_config.Windows11Directory, "boot");
+            var efisysPath = Path.Combine(bootDir, "efisys.bin");
+            var efisysNopromptPath = Path.Combine(bootDir, "efisys_noprompt.bin");
+
+            return File.Exists(efisysPath) || File.Exists(efisysNopromptPath);
+        }
+
+        private async Task CreateCustomIsoAsync()
+        {
+            try
+            {
+                // Validate that we have prepared content
+                if (!Directory.Exists(_config.Windows11Directory) || 
+                    !Directory.EnumerateFileSystemEntries(_config.Windows11Directory).Any())
+                {
+                    MessageBox.Show(
+                        "No prepared Windows image found.\n\n" +
+                        "Please first:\n" +
+                        "1. Select a Windows ISO\n" +
+                        "2. Run '🛡️ Prepare Image with Drivers'\n\n" +
+                        "Then you can create a custom ISO from the prepared image.",
+                        "No Prepared Image",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                // Check for boot files before proceeding
+                var bootDir = Path.Combine(_config.Windows11Directory, "boot");
+                var efisysPath = Path.Combine(bootDir, "efisys.bin");
+                var efisysNopromptPath = Path.Combine(bootDir, "efisys_noprompt.bin");
+
+                if (!File.Exists(efisysPath) && !File.Exists(efisysNopromptPath))
+                {
+                    MessageBox.Show(
+                        "The prepared image is missing required boot files.\n\n" +
+                        "This usually means the image preparation didn't complete successfully.\n\n" +
+                        "Please:\n" +
+                        "1. Select a valid Windows 11 ISO file\n" +
+                        "2. Run '🛡️ Prepare Image with Drivers' again\n" +
+                        "3. Wait for it to complete successfully\n\n" +
+                        $"Missing files:\n" +
+                        $"• {efisysPath}\n" +
+                        $"• {efisysNopromptPath}\n\n" +
+                        "Check the Operation Log for errors during preparation.",
+                        "Missing Boot Files",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Check if oscdimg is available before proceeding
+                var oscdimgPath = _isoService.FindOscdimgPath();
+                if (string.IsNullOrEmpty(oscdimgPath))
+                {
+                    var installResult = MessageBox.Show(
+                        "Windows ADK Required\n\n" +
+                        "Creating ISO files requires the Windows Assessment and Deployment Kit (ADK).\n\n" +
+                        "The ADK includes oscdimg.exe which is needed to create bootable ISO images.\n\n" +
+                        "To install:\n" +
+                        "1. Download Windows ADK from Microsoft\n" +
+                        "2. Run the installer\n" +
+                        "3. Select 'Deployment Tools' during installation\n" +
+                        "4. Restart this application\n\n" +
+                        "Download link:\n" +
+                        "https://go.microsoft.com/fwlink/?linkid=2243390\n\n" +
+                        "Would you like to open the download page in your browser?",
+                        "Windows ADK Not Found",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+
+                    if (installResult == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = "https://go.microsoft.com/fwlink/?linkid=2243390",
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            AddLog($"Failed to open browser: {ex.Message}");
+                        }
+                    }
+                    return;
+                }
+
+                AddLog($"✓ Found oscdimg at: {oscdimgPath}");
+
+                // Prompt for output ISO name and location
+                var dialog = new SaveFileDialog
+                {
+                    Filter = "ISO Files (*.iso)|*.iso|All Files (*.*)|*.*",
+                    Title = "Save Custom ISO",
+                    FileName = $"Win11_Custom_{DateTime.Now:yyyyMMdd_HHmmss}.iso",
+                    DefaultExt = ".iso"
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    AddLog("Custom ISO creation cancelled by user");
+                    return;
+                }
+
+                var outputIsoPath = dialog.FileName;
+
+                // Get volume label
+                var volumeLabel = IsoVolumeLabel;
+                if (string.IsNullOrEmpty(volumeLabel))
+                {
+                    volumeLabel = "WIN11_CUSTOM";
+                }
+
+                // Confirm operation
+                var result = MessageBox.Show(
+                    $"Create custom bootable ISO?\n\n" +
+                    $"Source: {_config.Windows11Directory}\n" +
+                    $"Output: {Path.GetFileName(outputIsoPath)}\n" +
+                    $"Volume Label: {volumeLabel}\n\n" +
+                    $"This operation may take several minutes.\n\n" +
+                    $"The ISO can be used with:\n" +
+                    $"• Ventoy multi-boot USB\n" +
+                    $"• Rufus for USB creation\n" +
+                    $"• Virtual machines\n" +
+                    $"• Direct burning to DVD\n\n" +
+                    $"Continue?",
+                    "Create Custom ISO",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    AddLog("Custom ISO creation cancelled by user");
+                    return;
+                }
+
+                IsProcessing = true;
+                OverallProgress = 0;
+                CurrentOperationProgress = 0;
+                OverallProgressText = "Creating custom ISO...";
+                CurrentOperationText = "Preparing...";
+                AddLog("=== Creating Custom Bootable ISO ===");
+                AddLog($"Output: {outputIsoPath}");
+                AddLog($"Volume Label: {volumeLabel}");
+
+                var progress = new Progress<string>(msg =>
+                {
+                    AddLog(msg);
+                    // Simple progress indication
+                    if (msg.Contains("oscdimg"))
+                    {
+                        OverallProgress = 20;
+                        CurrentOperationText = "Running oscdimg...";
+                    }
+                    else if (msg.Contains("created successfully"))
+                    {
+                        OverallProgress = 100;
+                        CurrentOperationText = "Complete";
+                    }
+                });
+
+                var success = await _isoService.CreateBootableIsoAsync(
+                    _config.Windows11Directory,
+                    outputIsoPath,
+                    volumeLabel,
+                    progress);
+
+                if (success)
+                {
+                    OverallProgress = 100;
+                    CurrentOperationProgress = 100;
+                    OverallProgressText = "Custom ISO created successfully!";
+                    CurrentOperationText = "Complete";
+                    AddLog("=== Custom ISO Creation Complete ===");
+
+                    var openResult = MessageBox.Show(
+                        $"Custom bootable ISO created successfully!\n\n" +
+                        $"Location: {outputIsoPath}\n\n" +
+                        $"You can now:\n" +
+                        $"• Copy to Ventoy USB for multi-boot\n" +
+                        $"• Use with Rufus to create bootable USB\n" +
+                        $"• Mount in virtual machine\n\n" +
+                        $"Open containing folder?",
+                        "Success",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+
+                    if (openResult == MessageBoxResult.Yes)
+                    {
+                        // Open folder and select the ISO
+                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{outputIsoPath}\"");
+                    }
+                }
+                else
+                {
+                    OverallProgressText = "ISO creation failed";
+                    AddLog("✗ Custom ISO creation failed");
+
+                    // Check if oscdimg is available to provide specific guidance
+                    var oscdimgCheck = _isoService.FindOscdimgPath();
+                    string errorMessage;
+
+                    if (string.IsNullOrEmpty(oscdimgCheck))
+                    {
+                        errorMessage = "Failed to create custom ISO.\n\n" +
+                            "⚠️ Windows ADK not installed!\n\n" +
+                            "The Windows Assessment and Deployment Kit (ADK) is required " +
+                            "to create ISO files using oscdimg.exe.\n\n" +
+                            "To install:\n" +
+                            "1. Download Windows ADK from Microsoft\n" +
+                            "2. Run the installer\n" +
+                            "3. Select 'Deployment Tools' during installation\n" +
+                            "4. Restart this application\n\n" +
+                            "Download link:\n" +
+                            "https://go.microsoft.com/fwlink/?linkid=2243390\n\n" +
+                            "Check the log for details.";
+                    }
+                    else
+                    {
+                        errorMessage = "Failed to create custom ISO.\n\n" +
+                            "Common issues:\n" +
+                            "• Insufficient disk space\n" +
+                            "• Missing boot files in prepared image\n" +
+                            "• Output path is not writable\n\n" +
+                            "Check the log for details.";
+                    }
+
+                    MessageBox.Show(
+                        errorMessage,
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                OverallProgressText = "Error occurred";
+                CurrentOperationText = ex.Message;
+                AddLog($"✗ Error creating custom ISO: {ex.Message}");
+                MessageBox.Show(
+                    $"Error creating custom ISO:\n\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsProcessing = false;
+
+                // Check for pending update after operation completes
+                await CheckPendingUpdateAsync();
+            }
+        }
+
         private void UpdateUsbInfo()
         {
             if (SelectedUsbDrive == null)
@@ -2600,11 +2862,16 @@ namespace WinImagePrep.ViewModels
                     var config = new
                     {
                         IsoPath = SelectedIsoPath,
-                        DriverSourcePath = SelectedDriverSourcePath,
-                        DriverSourceType = DriverSourceType.ToString(),
+                        DriverSources = DriverSources.Select(ds => new
+                        {
+                            Path = ds.Path,
+                            Type = ds.Type.ToString()
+                        }).ToList(),
                         RemoveWindowsApps = RemoveWindowsApps,
                         SelectedApps = WindowsApps.Where(a => a.IsSelected).Select(a => a.PackageName).ToList(),
-                        SelectedEditionIndices = SelectedEditions
+                        SelectedEditionIndices = SelectedEditions,
+                        EnableUnattendedInstall = EnableUnattendedInstall,
+                        UnattendedConfig = EnableUnattendedInstall ? _settingsService.CurrentSettings.UnattendedInstallConfig : null
                     };
 
                     var json = System.Text.Json.JsonSerializer.Serialize(config, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
@@ -2633,47 +2900,187 @@ namespace WinImagePrep.ViewModels
             {
                 try
                 {
-                    var json = File.ReadAllText(dialog.FileName);
-                    var config = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
-
-                    if (config.TryGetProperty("IsoPath", out var isoPath))
-                        SelectedIsoPath = isoPath.GetString() ?? string.Empty;
-
-                    if (config.TryGetProperty("DriverSourcePath", out var driverPath))
-                        SelectedDriverSourcePath = driverPath.GetString() ?? string.Empty;
-
-                    if (config.TryGetProperty("DriverSourceType", out var sourceType))
-                    {
-                        if (Enum.TryParse<DriverSourceType>(sourceType.GetString(), out var parsedType))
-                            DriverSourceType = parsedType;
-                    }
-
-                    if (config.TryGetProperty("RemoveWindowsApps", out var removeApps))
-                        RemoveWindowsApps = removeApps.GetBoolean();
-
-                    if (config.TryGetProperty("SelectedApps", out var selectedApps))
-                    {
-                        var appList = selectedApps.EnumerateArray().Select(e => e.GetString()).ToList();
-                        foreach (var app in WindowsApps)
-                        {
-                            app.IsSelected = appList.Contains(app.PackageName);
-                        }
-                        OnPropertyChanged(nameof(SelectedAppsCountText));
-                    }
-
-                    if (config.TryGetProperty("SelectedEditionIndices", out var editions))
-                    {
-                        SelectedEditions = editions.EnumerateArray().Select(e => e.GetInt32()).ToList();
-                    }
-
-                    AddLog($"✓ Configuration loaded: {Path.GetFileName(dialog.FileName)}");
-                    MessageBox.Show("Configuration loaded successfully!", "Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LoadConfigFromFile(dialog.FileName);
                 }
                 catch (Exception ex)
                 {
                     AddLog($"✗ Error loading configuration: {ex.Message}");
                     MessageBox.Show($"Error loading configuration:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        public void LoadConfigFromFile(string filePath)
+        {
+            try
+            {
+                AddLog($"Loading configuration from: {Path.GetFileName(filePath)}");
+                var json = File.ReadAllText(filePath);
+                var config = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+
+                // Load ISO path
+                try
+                {
+                    if (config.TryGetProperty("IsoPath", out var isoPath))
+                    {
+                        var path = isoPath.GetString() ?? string.Empty;
+                        if (!string.IsNullOrEmpty(path))
+                        {
+                            SelectedIsoPath = path;
+                            AddLog($"  Loaded ISO: {Path.GetFileName(path)}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"⚠ Warning: Failed to load ISO path - {ex.Message}");
+                }
+
+                // Load driver sources (new format)
+                try
+                {
+                    if (config.TryGetProperty("DriverSources", out var driverSources))
+                    {
+                        DriverSources.Clear();
+                        foreach (var ds in driverSources.EnumerateArray())
+                        {
+                            if (ds.TryGetProperty("Path", out var dsPath) && ds.TryGetProperty("Type", out var dsType))
+                            {
+                                var path = dsPath.GetString();
+                                var typeStr = dsType.GetString();
+
+                                if (!string.IsNullOrEmpty(path) && Enum.TryParse<DriverSourceType>(typeStr, out var type))
+                                {
+                                    DriverSources.Add(new DriverSourceInfo
+                                    {
+                                        Path = path,
+                                        Type = type
+                                    });
+                                    AddLog($"  Loaded driver: {Path.GetFileName(path)}");
+                                }
+                            }
+                        }
+                    }
+                    // Backward compatibility: Load old single driver source format
+                    else if (config.TryGetProperty("DriverSourcePath", out var driverPath))
+                    {
+                        var path = driverPath.GetString() ?? string.Empty;
+                        if (!string.IsNullOrEmpty(path))
+                        {
+                            DriverSourceType type = DriverSourceType.Folder; // Default
+                            if (config.TryGetProperty("DriverSourceType", out var sourceType))
+                            {
+                                if (Enum.TryParse<DriverSourceType>(sourceType.GetString(), out var parsedType))
+                                    type = parsedType;
+                            }
+
+                            DriverSources.Clear();
+                            DriverSources.Add(new DriverSourceInfo
+                            {
+                                Path = path,
+                                Type = type
+                            });
+                            AddLog($"  Loaded driver (legacy format): {Path.GetFileName(path)}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"⚠ Warning: Failed to load driver sources - {ex.Message}");
+                }
+
+                // Load app removal settings
+                try
+                {
+                    if (config.TryGetProperty("RemoveWindowsApps", out var removeApps))
+                    {
+                        RemoveWindowsApps = removeApps.GetBoolean();
+                        AddLog($"  Windows app removal: {RemoveWindowsApps}");
+                    }
+
+                    if (config.TryGetProperty("SelectedApps", out var selectedApps) && 
+                        selectedApps.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        var appList = selectedApps.EnumerateArray()
+                            .Where(e => e.ValueKind == System.Text.Json.JsonValueKind.String)
+                            .Select(e => e.GetString())
+                            .Where(s => !string.IsNullOrEmpty(s))
+                            .ToList();
+
+                        if (WindowsApps != null)
+                        {
+                            foreach (var app in WindowsApps)
+                            {
+                                app.IsSelected = appList.Contains(app.PackageName);
+                            }
+                            OnPropertyChanged(nameof(SelectedAppsCountText));
+                            AddLog($"  Loaded {appList.Count} selected apps for removal");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"⚠ Warning: Failed to load app removal settings - {ex.Message}");
+                }
+
+                // Load edition selection
+                try
+                {
+                    if (config.TryGetProperty("SelectedEditionIndices", out var editions) && 
+                        editions.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        SelectedEditions = editions.EnumerateArray()
+                            .Where(e => e.ValueKind == System.Text.Json.JsonValueKind.Number)
+                            .Select(e => e.GetInt32())
+                            .ToList();
+                        AddLog($"  Loaded {SelectedEditions.Count} selected edition(s)");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"⚠ Warning: Failed to load edition selection - {ex.Message}");
+                }
+
+                // Load unattended install settings
+                try
+                {
+                    if (config.TryGetProperty("EnableUnattendedInstall", out var enableUnattended))
+                    {
+                        EnableUnattendedInstall = enableUnattended.GetBoolean();
+                        AddLog($"  Unattended install: {EnableUnattendedInstall}");
+                    }
+
+                    if (config.TryGetProperty("UnattendedConfig", out var unattendedConfig) && 
+                        unattendedConfig.ValueKind != System.Text.Json.JsonValueKind.Null)
+                    {
+                        var unattendedConfigObj = System.Text.Json.JsonSerializer.Deserialize<UnattendedConfig>(unattendedConfig.GetRawText());
+                        if (unattendedConfigObj != null)
+                        {
+                            var settings = _settingsService.CurrentSettings.Clone();
+                            settings.UnattendedInstallConfig = unattendedConfigObj;
+                            _ = _settingsService.SaveSettingsAsync(settings);
+                            AddLog($"  Loaded unattended config");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"⚠ Warning: Failed to load unattended install settings - {ex.Message}");
+                }
+
+                AddLog($"✓ Configuration loaded: {Path.GetFileName(filePath)}");
+                MessageBox.Show("Configuration loaded successfully!", "Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error loading configuration: {ex.Message}");
+                MessageBox.Show(
+                    $"Error loading configuration:\n\n{ex.Message}\n\n" +
+                    "The configuration file may be from an older version or corrupted.\n" +
+                    "Check the Operation Log for details.",
+                    "Error Loading Configuration",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 

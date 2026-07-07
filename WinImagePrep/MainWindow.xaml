@@ -156,15 +156,18 @@
                                    ToolTip="{Binding SelectedIsoPath}"/>
                         <Button Content="❌" 
                                 Command="{Binding ClearIsoCommand}"
-                                Width="28" 
-                                Height="28"
+                                Width="32" 
+                                Height="32"
+                                Padding="2"
                                 Margin="10,0,0,0"
                                 Background="Transparent"
                                 BorderThickness="0"
                                 Foreground="Red"
-                                FontSize="14"
+                                FontSize="16"
                                 ToolTip="Remove ISO"
-                                Cursor="Hand"/>
+                                Cursor="Hand"
+                                VerticalContentAlignment="Center"
+                                HorizontalContentAlignment="Center"/>
                         <Button Content="✓" 
                                 Command="{Binding VerifyIsoCommand}"
                                 Width="28" 
@@ -198,15 +201,18 @@
                                     <Button Content="❌" 
                                             Command="{Binding DataContext.RemoveDriverSourceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding}"
-                                            Width="28" 
-                                            Height="28"
+                                            Width="32" 
+                                            Height="32"
+                                            Padding="2"
                                             Margin="10,0,0,0"
                                             Background="Transparent"
                                             BorderThickness="0"
                                             Foreground="Red"
-                                            FontSize="14"
+                                            FontSize="16"
                                             ToolTip="Remove driver pack"
-                                            Cursor="Hand"/>
+                                            Cursor="Hand"
+                                            VerticalContentAlignment="Center"
+                                            HorizontalContentAlignment="Center"/>
                                     <TextBlock Text="{Binding FullDisplayText}" 
                                                VerticalAlignment="Center"
                                                Margin="10,0,0,0"
@@ -219,26 +225,48 @@
 
                     <!-- Browse Buttons -->
                     <StackPanel Grid.Row="3" 
-                                Orientation="Horizontal" 
+                                Orientation="Vertical"
                                 HorizontalAlignment="Center"
                                 Margin="0,10,0,5">
-                        <Button Content="📁 Browse for ISO..." 
-                                Command="{Binding BrowseIsoCommand}"
-                                Width="150" 
-                                Height="30"
-                                Margin="0,0,10,0"
-                                FontSize="12"/>
-                        <Button Content="📦 Add Driver Pack(s)..." 
-                                Command="{Binding BrowseDriverSourceCommand}"
-                                Width="170" 
-                                Height="30"
-                                FontSize="12"/>
-                        <Button Content="📁 Add Driver Folder..." 
-                                Command="{Binding BrowseDriverFolderCommand}"
-                                Width="170" 
-                                Height="30"
-                                Margin="10,0,0,0"
-                                FontSize="12"/>
+                        <!-- File selection buttons -->
+                        <StackPanel Orientation="Horizontal" 
+                                    HorizontalAlignment="Center"
+                                    Margin="0,0,0,5">
+                            <Button Content="📁 Browse for ISO..." 
+                                    Command="{Binding BrowseIsoCommand}"
+                                    Width="150" 
+                                    Height="30"
+                                    Margin="0,0,10,0"
+                                    FontSize="12"/>
+                            <Button Content="📦 Add Driver Pack(s)..." 
+                                    Command="{Binding BrowseDriverSourceCommand}"
+                                    Width="170" 
+                                    Height="30"
+                                    FontSize="12"/>
+                            <Button Content="📁 Add Driver Folder..." 
+                                    Command="{Binding BrowseDriverFolderCommand}"
+                                    Width="170" 
+                                    Height="30"
+                                    Margin="10,0,0,0"
+                                    FontSize="12"/>
+                        </StackPanel>
+                        <!-- Config buttons -->
+                        <StackPanel Orientation="Horizontal" 
+                                    HorizontalAlignment="Center">
+                            <Button Content="💾 Save Config..." 
+                                    Command="{Binding SaveConfigCommand}"
+                                    Width="160" 
+                                    Height="30"
+                                    Margin="0,0,10,0"
+                                    FontSize="12"
+                                    ToolTip="Save current configuration to file"/>
+                            <Button Content="📂 Load Config..." 
+                                    Command="{Binding OpenConfigCommand}"
+                                    Width="160" 
+                                    Height="30"
+                                    FontSize="12"
+                                    ToolTip="Load configuration from file"/>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -322,14 +350,18 @@
                     Margin="5"
                     FontSize="12"
                     ToolTip="Create bootable USB directly from ISO without driver injection"/>
-            <Button Content="Prepare Image with Drivers" 
-                    Command="{Binding InjectDriversCommand}"
+            <Button Command="{Binding InjectDriversCommand}"
                     Style="{StaticResource PrimaryButton}"
                     Width="220" 
                     Height="35" 
                     Margin="5"
                     FontSize="12"
-                    ToolTip="Inject drivers into ISO, then optionally create USB"/>
+                    ToolTip="Inject drivers into ISO, then optionally create USB (requires admin)">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🛡️" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="Prepare Image with Drivers" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Create USB" 
                     Command="{Binding CreateUsbCommand}"
                     Style="{StaticResource PrimaryButton}"
@@ -338,6 +370,40 @@
                     Margin="5"
                     FontSize="12"
                     ToolTip="Create USB from previously prepared image"/>
+            <Button Content="💿 Create Custom ISO" 
+                    Command="{Binding CreateCustomIsoCommand}"
+                    Style="{StaticResource PrimaryButton}"
+                    Width="170" 
+                    Height="35" 
+                    Margin="5"
+                    FontSize="12"
+                    ToolTip="Create custom bootable ISO for Ventoy, Rufus, or VMs"/>
+            <!-- Image Ready Panel (shows after preparation completes) -->
+            <Border Background="#F0FFF0"
+                    BorderBrush="#D0E8D0"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8"
+                    Margin="10,0,0,0"
+                    Visibility="{Binding IsImageReady, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="✅ Image ready"
+                               FontWeight="Bold"
+                               Foreground="#2E8B57"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                    <Button Content="Create ISO"
+                            Command="{Binding CreateCustomIsoCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            Width="120"
+                            Height="28"/>
+                    <Button Content="Create USB"
+                            Command="{Binding CreateUsbCommand}"
+                            Width="110"
+                            Height="28"
+                            Margin="8,0,0,0"/>
+                </StackPanel>
+            </Border>
             <Button Content="From Saved Image" 
                     Command="{Binding FromSavedImageCommand}"
                     Width="160" 
