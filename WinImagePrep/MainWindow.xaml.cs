@@ -53,6 +53,8 @@ namespace WinImagePrep
                 // Subscribe to log entries changes for auto-scroll
                 _viewModel.LogEntries.CollectionChanged += LogEntries_CollectionChanged;
 
+                FitToScreen();
+
                 // Use ONLY ContentRendered for startup tasks (it's more reliable than Loaded)
                 ContentRendered += MainWindow_ContentRendered;
 
@@ -358,6 +360,21 @@ namespace WinImagePrep
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
+        }
+
+        /// <summary>
+        /// Keep the window inside the screen's working area (a Surface at 150% scaling has well under
+        /// 960 px of height), and show the log straight away only when there is room for it. On shorter
+        /// screens it starts behind "Show log"; the progress cards already show what is happening.
+        /// </summary>
+        private void FitToScreen()
+        {
+            var work = SystemParameters.WorkArea;
+            if (Height > work.Height - 16) Height = Math.Max(MinHeight, work.Height - 16);
+            if (Width > work.Width - 16) Width = Math.Max(MinWidth, work.Width - 16);
+
+            const double roomForLog = 1000; // logical px of working-area height
+            LogToggle.IsChecked = work.Height >= roomForLog;
         }
 
         private void LogEntries_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

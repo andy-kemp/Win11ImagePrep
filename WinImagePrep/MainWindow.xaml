@@ -10,7 +10,7 @@
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="940"
-        MinHeight="760"
+        MinHeight="560"
         Background="{StaticResource AkcBg}"
         AllowDrop="True">
 
@@ -477,11 +477,45 @@
             </GroupBox>
         </Grid>
 
-        <!-- Operation Log -->
+        <!-- Operation Log: open by default on tall screens, behind "Show log" on short ones (set in code) -->
         <GroupBox Grid.Row="10" Header="Operation log" Margin="0,5,0,0">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,0">
+                    <ToggleButton x:Name="LogToggle" DockPanel.Dock="Left" IsChecked="True" Cursor="Hand"
+                                  Padding="10,5" Background="White" BorderBrush="{StaticResource AkcBorderStrong}"
+                                  Foreground="{StaticResource AkcCopperDark}" FontWeight="SemiBold"
+                                  ToolTip="Show or hide the detailed log">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="1" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="Chevron" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock x:Name="Label" Text="Show log"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Label" Property="Text" Value="Hide log"/>
+                                        <Setter TargetName="Chevron" Property="Text" Value="&#xE70E;"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource AkcPanelRaised}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="12,0,0,0"
+                               Foreground="{StaticResource AkcMuted}" FontSize="12"
+                               Text="{Binding LogEntries.Count, StringFormat={}{0} entries}"/>
+                </DockPanel>
             <Border CornerRadius="8"
                     Background="{StaticResource AkcLogBg}"
-                    Padding="10,8">
+                    Padding="10,8"
+                    Margin="0,10,0,0"
+                    Visibility="{Binding IsChecked, ElementName=LogToggle, Converter={StaticResource BoolToVisibilityConverter}}">
                 <ScrollViewer x:Name="LogScrollViewer"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
@@ -502,6 +536,7 @@
                     </ItemsControl>
                 </ScrollViewer>
             </Border>
+            </StackPanel>
         </GroupBox>
         </Grid>
         </ScrollViewer>

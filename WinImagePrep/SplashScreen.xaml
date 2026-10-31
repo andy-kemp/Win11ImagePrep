@@ -34,10 +34,9 @@
                        Margin="40">
 
                 <!-- Logo Image -->
-                <Image Source="app.ico" 
-                       Width="120" 
-                       Height="120"
-                       Margin="0,0,0,20"
+                <Image Source="pack://application:,,,/Assets/akc-logo.png"
+                       Width="300"
+                       Margin="0,0,0,24"
                        RenderOptions.BitmapScalingMode="HighQuality"/>
 
                 <!-- Title -->
