@@ -63,7 +63,8 @@ jobs:
           $h = [IntPtr]::Zero
           for ($i = 0; $i -lt 60 -and $h -eq [IntPtr]::Zero; $i++) {
             Start-Sleep -Seconds 1; $p.Refresh()
-            if ($p.MainWindowTitle -like 'Win11 Image Prep*' -or $p.MainWindowTitle -like 'Windows Image*') { $h = $p.MainWindowHandle }
+            # The main window's title has the version; the splash screen's doesn't
+            if ($p.MainWindowTitle -like 'Win11 Image Prep v*' -or $p.MainWindowTitle -like 'Windows Image Preparation Tool v*') { $h = $p.MainWindowHandle }
           }
           Write-Host "Window: '$($p.MainWindowTitle)'"
           Start-Sleep -Seconds 4
