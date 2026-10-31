@@ -41,6 +41,41 @@ jobs:
           Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release/SHA256SUMS.txt
           Get-Content release/SHA256SUMS.txt
 
+      - name: Screenshot the main window
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          # Skip first-run and update prompts so the main window opens straight away
+          New-Item -ItemType Directory -Force C:\ProgramData\Win11ImagePrep | Out-Null
+          '{"FirstRunComplete":true,"FirstRunUpdateCheckComplete":true,"CheckForUpdates":false}' | Set-Content C:\ProgramData\Win11ImagePrep\settings.json
+          Add-Type -AssemblyName System.Drawing
+          Add-Type @"
+          using System; using System.Runtime.InteropServices;
+          public static class Win {
+            [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint f);
+            [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int hh, bool r);
+          }
+          "@
+          $p = Start-Process -FilePath (Resolve-Path release/WinImagePrep_test_*.exe) -PassThru
+          $h = [IntPtr]::Zero
+          for ($i = 0; $i -lt 60 -and $h -eq [IntPtr]::Zero; $i++) {
+            Start-Sleep -Seconds 1; $p.Refresh()
+            if ($p.MainWindowTitle -like 'Win11 Image Prep*' -or $p.MainWindowTitle -like 'Windows Image*') { $h = $p.MainWindowHandle }
+          }
+          Write-Host "Window: '$($p.MainWindowTitle)'"
+          Start-Sleep -Seconds 4
+          [Win]::MoveWindow($h, 0, 0, 940, 960, $true) | Out-Null
+          Start-Sleep -Seconds 2
+          $r = New-Object Win+RECT; [Win]::GetWindowRect($h, [ref]$r) | Out-Null
+          $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
+          $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
+          [Win]::PrintWindow($h, $hdc, 2) | Out-Null
+          $g.ReleaseHdc($hdc); $g.Dispose()
+          $bmp.Save("$PWD/release/screenshot-main-window.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          Stop-Process -Id $p.Id -Force
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.meta.outputs.tag }}

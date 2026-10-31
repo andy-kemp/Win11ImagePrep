@@ -5,18 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
-        Width="920"
-        Height="950"
+        Width="940"
+        Height="960"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
-        MinWidth="920"
-        MinHeight="950"
-        Background="White"
+        MinWidth="940"
+        MinHeight="760"
+        Background="{StaticResource AkcBg}"
         AllowDrop="True">
 
     <DockPanel>
         <!-- Menu Bar -->
-        <Menu DockPanel.Dock="Top" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+        <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
                 <MenuItem Header="_Save Configuration..." Command="{Binding SaveConfigCommand}" ToolTip="Save current settings to file"/>
                 <MenuItem Header="_Open Configuration..." Command="{Binding OpenConfigCommand}" ToolTip="Load settings from file"/>
@@ -26,57 +26,71 @@
             <MenuItem Header="_Tools">
                 <MenuItem Header="_Check for Updates..." Command="{Binding CheckForUpdatesCommand}" ToolTip="Check for newer version on GitHub">
                     <MenuItem.Icon>
-                        <TextBlock Text="🔄" FontSize="14"/>
+                        <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Options..." Command="{Binding OpenOptionsCommand}" ToolTip="Configure application settings">
                     <MenuItem.Icon>
-                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem Header="_User Guide" Command="{Binding OpenUserGuideCommand}" ToolTip="Open local user guide">
                     <MenuItem.Icon>
-                        <TextBlock Text="📘" FontSize="14"/>
+                        <TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="_Online Documentation" Command="{Binding OpenOnlineDocumentationCommand}" ToolTip="View online documentation at docs.andykemp.com">
                     <MenuItem.Icon>
-                        <TextBlock Text="🌐" FontSize="14"/>
+                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="_GitHub README" Command="{Binding OpenGitHubReadmeCommand}" ToolTip="View project README on GitHub">
                     <MenuItem.Icon>
-                        <TextBlock Text="📖" FontSize="14"/>
+                        <TextBlock Text="&#xE736;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Report Issue" Command="{Binding OpenReportIssueCommand}" ToolTip="Report bugs or request features on GitHub">
                     <MenuItem.Icon>
-                        <TextBlock Text="🐛" FontSize="14"/>
+                        <TextBlock Text="&#xEBE8;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="Release _Notes" Command="{Binding OpenReleaseNotesCommand}" ToolTip="View release notes">
                     <MenuItem.Icon>
-                        <TextBlock Text="📋" FontSize="14"/>
+                        <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}" ToolTip="About WinImagePrep">
+                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}" ToolTip="About Win11 Image Prep">
                     <MenuItem.Icon>
-                        <TextBlock Text="ℹ" FontSize="14"/>
+                        <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
         </Menu>
 
+        <!-- Brand header -->
+        <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource AkcBorder}" BorderThickness="0,0,0,1" Padding="20,14">
+            <DockPanel LastChildFill="True">
+                <Image DockPanel.Dock="Left" Source="pack://application:,,,/Assets/akc-logo.png" Height="44"
+                       RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
+                <Border DockPanel.Dock="Left" Width="1" Background="{StaticResource AkcBorder}" Margin="18,4,18,4"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Win11 Image Prep" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AkcHeading}"/>
+                    <TextBlock Text="Windows 11 install media with your drivers already in it" Foreground="{StaticResource AkcMuted}" FontSize="12.5"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
         <!-- Main Content -->
-        <Grid Margin="15">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource AkcBgSoft}">
+        <Grid Margin="20,16,20,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Title -->
+            <!-- (spare, was title) -->
             <RowDefinition Height="Auto"/>
             <!-- Unified Drop Zone for ISO & Drivers -->
             <RowDefinition Height="Auto"/>
@@ -96,30 +110,21 @@
             <RowDefinition Height="Auto"/>
             <!-- Current Operation Progress -->
             <RowDefinition Height="Auto"/>
-            <!-- Operation Log - collapses when not expanded -->
+            <!-- Operation Log -->
         </Grid.RowDefinitions>
 
-        <!-- Title -->
-        <TextBlock Grid.Row="0" 
-                   Text="Windows Image Preparation Tool" 
-                   FontSize="22" 
-                   FontWeight="Bold" 
-                   Foreground="#0078D4" 
-                   Margin="0,0,0,10"/>
-
-        <!-- Unified Drop Zone for ISO and Drivers -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,10">
-            <TextBlock Text="1. Select Files:" 
-                       FontWeight="Bold"
-                       Margin="0,0,0,5"/>
+        <!-- 1. Files -->
+        <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource AkcBorder}" BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,0,12">
+        <StackPanel>
+            <ContentControl Style="{StaticResource AkcSectionHeading}" Tag="1" Content="Windows ISO and driver packs"/>
 
             <!-- Drop Zone with Browse Buttons -->
             <Border x:Name="DropZone"
-                    BorderBrush="#0078D4"
-                    BorderThickness="2"
-                    Background="#F8F8F8"
-                    CornerRadius="4"
-                    Padding="12"
+                    BorderBrush="#C9A88F"
+                    BorderThickness="1.5"
+                    Background="#F7F3EF"
+                    CornerRadius="10"
+                    Padding="14"
                     AllowDrop="True"
                     MinHeight="100">
                 <Grid>
@@ -131,400 +136,352 @@
                     </Grid.RowDefinitions>
 
                     <!-- Drop Zone Instructions -->
-                    <TextBlock Grid.Row="0"
-                               Text="📁 Drag files here or use Browse buttons below"
-                               HorizontalAlignment="Center"
-                               Foreground="#666"
-                               FontStyle="Italic"
-                               FontSize="13"
-                               Margin="0,5,0,15"/>
-
-                    <!-- ISO File Display -->
-                    <StackPanel Grid.Row="1" 
-                                Orientation="Horizontal" 
-                                Margin="0,0,0,8"
-                                Visibility="{Binding HasIsoPath, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <TextBlock Text="ISO:" 
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,2,0,12">
+                        <TextBlock Text="Drop a Windows 11 ISO and your driver packs here"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{StaticResource AkcHeading}"
                                    FontWeight="Bold"
-                                   Width="60"
-                                   VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding SelectedIsoPath}" 
-                                   TextWrapping="NoWrap"
-                                   TextTrimming="CharacterEllipsis"
-                                   VerticalAlignment="Center"
-                                   Width="600"
-                                   ToolTip="{Binding SelectedIsoPath}"/>
-                        <Button Content="❌" 
-                                Command="{Binding ClearIsoCommand}"
-                                Width="32" 
-                                Height="32"
-                                Padding="2"
-                                Margin="10,0,0,0"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Foreground="Red"
-                                FontSize="16"
-                                ToolTip="Remove ISO"
-                                Cursor="Hand"
-                                VerticalContentAlignment="Center"
-                                HorizontalContentAlignment="Center"/>
-                        <Button Content="✓" 
-                                Command="{Binding VerifyIsoCommand}"
-                                Width="28" 
-                                Height="28"
-                                Margin="5,0,0,0"
-                                Background="#0078D4"
-                                BorderThickness="0"
-                                Foreground="White"
-                                FontSize="14"
-                                ToolTip="Verify ISO"
-                                Cursor="Hand"/>
+                                   FontSize="14"/>
+                        <TextBlock Text="MSI, ZIP or a folder of drivers. Or use the buttons below."
+                                   HorizontalAlignment="Center"
+                                   Foreground="{StaticResource AkcMuted}"
+                                   FontSize="12"
+                                   Margin="0,2,0,0"/>
                     </StackPanel>
 
+                    <!-- ISO File Display -->
+                    <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource AkcBorder}" BorderThickness="1" CornerRadius="8"
+                            Padding="10,6" Margin="0,0,0,6"
+                            Visibility="{Binding HasIsoPath, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <DockPanel LastChildFill="True">
+                            <Border DockPanel.Dock="Left" Background="{StaticResource AkcPanelRaised}" CornerRadius="6" Width="40" Height="26" Margin="0,0,10,0">
+                                <TextBlock Text="ISO" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AkcCopper}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                    Command="{Binding ClearIsoCommand}" ToolTip="Remove ISO" Foreground="{StaticResource AkcDanger}">
+                                <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                            </Button>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                    Command="{Binding VerifyIsoCommand}" ToolTip="Verify ISO" Foreground="{StaticResource AkcOk}">
+                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                            </Button>
+                            <TextBlock Text="{Binding SelectedIsoPath}"
+                                       TextWrapping="NoWrap"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource AkcHeading}"
+                                       ToolTip="{Binding SelectedIsoPath}"/>
+                        </DockPanel>
+                    </Border>
+
                     <!-- Driver Packs List -->
-                    <ItemsControl Grid.Row="2" 
+                    <ItemsControl Grid.Row="2"
                                   ItemsSource="{Binding DriverSources}"
-                                  Margin="0,0,0,8">
+                                  Margin="0,0,0,6">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <TextBlock Text="Drivers:" 
-                                               FontWeight="Bold"
-                                               Width="60"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Path}" 
-                                               TextWrapping="NoWrap"
-                                               TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center"
-                                               Width="600"
-                                               ToolTip="{Binding Path}"/>
-                                    <Button Content="❌" 
-                                            Command="{Binding DataContext.RemoveDriverSourceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding}"
-                                            Width="32" 
-                                            Height="32"
-                                            Padding="2"
-                                            Margin="10,0,0,0"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Foreground="Red"
-                                            FontSize="16"
-                                            ToolTip="Remove driver pack"
-                                            Cursor="Hand"
-                                            VerticalContentAlignment="Center"
-                                            HorizontalContentAlignment="Center"/>
-                                    <TextBlock Text="{Binding FullDisplayText}" 
-                                               VerticalAlignment="Center"
-                                               Margin="10,0,0,0"
-                                               FontStyle="Italic"
-                                               Foreground="#666"/>
-                                </StackPanel>
+                                <Border Background="White" BorderBrush="{StaticResource AkcBorder}" BorderThickness="1" CornerRadius="8" Padding="10,6" Margin="0,0,0,6">
+                                    <DockPanel LastChildFill="True">
+                                        <Border DockPanel.Dock="Left" Background="{StaticResource AkcPanelRaised}" CornerRadius="6" Width="40" Height="26" Margin="0,0,10,0">
+                                            <TextBlock Text="{Binding TypeLabel}" FontWeight="Bold" FontSize="10" Foreground="{StaticResource AkcCopper}" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        </Border>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                                Command="{Binding DataContext.RemoveDriverSourceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Remove driver pack" Foreground="{StaticResource AkcDanger}">
+                                            <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                        </Button>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding FullDisplayText}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="10,0,0,0"
+                                                   Foreground="{StaticResource AkcMuted}"
+                                                   FontSize="12"/>
+                                        <TextBlock Text="{Binding Path}"
+                                                   TextWrapping="NoWrap"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{StaticResource AkcHeading}"
+                                                   ToolTip="{Binding Path}"/>
+                                    </DockPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
                     <!-- Browse Buttons -->
-                    <StackPanel Grid.Row="3" 
-                                Orientation="Vertical"
-                                HorizontalAlignment="Center"
-                                Margin="0,10,0,5">
-                        <!-- File selection buttons -->
-                        <StackPanel Orientation="Horizontal" 
-                                    HorizontalAlignment="Center"
-                                    Margin="0,0,0,5">
-                            <Button Content="📁 Browse for ISO..." 
-                                    Command="{Binding BrowseIsoCommand}"
-                                    Width="150" 
-                                    Height="30"
-                                    Margin="0,0,10,0"
-                                    FontSize="12"/>
-                            <Button Content="📦 Add Driver Pack(s)..." 
-                                    Command="{Binding BrowseDriverSourceCommand}"
-                                    Width="170" 
-                                    Height="30"
-                                    FontSize="12"/>
-                            <Button Content="📁 Add Driver Folder..." 
-                                    Command="{Binding BrowseDriverFolderCommand}"
-                                    Width="170" 
-                                    Height="30"
-                                    Margin="10,0,0,0"
-                                    FontSize="12"/>
-                        </StackPanel>
-                        <!-- Config buttons -->
-                        <StackPanel Orientation="Horizontal" 
-                                    HorizontalAlignment="Center">
-                            <Button Content="💾 Save Config..." 
-                                    Command="{Binding SaveConfigCommand}"
-                                    Width="160" 
-                                    Height="30"
-                                    Margin="0,0,10,0"
-                                    FontSize="12"
-                                    ToolTip="Save current configuration to file"/>
-                            <Button Content="📂 Load Config..." 
-                                    Command="{Binding OpenConfigCommand}"
-                                    Width="160" 
-                                    Height="30"
-                                    FontSize="12"
-                                    ToolTip="Load configuration from file"/>
-                        </StackPanel>
-                    </StackPanel>
+                    <WrapPanel Grid.Row="3" HorizontalAlignment="Center" Margin="0,4,0,0">
+                        <Button Command="{Binding BrowseIsoCommand}" Height="34">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE958;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Browse for ISO..."/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding BrowseDriverSourceCommand}" Height="34">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Add driver pack(s)..."/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding BrowseDriverFolderCommand}" Height="34">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Add driver folder..."/>
+                            </StackPanel>
+                        </Button>
+                        <Border Width="1" Height="22" Background="{StaticResource AkcBorder}" Margin="8,0"/>
+                        <Button Command="{Binding SaveConfigCommand}" Height="34" ToolTip="Save current configuration to file">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Save config..."/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding OpenConfigCommand}" Height="34" ToolTip="Load configuration from file">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8E5;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Load config..."/>
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
                 </Grid>
             </Border>
         </StackPanel>
+        </Border>
 
-        <!-- Windows Apps Removal Button -->
-        <StackPanel Grid.Row="2" Orientation="Vertical" Margin="0,5,0,10">
-            <TextBlock Text="2. Remove Windows Apps (Optional):"
-                       FontWeight="Bold"
-                       Margin="0,0,0,5"/>
-            <StackPanel Orientation="Horizontal">
-                <CheckBox Content="Remove Windows apps from image" 
-                          IsChecked="{Binding RemoveWindowsApps}"
-                          VerticalAlignment="Center"
-                          Margin="0,0,15,0"
-                          Width="240"/>
-                <StackPanel Orientation="Horizontal" IsEnabled="{Binding RemoveWindowsApps}">
-                    <Button Content="Select Apps to Remove..." 
-                            Command="{Binding SelectAppsToRemoveCommand}"
-                            Width="180" 
-                            Height="28"
-                            Background="#0078D4"
-                            Foreground="White"
-                            FontWeight="SemiBold"
-                            ToolTip="Choose which Windows apps to remove from the image"/>
-                    <TextBlock Text="{Binding SelectedAppsCountText}" 
-                               VerticalAlignment="Center"
-                               Margin="10,0,0,0"
-                               Foreground="#0078D4"
-                               FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding AppLoadingStatusText}" 
-                               VerticalAlignment="Center"
-                               Margin="10,0,0,0"
-                               Foreground="#666666"
-                               FontStyle="Italic"/>
-                </StackPanel>
-            </StackPanel>
-        </StackPanel>
-
-        <!-- Unattended Installation Section -->
-        <StackPanel Grid.Row="3" Margin="0,15,0,10">
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                <TextBlock Text="3. Unattended Installation"
-                           FontSize="14"
-                           FontWeight="Bold"
-                           VerticalAlignment="Center"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <CheckBox Content="Enable unattended Windows installation" 
-                          IsChecked="{Binding EnableUnattendedInstall}"
-                          VerticalAlignment="Center"
-                          Margin="0,0,15,0"
-                          Width="280"/>
-                <Button Content="Configure Options..." 
-                        Command="{Binding ConfigureUnattendedCommand}"
-                        IsEnabled="{Binding CanConfigureUnattended}"
-                        Width="150" 
-                        Height="28"
-                        Background="#0078D4"
-                        Foreground="White"
-                        FontWeight="SemiBold"
-                        ToolTip="Configure unattended installation settings (auto-partition, locale, etc.)"/>
-                <TextBlock VerticalAlignment="Center" Margin="15,0,0,0" Foreground="#D2691E" FontWeight="SemiBold">
-                    <Run Text="⚠️"/>
-                    <Run Text="Will auto-wipe Disk 0"/>
-                </TextBlock>
-            </StackPanel>
-        </StackPanel>
-
-        <!-- Main Action Buttons -->
-        <StackPanel Grid.Row="4"
-                    Orientation="Horizontal" 
-                    Margin="0,5,0,5" 
-                    HorizontalAlignment="Center">
-            <Button Content="Create USB from ISO" 
-                    Command="{Binding CreateUsbFromIsoCommand}"
-                    Style="{StaticResource PrimaryButton}"
-                    Width="180" 
-                    Height="35" 
-                    Margin="5"
-                    FontSize="12"
-                    ToolTip="Create bootable USB directly from ISO without driver injection"/>
-            <Button Command="{Binding InjectDriversCommand}"
-                    Style="{StaticResource PrimaryButton}"
-                    Width="220" 
-                    Height="35" 
-                    Margin="5"
-                    FontSize="12"
-                    ToolTip="Inject drivers into ISO, then optionally create USB (requires admin)">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="🛡️" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock Text="Prepare Image with Drivers" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            <Button Content="Create USB" 
-                    Command="{Binding CreateUsbCommand}"
-                    Style="{StaticResource PrimaryButton}"
-                    Width="140" 
-                    Height="35" 
-                    Margin="5"
-                    FontSize="12"
-                    ToolTip="Create USB from previously prepared image"/>
-            <Button Content="💿 Create Custom ISO" 
-                    Command="{Binding CreateCustomIsoCommand}"
-                    Style="{StaticResource PrimaryButton}"
-                    Width="170" 
-                    Height="35" 
-                    Margin="5"
-                    FontSize="12"
-                    ToolTip="Create custom bootable ISO for Ventoy, Rufus, or VMs"/>
-            <!-- Image Ready Panel (shows after preparation completes) -->
-            <Border Background="#F0FFF0"
-                    BorderBrush="#D0E8D0"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Padding="8"
-                    Margin="10,0,0,0"
-                    Visibility="{Binding IsImageReady, Converter={StaticResource BoolToVisibilityConverter}}">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="✅ Image ready"
-                               FontWeight="Bold"
-                               Foreground="#2E8B57"
-                               VerticalAlignment="Center"
-                               Margin="0,0,8,0"/>
-                    <Button Content="Create ISO"
-                            Command="{Binding CreateCustomIsoCommand}"
-                            Style="{StaticResource PrimaryButton}"
-                            Width="120"
-                            Height="28"/>
-                    <Button Content="Create USB"
-                            Command="{Binding CreateUsbCommand}"
-                            Width="110"
-                            Height="28"
-                            Margin="8,0,0,0"/>
-                </StackPanel>
-            </Border>
-            <Button Content="From Saved Image" 
-                    Command="{Binding FromSavedImageCommand}"
-                    Width="160" 
-                    Height="35" 
-                    Margin="5"
-                    FontSize="12"
-                    ToolTip="Load a previously saved image"/>
-        </StackPanel>
-
-        <!-- USB Selection -->
-        <Grid Grid.Row="5" Margin="0,5,0,5">
+        <!-- 2 and 3. Apps and unattended, side by side -->
+        <Grid Grid.Row="2" Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Column="0"
-                       Text="4. Select USB Drive:" 
-                       VerticalAlignment="Center" 
-                       Width="180" 
-                       FontWeight="Bold"/>
+            <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource AkcBorder}" BorderThickness="1" CornerRadius="10" Padding="16,14">
+                <StackPanel>
+                    <ContentControl Style="{StaticResource AkcSectionHeading}" Tag="2" Content="Remove built-in apps"/>
+                    <CheckBox Content="Remove Windows apps from the image"
+                              IsChecked="{Binding RemoveWindowsApps}"
+                              Margin="0,2,0,10"/>
+                    <StackPanel Orientation="Horizontal" IsEnabled="{Binding RemoveWindowsApps}">
+                        <Button Content="Select apps..."
+                                Command="{Binding SelectAppsToRemoveCommand}"
+                                Margin="0"
+                                Height="32"
+                                ToolTip="Choose which Windows apps to remove from the image"/>
+                        <TextBlock Text="{Binding SelectedAppsCountText}"
+                                   VerticalAlignment="Center"
+                                   Margin="12,0,0,0"
+                                   Foreground="{StaticResource AkcCopper}"
+                                   FontWeight="Bold"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding AppLoadingStatusText}"
+                               Margin="0,6,0,0"
+                               Foreground="{StaticResource AkcMuted}"
+                               FontSize="12"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
 
-            <DockPanel Grid.Column="1" LastChildFill="True">
-                <Button Content="Repair/Cleanup" 
-                        Command="{Binding RepairCleanupCommand}"
-                        DockPanel.Dock="Right"
-                        Margin="10,0,0,0" 
-                        Width="145" 
-                        Height="26"
-                        Padding="8,3"
-                        Style="{StaticResource DangerButton}"/>
-                <Button Content="Refresh" 
-                        Command="{Binding RefreshUsbCommand}"
-                        DockPanel.Dock="Right"
-                        Margin="10,0,0,0" 
-                        Width="90" 
-                        Height="26"/>
-                <ComboBox ItemsSource="{Binding UsbDrives}"
-                          SelectedItem="{Binding SelectedUsbDrive}"
-                          DisplayMemberPath="DisplayName"
-                          Height="26"
-                          MinWidth="200"
-                          Margin="5,0,0,0"/>
-            </DockPanel>
+            <Border Grid.Column="2" Background="White" BorderBrush="{StaticResource AkcBorder}" BorderThickness="1" CornerRadius="10" Padding="16,14">
+                <StackPanel>
+                    <ContentControl Style="{StaticResource AkcSectionHeading}" Tag="3" Content="Unattended or Autopilot setup"/>
+                    <CheckBox Content="Enable unattended Windows installation"
+                              IsChecked="{Binding EnableUnattendedInstall}"
+                              Margin="0,2,0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Configure options..."
+                                Command="{Binding ConfigureUnattendedCommand}"
+                                IsEnabled="{Binding CanConfigureUnattended}"
+                                Margin="0"
+                                Height="32"
+                                ToolTip="Configure unattended installation settings (auto-partition, locale, etc.)"/>
+                        <Border Background="{StaticResource AkcWarnBg}" CornerRadius="6" Padding="8,4" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource AkcWarn}" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12"/>
+                                <TextBlock Text="Wipes disk 0" Foreground="{StaticResource AkcWarn}" FontWeight="Bold" FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </Grid>
 
-        <!-- USB Drive Information -->
-        <Border Grid.Row="6"
-                BorderBrush="#0078D4" 
-                BorderThickness="1" 
-                Background="#F0F0F0" 
-                Padding="8" 
-                Margin="0,0,0,8">
+        <!-- 4. Build and output -->
+        <Border Grid.Row="4" Background="White" BorderBrush="{StaticResource AkcBorder}" BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,0,12">
             <StackPanel>
-                <TextBlock Text="USB Drive Information:" 
-                           FontWeight="Bold" 
-                           Margin="0,0,0,5"/>
-                <TextBlock Text="{Binding UsbInfo}" 
-                           TextWrapping="Wrap"/>
+                <ContentControl Style="{StaticResource AkcSectionHeading}" Tag="4" Content="Build"/>
+                <WrapPanel HorizontalAlignment="Left">
+                    <Button Command="{Binding InjectDriversCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            Height="38"
+                            Margin="0,0,8,8"
+                            ToolTip="Inject drivers into the image, then optionally create a USB (asks for admin rights)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xEA18;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Prepare image with drivers"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Content="Create USB"
+                            Command="{Binding CreateUsbCommand}"
+                            Height="38"
+                            Margin="0,0,8,8"
+                            ToolTip="Create USB from previously prepared image"/>
+                    <Button Command="{Binding CreateCustomIsoCommand}"
+                            Height="38"
+                            Margin="0,0,8,8"
+                            ToolTip="Create custom bootable ISO for Ventoy, Rufus, or VMs">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE958;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Create custom ISO"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Content="Create USB from ISO"
+                            Command="{Binding CreateUsbFromIsoCommand}"
+                            Height="38"
+                            Margin="0,0,8,8"
+                            ToolTip="Create bootable USB directly from ISO without driver injection"/>
+                    <Button Content="From saved image"
+                            Command="{Binding FromSavedImageCommand}"
+                            Height="38"
+                            Margin="0,0,8,8"
+                            ToolTip="Load a previously saved image"/>
+                </WrapPanel>
+
+                <!-- Image Ready Panel (shows after preparation completes) -->
+                <Border Background="{StaticResource AkcOkBg}"
+                        BorderBrush="#CFE3D1"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10,6"
+                        Margin="0,0,0,8"
+                        HorizontalAlignment="Left"
+                        Visibility="{Binding IsImageReady, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource AkcOk}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Image ready"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AkcOk}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"/>
+                        <Button Content="Create ISO"
+                                Command="{Binding CreateCustomIsoCommand}"
+                                Style="{StaticResource PrimaryButton}"
+                                Height="30" Padding="12,4" Margin="0"/>
+                        <Button Content="Create USB"
+                                Command="{Binding CreateUsbCommand}"
+                                Height="30" Padding="12,4"
+                                Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- USB Selection -->
+                <Grid Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="USB drive"
+                               VerticalAlignment="Center"
+                               Margin="0,0,12,0"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource AkcHeading}"/>
+
+                    <DockPanel Grid.Column="1" LastChildFill="True">
+                        <Button Content="Repair / cleanup"
+                                Command="{Binding RepairCleanupCommand}"
+                                DockPanel.Dock="Right"
+                                Margin="8,0,0,0"
+                                Height="32"
+                                Style="{StaticResource DangerButton}"/>
+                        <Button Command="{Binding RefreshUsbCommand}"
+                                DockPanel.Dock="Right"
+                                Margin="8,0,0,0"
+                                Height="32"
+                                ToolTip="Look for USB drives again">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Refresh"/>
+                            </StackPanel>
+                        </Button>
+                        <ComboBox ItemsSource="{Binding UsbDrives}"
+                                  SelectedItem="{Binding SelectedUsbDrive}"
+                                  DisplayMemberPath="DisplayName"
+                                  Height="32"
+                                  MinWidth="200"/>
+                    </DockPanel>
+                </Grid>
+
+                <!-- USB Drive Information -->
+                <Border Background="{StaticResource AkcBgSoft}"
+                        BorderBrush="{StaticResource AkcBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10,8"
+                        Margin="0,10,0,0">
+                    <TextBlock Text="{Binding UsbInfo}" TextWrapping="Wrap" Foreground="{StaticResource AkcMuted}"/>
+                </Border>
             </StackPanel>
         </Border>
 
         <!-- Warning Banner -->
         <Border Grid.Row="7"
-                BorderBrush="#E81123" 
-                BorderThickness="2" 
-                Background="#FFF4CE" 
-                Padding="5" 
-                Margin="0,0,0,10"
+                BorderBrush="#E9CF8F"
+                BorderThickness="1"
+                Background="{StaticResource AkcWarnBg}"
+                CornerRadius="8"
+                Padding="12,8"
+                Margin="0,0,0,12"
                 Visibility="{Binding ShowWarning, Converter={StaticResource BoolToVisibilityConverter}}">
-            <TextBlock Text="{Binding WarningMessage}"
-                       Foreground="#E81123" 
-                       VerticalAlignment="Center" 
-                       FontWeight="Bold" 
-                       TextWrapping="Wrap"/>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource AkcWarn}" Margin="0,2,10,0"/>
+                <TextBlock Text="{Binding WarningMessage}"
+                           Foreground="{StaticResource AkcWarn}"
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"
+                           TextWrapping="Wrap"/>
+            </DockPanel>
         </Border>
 
-        <!-- Overall Progress -->
-        <GroupBox Grid.Row="8" Header="Overall Progress" Padding="8" Margin="0,0,0,3">
-            <StackPanel>
-                <TextBlock Text="{Binding OverallProgressText}" 
-                           FontWeight="SemiBold" 
-                           Margin="0,0,0,3"
-                           Foreground="#0078D4"/>
-                <ProgressBar Value="{Binding OverallProgress}" 
-                             Height="20" 
-                             Minimum="0" 
-                             Maximum="100"
-                             Foreground="#0078D4"/>
-                <TextBlock Text="{Binding OverallProgress, StringFormat={}{0}% Complete}" 
-                           HorizontalAlignment="Center" 
-                           FontSize="10" 
-                           Margin="0,2,0,0"
-                           Foreground="Gray"/>
-            </StackPanel>
-        </GroupBox>
+        <!-- Progress, side by side -->
+        <Grid Grid.Row="8" Margin="0,0,0,7">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-        <!-- Current Operation Progress -->
-        <GroupBox Grid.Row="9" Header="Current Operation" Padding="8" Margin="0,0,0,5">
-            <StackPanel>
-                <TextBlock Text="{Binding CurrentOperationText}" 
-                           FontWeight="SemiBold" 
-                           Margin="0,0,0,3"
-                           Foreground="#107C10"/>
-                <ProgressBar Value="{Binding CurrentOperationProgress}" 
-                             Height="18" 
-                             Minimum="0" 
-                             Maximum="100"
-                             Foreground="#107C10"/>
-            </StackPanel>
-        </GroupBox>
+            <GroupBox Grid.Column="0" Header="Overall progress" Margin="0">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,6">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding OverallProgress, StringFormat={}{0}%}"
+                                   Foreground="{StaticResource AkcMuted}" FontSize="12"/>
+                        <TextBlock Text="{Binding OverallProgressText}"
+                                   FontWeight="Bold"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{StaticResource AkcHeading}"/>
+                    </DockPanel>
+                    <ProgressBar Value="{Binding OverallProgress}" Minimum="0" Maximum="100"/>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Column="2" Header="Current operation" Margin="0">
+                <StackPanel>
+                    <TextBlock Text="{Binding CurrentOperationText}"
+                               Margin="0,0,0,6"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{StaticResource AkcText}"/>
+                    <ProgressBar Value="{Binding CurrentOperationProgress}" Minimum="0" Maximum="100"
+                                 Foreground="{StaticResource AkcCopperDark}"/>
+                </StackPanel>
+            </GroupBox>
+        </Grid>
 
         <!-- Operation Log -->
-        <GroupBox Grid.Row="11" 
-                  Header="Operation Log" 
-                  Padding="5"
-                  Margin="0,0,0,0">
-            <Border BorderThickness="1"
-                    BorderBrush="#0078D4"
-                    Background="Black"
-                    Padding="0">
+        <GroupBox Grid.Row="10" Header="Operation log" Margin="0,5,0,0">
+            <Border CornerRadius="8"
+                    Background="{StaticResource AkcLogBg}"
+                    Padding="10,8">
                 <ScrollViewer x:Name="LogScrollViewer"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
@@ -535,12 +492,10 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding}"
-                                           Foreground="Lime"
-                                           FontWeight="Bold"
+                                           Foreground="{StaticResource AkcLogText}"
                                            FontSize="12"
-                                           FontFamily="Consolas"
-                                           Padding="2"
-                                           Margin="0"
+                                           FontFamily="{StaticResource AkcMono}"
+                                           Padding="0,1"
                                            TextWrapping="Wrap"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -548,6 +503,7 @@
                 </ScrollViewer>
             </Border>
         </GroupBox>
-                                                </Grid>
-                                                </DockPanel>
-                                            </Window>
+        </Grid>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

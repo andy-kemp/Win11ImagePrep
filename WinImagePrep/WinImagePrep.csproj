@@ -37,6 +37,10 @@
 
   <ItemGroup>
 	<Resource Include="app.ico" />
+	<!-- AKC branding: Inter font (SIL Open Font License, see Fonts/Inter-LICENSE.txt) and logo -->
+	<Resource Include="Fonts\Inter-Regular.ttf" />
+	<Resource Include="Fonts\Inter-Bold.ttf" />
+	<Resource Include="Assets\akc-logo.png" />
   </ItemGroup>
 
   <!-- Include documentation files in publish output -->

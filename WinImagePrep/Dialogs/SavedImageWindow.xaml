@@ -20,7 +20,7 @@
                    Text="Create USB from Saved Image" 
                    FontSize="18" 
                    FontWeight="Bold" 
-                   Foreground="#0078D4" 
+                   Foreground="#8A4E2E" 
                    Margin="0,0,0,15"/>
 
         <!-- Saved Image Selection -->
@@ -35,9 +35,9 @@
 
         <!-- Image Label Info -->
         <Border Grid.Row="2" 
-                BorderBrush="#0078D4" 
+                BorderBrush="#8A4E2E" 
                 BorderThickness="1" 
-                Background="#F0F0F0" 
+                Background="#F7F3EF" 
                 Padding="10" 
                 Margin="0,0,0,10">
             <StackPanel>
@@ -72,8 +72,8 @@
                   Padding="5" 
                   Margin="0,0,0,15">
             <ListBox x:Name="lstLog"
-                     Background="Black"
-                     Foreground="Lime"
+                     Background="#1F1915"
+                     Foreground="#EAD9C9"
                      FontWeight="Bold"
                      FontSize="11"
                      FontFamily="Consolas"
@@ -88,7 +88,7 @@
                     Width="120" 
                     Height="36" 
                     Margin="0,0,10,0"
-                    Background="#0078D4"
+                    Background="#8A4E2E"
                     Foreground="White"
                     FontWeight="Bold"
                     FontSize="14"

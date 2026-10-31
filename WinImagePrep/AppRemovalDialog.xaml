@@ -7,7 +7,7 @@
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         ResizeMode="CanResize"
-        Background="#F5F5F5">
+        Background="#F7F3EF">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -30,12 +30,12 @@
                    Text="Choose which built-in Windows apps should be removed from the installation image. Selected apps will be permanently removed before creating the bootable USB."
                    TextWrapping="Wrap"
                    Margin="0,0,0,10"
-                   Foreground="#555555"/>
+                   Foreground="#302923"/>
 
         <!-- Quick Select Buttons -->
         <Border Grid.Row="1" 
                 Background="White"
-                BorderBrush="#CCCCCC"
+                BorderBrush="#E5D9CE"
                 BorderThickness="1"
                 Padding="10"
                 Margin="0,40,0,15"
@@ -66,7 +66,7 @@
 
         <!-- Apps List -->
         <Border Grid.Row="2" 
-                BorderBrush="#0078D4" 
+                BorderBrush="#8A4E2E" 
                 BorderThickness="2"
                 Background="White"
                 Margin="0,0,0,15">
@@ -78,7 +78,7 @@
 
                 <!-- Header with Select All -->
                 <Border Grid.Row="0" 
-                        Background="#0078D4" 
+                        Background="#8A4E2E" 
                         Padding="10,5">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -110,7 +110,7 @@
                     <ItemsControl x:Name="lstApps" Margin="10">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="#E0E0E0" 
+                                <Border BorderBrush="#E5D9CE" 
                                         BorderThickness="0,0,0,1" 
                                         Padding="5">
                                     <CheckBox IsChecked="{Binding IsSelected}"
@@ -121,7 +121,7 @@
                                                        FontWeight="SemiBold" 
                                                        FontSize="13"/>
                                             <TextBlock Text="{Binding Description}" 
-                                                       Foreground="Gray" 
+                                                       Foreground="#625850" 
                                                        FontSize="11"
                                                        Margin="0,2,0,0"/>
                                             <TextBlock Text="{Binding PackageName}" 
@@ -141,20 +141,20 @@
 
         <!-- Warning -->
         <Border Grid.Row="3" 
-                Background="#FFF4CE" 
-                BorderBrush="#E81123"
+                Background="#FDF3DC" 
+                BorderBrush="#A33A2A"
                 BorderThickness="1"
                 Padding="10"
                 Margin="0,0,0,15">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="⚠" 
                            FontSize="16" 
-                           Foreground="#E81123"
+                           Foreground="#A33A2A"
                            Margin="0,0,10,0"
                            VerticalAlignment="Center"/>
                 <TextBlock Text="Warning: Removing some apps may affect Windows functionality. OneDrive removal should be used with caution. Changes are permanent after image creation."
                            TextWrapping="Wrap"
-                           Foreground="#333333"
+                           Foreground="#302923"
                            FontSize="11"/>
             </StackPanel>
         </Border>
@@ -167,14 +167,14 @@
                     Width="100" 
                     Height="30"
                     Margin="0,0,10,0"
-                    Background="#0078D4"
+                    Background="#8A4E2E"
                     Foreground="White"
                     FontWeight="SemiBold"
                     Click="OK_Click"/>
             <Button Content="Cancel" 
                     Width="100" 
                     Height="30"
-                    Background="#E0E0E0"
+                    Background="#E5D9CE"
                     Click="Cancel_Click"/>
         </StackPanel>
     </Grid>

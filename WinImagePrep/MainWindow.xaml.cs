@@ -158,8 +158,8 @@ namespace WinImagePrep
                 e.Effects = DragDropEffects.Copy;
                 if (sender is System.Windows.Controls.Border border)
                 {
-                    border.BorderBrush = System.Windows.Media.Brushes.Green;
-                    border.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(230, 255, 237));
+                    border.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(138, 78, 46)); // AKC copper
+                    border.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 226, 214));
                 }
             }
             else
@@ -188,8 +188,8 @@ namespace WinImagePrep
         {
             if (sender is System.Windows.Controls.Border border)
             {
-                border.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 212));
-                border.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 248, 248));
+                border.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(201, 168, 143));
+                border.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(247, 243, 239));
             }
         }
 
@@ -202,8 +202,8 @@ namespace WinImagePrep
                 // Restore border appearance
                 if (sender is System.Windows.Controls.Border border)
                 {
-                    border.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 212));
-                    border.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 248, 248));
+                    border.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(201, 168, 143));
+                    border.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(247, 243, 239));
                 }
 
                 if (e.Data.GetDataPresent(DataFormats.FileDrop) && _viewModel != null)

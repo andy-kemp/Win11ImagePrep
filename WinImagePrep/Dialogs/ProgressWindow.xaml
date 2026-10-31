@@ -9,7 +9,7 @@
         Topmost="True" 
         WindowStyle="None" 
         Background="White"
-        BorderBrush="#0078D4" 
+        BorderBrush="#8A4E2E" 
         BorderThickness="1">
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -27,7 +27,7 @@
                    FontSize="18" 
                    FontWeight="Bold" 
                    Margin="0,0,0,15" 
-                   Foreground="#0078D4"/>
+                   Foreground="#8A4E2E"/>
 
         <!-- Message -->
         <TextBlock x:Name="txtMessage" 
@@ -54,7 +54,7 @@
                    FontSize="14" 
                    FontWeight="Bold" 
                    Margin="0,0,0,10" 
-                   Foreground="#0078D4"/>
+                   Foreground="#8A4E2E"/>
 
         <!-- Cancel Button -->
         <Button x:Name="btnCancel" 
@@ -62,7 +62,7 @@
                 Grid.Row="4" 
                 Width="140" 
                 Height="32" 
-                Background="#E81123" 
+                Background="#A33A2A" 
                 Foreground="White" 
                 FontWeight="Bold"
                 Click="BtnCancel_Click"/>

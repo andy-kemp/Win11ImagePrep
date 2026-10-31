@@ -95,7 +95,7 @@ namespace WinImagePrep.ViewModels
             // Load saved unattended install settings
             EnableUnattendedInstall = settings.EnableUnattendedInstall;
 
-            AddLog("Windows Image Preparation Tool - Ready");
+            AddLog("Win11 Image Prep - Ready");
             AddLog("NEW: Windows app removal + Edition selection features");
             AddLog("Please select a Windows ISO and driver source to begin");
         }
@@ -263,7 +263,7 @@ namespace WinImagePrep.ViewModels
             get
             {
                 var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                return $"Windows Image Preparation Tool v{version?.Major}.{version?.Minor}.{version?.Build}";
+                return $"Win11 Image Prep v{version?.Major}.{version?.Minor}.{version?.Build}";
             }
         }
 

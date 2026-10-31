@@ -13,7 +13,7 @@
     <Window.Resources>
         <!-- Primary Button Style -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Background" Value="#8A4E2E"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -31,7 +31,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#106EBE"/>
+                    <Setter Property="Background" Value="#8A4E2E"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -39,8 +39,8 @@
         <!-- Secondary Button Style -->
         <Style x:Key="SecondaryButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#333333"/>
-            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="Foreground" Value="#302923"/>
+            <Setter Property="BorderBrush" Value="#E5D9CE"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -58,7 +58,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F0F0F0"/>
+                    <Setter Property="Background" Value="#F7F3EF"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -79,7 +79,7 @@
         </StackPanel>
 
         <!-- Message Content -->
-        <Border Grid.Row="1" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="1" 
+        <Border Grid.Row="1" Background="#F7F3EF" BorderBrush="#E5D9CE" BorderThickness="1" 
                 CornerRadius="5" Padding="15" Margin="0,0,0,15">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <TextBlock x:Name="MessageText" TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
