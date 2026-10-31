@@ -49,8 +49,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ContentControl">
                         <StackPanel Orientation="Horizontal">
-                            <Border Width="22" Height="22" CornerRadius="11" Background="{StaticResource AkcCopper}" Margin="0,0,8,0"
-                                    Visibility="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Collapsed}">
+                            <Border Width="22" Height="22" CornerRadius="11" Background="{StaticResource AkcCopper}" Margin="0,0,8,0">
                                 <TextBlock Text="{TemplateBinding Tag}" Foreground="White" FontWeight="Bold" FontSize="11.5"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
