@@ -78,26 +78,37 @@ jobs:
           }
           # As it opens on this small screen
           Shot 940 960 'screenshot-main-window.png'
-          # Scrolled to the bottom (log collapsed on a short screen), then with the log opened
+          # Scrolled to the bottom (log collapsed on a short screen), then with the log opened.
+          # The UI Automation code is compiled only after its assemblies are loaded, so a problem
+          # there can't stop the screenshots above.
           try {
             Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
-            $root = [System.Windows.Automation.AutomationElement]::FromHandle($h)
-            $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
-            $scroll = $null; $area = 0
-            foreach ($el in $all) {
-              $sp = $null
-              if ($el.TryGetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern, [ref]$sp)) {
-                $b = $el.Current.BoundingRectangle; if ($b.Width * $b.Height -gt $area) { $area = $b.Width * $b.Height; $scroll = $sp }
+            $uia = [scriptblock]::Create(@'
+              param($h)
+              $A = [System.Windows.Automation.AutomationElement]
+              $root = $A::FromHandle($h)
+              $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+              $scroll = $null; $area = 0
+              foreach ($el in $all) {
+                $sp = $null
+                if ($el.TryGetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern, [ref]$sp)) {
+                  $rect = $el.Current.BoundingRectangle
+                  if ($rect.Width * $rect.Height -gt $area) { $area = $rect.Width * $rect.Height; $scroll = $sp }
+                }
               }
-            }
-            if ($scroll -and $scroll.Current.VerticallyScrollable) { $scroll.SetScrollPercent(-1, 100) }
+              $cond = New-Object System.Windows.Automation.PropertyCondition ($A::AutomationIdProperty, 'LogToggle')
+              $toggle = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
+              $tp = $null
+              if ($toggle) { $tp = $toggle.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern) }
+              [pscustomobject]@{ Scroll = $scroll; Toggle = $tp }
+          '@)
+            $ui = & $uia $h
+            if ($ui.Scroll) { $ui.Scroll.SetScrollPercent(-1, 100) }
             Shot 940 960 'screenshot-main-window-bottom.png'
-            $cond = New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'LogToggle')
-            $toggle = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
-            if ($toggle) {
-              $tp = $toggle.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern); $tp.Toggle()
+            if ($ui.Toggle) {
+              $ui.Toggle.Toggle()
               Start-Sleep -Seconds 1
-              if ($scroll -and $scroll.Current.VerticallyScrollable) { $scroll.SetScrollPercent(-1, 100) }
+              if ($ui.Scroll) { $ui.Scroll.SetScrollPercent(-1, 100) }
               Shot 940 960 'screenshot-main-window-log-open.png'
             } else { Write-Host 'LogToggle not found' }
           } catch { Write-Host "UI Automation step failed: $_" }
