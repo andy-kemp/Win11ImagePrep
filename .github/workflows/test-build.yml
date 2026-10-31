@@ -1,0 +1,55 @@
+# Builds a test exe for a branch on a Windows runner and publishes it as a GitHub pre-release,
+# so a change can be tried on real hardware before it is released.
+# Pre-releases are ignored by the app's updater (it reads version.json on main).
+name: Test build
+
+on:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish app
+        run: dotnet publish WinImagePrep/WinImagePrep.csproj -c Release -r win-x64 --self-contained -o out/app
+
+      - name: Publish updater
+        run: dotnet publish WinImagePrep.Updater/WinImagePrep.Updater.csproj -c Release -r win-x64 --self-contained -o out/updater
+
+      - name: Name the test build
+        id: meta
+        shell: pwsh
+        run: |
+          $branch = "${{ github.ref_name }}" -replace '[^A-Za-z0-9._-]', '-'
+          $short = "${{ github.sha }}".Substring(0, 7)
+          "tag=test-$branch-$short" >> $env:GITHUB_OUTPUT
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item out/app/WinImagePrep.exe "release/WinImagePrep_test_$short.exe"
+          Copy-Item out/updater/WinImagePrep.Updater.exe release/WinImagePrep.Updater.exe
+          Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release/SHA256SUMS.txt
+          Get-Content release/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.tag }}
+          path: release/
+
+      - name: Publish pre-release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = "Test build of branch ``${{ github.ref_name }}`` at ${{ github.sha }}. Not a release: for testing only. Check the download against SHA256SUMS.txt."
+          gh release create "${{ steps.meta.outputs.tag }}" release/* --prerelease --target "${{ github.sha }}" --title "Test build: ${{ github.ref_name }} (${{ github.sha }})" --notes $notes
