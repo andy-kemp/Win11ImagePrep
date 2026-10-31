@@ -45,6 +45,7 @@ jobs:
         shell: pwsh
         continue-on-error: true
         run: |
+          Start-Transcript -Path "$PWD/release/screenshot-log.txt" | Out-Null
           # Skip first-run and update prompts so the main window opens straight away
           New-Item -ItemType Directory -Force C:\ProgramData\Win11ImagePrep | Out-Null
           '{"FirstRunComplete":true,"FirstRunUpdateCheckComplete":true,"CheckForUpdates":false}' | Set-Content C:\ProgramData\Win11ImagePrep\settings.json
@@ -113,6 +114,7 @@ jobs:
             } else { Write-Host 'LogToggle not found' }
           } catch { Write-Host "UI Automation step failed: $_" }
           Stop-Process -Id $p.Id -Force
+          Stop-Transcript | Out-Null
 
       - uses: actions/upload-artifact@v4
         with:
