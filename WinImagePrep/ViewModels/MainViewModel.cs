@@ -1440,7 +1440,9 @@ namespace WinImagePrep.ViewModels
 
                 // Extract ISO
                 OverallProgress = 10;
-                OverallProgressText = "Step 1/6: Extracting ISO contents...";
+                ResetStageTimings();
+                BeginStage("Extract ISO");
+                OverallProgressText = "Step 1/7: Extracting ISO contents...";
                 CurrentOperationText = "Extracting ISO...";
                 CurrentOperationProgress = 0;
                 AddLog("Extracting ISO contents...");
@@ -1463,7 +1465,7 @@ namespace WinImagePrep.ViewModels
 
                 // Prepare driver sources
                 OverallProgress = 25;
-                OverallProgressText = $"Step 2/6: Preparing {DriverSources.Count} driver source(s)...";
+                OverallProgressText = $"Step 2/7: Validating {DriverSources.Count} driver source(s)...";
                 CurrentOperationText = $"Validating {DriverSources.Count} driver source(s)...";
                 CurrentOperationProgress = 0;
                 AddLog($"Preparing {DriverSources.Count} driver source(s)...");
@@ -1507,31 +1509,81 @@ namespace WinImagePrep.ViewModels
                 AddLog($"✓ Found {validSources}/{DriverSources.Count} valid driver source(s)");
                 OverallProgress = 30;
 
-                // Inject drivers into WinPE and Setup
-                OverallProgress = 40;
-                OverallProgressText = "Step 4/6: Injecting drivers into boot images...";
-                await InjectDriversToBootWimAsync(_cancellationTokenSource.Token);
+                var ct = _cancellationTokenSource.Token;
+                var settings = _settingsService.CurrentSettings;
 
-                // Inject drivers into install.wim editions
-                OverallProgress = 60;
-                var progressMsg = RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected) 
-                    ? "Step 5/6: Injecting drivers and removing apps..." 
-                    : "Step 5/6: Injecting drivers into Windows editions...";
-                OverallProgressText = progressMsg;
-                await InjectDriversToInstallWimAsync(_cancellationTokenSource.Token);
-
-                // Delete unselected editions if user selected specific editions
-                if (SelectedEditions != null && SelectedEditions.Any())
+                // Step 3: Cut install.wim down to the selected editions BEFORE servicing,
+                // so we never mount editions that are about to be thrown away
+                BeginStage("Prepare install image");
+                OverallProgress = 32;
+                OverallProgressText = "Step 3/7: Preparing install image (selected editions only)...";
+                var editionIndices = await PrepareInstallImageAsync(ct);
+                if (editionIndices == null)
                 {
-                    OverallProgress = 85;
-                    OverallProgressText = "Step 5.5/6: Removing unselected Windows editions...";
-                    await DeleteUnselectedEditionsAsync(_cancellationTokenSource.Token);
+                    return;
                 }
 
-                // Split WIM if needed
-                OverallProgress = 90;
-                OverallProgressText = "Step 6/6: Finalizing...";
-                await SplitWimIfNeededAsync(_cancellationTokenSource.Token);
+                // Step 4: Extract each driver pack ONCE, then build the boot-critical subset
+                BeginStage("Stage drivers");
+                OverallProgress = 36;
+                OverallProgressText = "Step 4/7: Extracting driver packs (once)...";
+                CurrentOperationText = "Extracting driver packs...";
+                var stagedDrivers = await _driverService.StageDriverSourcesAsync(
+                    DriverSources.ToList(),
+                    Path.Combine(_config.DriversDirectory, "Staged"),
+                    new Progress<string>(msg => { AddLog($"  {msg}"); CurrentOperationText = msg; }),
+                    ct);
+                if (stagedDrivers.Count == 0)
+                {
+                    AddLog("✗ No driver packs could be prepared");
+                    return;
+                }
+
+                List<string> bootDrivers;
+                if (settings.InjectAllDriversIntoBootImages)
+                {
+                    AddLog("Boot images: full driver set (InjectAllDriversIntoBootImages is on)");
+                    bootDrivers = stagedDrivers;
+                }
+                else
+                {
+                    CurrentOperationText = "Selecting boot-critical drivers...";
+                    var bootSet = await _driverService.BuildBootDriverSetAsync(
+                        stagedDrivers,
+                        settings.BootDriverClasses,
+                        Path.Combine(_config.DriversDirectory, "BootSet"),
+                        new Progress<string>(msg => AddLog($"  {msg}")),
+                        ct);
+                    bootDrivers = bootSet.InfCount > 0 ? new List<string> { bootSet.Folder } : new List<string>();
+                    if (bootDrivers.Count == 0)
+                    {
+                        AddLog("⚠ No boot-critical drivers found in the packs - boot images will not be changed");
+                    }
+                }
+
+                // Step 5: boot.wim (WinPE + Setup) gets the boot-critical subset only
+                BeginStage("Boot images");
+                OverallProgress = 40;
+                OverallProgressText = "Step 5/7: Injecting drivers into boot images...";
+                await InjectDriversToBootWimAsync(bootDrivers, ct);
+
+                // Step 6: install.wim editions get the full set; WinRE is serviced once and reused
+                BeginStage("Install image");
+                OverallProgress = 55;
+                OverallProgressText = RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected)
+                    ? "Step 6/7: Injecting drivers and removing apps..."
+                    : "Step 6/7: Injecting drivers into Windows editions...";
+                await InjectDriversToInstallWimAsync(editionIndices, stagedDrivers, bootDrivers, ct);
+
+                // Step 7: Compact (drops superseded data) then split for FAT32 if needed
+                BeginStage("Finalise image");
+                OverallProgress = 85;
+                OverallProgressText = "Step 7/7: Finalising image...";
+                if (settings.CompactImageAfterServicing)
+                {
+                    await CompactInstallWimAsync(ct);
+                }
+                await SplitWimIfNeededAsync(ct);
 
                 // Inject autounattend.xml if enabled
                 if (EnableUnattendedInstall)
@@ -1575,6 +1627,8 @@ namespace WinImagePrep.ViewModels
                 CurrentOperationProgress = 100;
                 CurrentOperationText = "Complete";
                 AddLog("=== Processing Complete ===");
+                EndStage();
+                LogStageSummary();
                 if (RemoveWindowsApps && WindowsApps.Any(a => a.IsSelected))
                 {
                     AddLog($"✓ Removed {WindowsApps.Count(a => a.IsSelected)} Windows app(s)");
@@ -1674,299 +1728,409 @@ namespace WinImagePrep.ViewModels
             }
         }
 
-        private async Task InjectDriversToBootWimAsync(CancellationToken cancellationToken)
+        // ---------------------------------------------------------------------
+        // Stage timing - logged so build times can be compared run to run
+        // ---------------------------------------------------------------------
+        private readonly List<(string Name, TimeSpan Elapsed)> _stageTimings = new();
+        private Stopwatch? _stageWatch;
+        private string? _stageName;
+        private Stopwatch? _runWatch;
+
+        private void ResetStageTimings()
         {
-            var bootWimPath = Path.Combine(_config.Windows11Directory, "Sources", "boot.wim");
-
-            // WinPE (Index 1)
-            AddLog("Injecting drivers into WinPE...");
-            CurrentOperationText = "Mounting WinPE...";
-            CurrentOperationProgress = 0;
-            var mountPE = _config.MountPEDirectory;
-            FileSystemHelper.EnsureDirectoryExists(mountPE);
-
-            await _dismService.MountWimAsync(bootWimPath, 1, mountPE, new Progress<string>(msg => 
-            { 
-                AddLog(msg); 
-                CurrentOperationText = msg;
-                CurrentOperationProgress = 25;
-            }), cancellationToken);
-
-            CurrentOperationText = "Adding drivers to WinPE...";
-            CurrentOperationProgress = 50;
-
-            // Inject drivers from all driver sources
-            await InjectAllDriverSourcesAsync(mountPE, cancellationToken);
-
-            CurrentOperationText = "Unmounting WinPE...";
-            await _dismService.UnmountWimAsync(mountPE, true, new Progress<string>(msg => 
-            { 
-                AddLog(msg); 
-                CurrentOperationText = msg;
-            }), cancellationToken, deleteMountDirectory: true);
-
-            // Setup (Index 2)
-            AddLog("Injecting drivers into Windows Setup...");
-            CurrentOperationText = "Mounting Windows Setup...";
-            CurrentOperationProgress = 0;
-            var mountSetup = _config.MountSetupDirectory;
-            FileSystemHelper.EnsureDirectoryExists(mountSetup);
-
-            await _dismService.MountWimAsync(bootWimPath, 2, mountSetup, new Progress<string>(msg => 
-            { 
-                AddLog(msg); 
-                CurrentOperationText = msg;
-                CurrentOperationProgress = 25;
-            }), cancellationToken);
-
-            CurrentOperationText = "Adding drivers to Windows Setup...";
-            CurrentOperationProgress = 50;
-
-            // Inject drivers from all driver sources
-            await InjectAllDriverSourcesAsync(mountSetup, cancellationToken);
-
-            CurrentOperationText = "Unmounting Windows Setup...";
-            await _dismService.UnmountWimAsync(mountSetup, true, new Progress<string>(msg => 
-            { 
-                AddLog(msg); 
-                CurrentOperationText = msg;
-            }), cancellationToken, deleteMountDirectory: true);
-
-            CurrentOperationProgress = 100;
+            _stageTimings.Clear();
+            _stageWatch = null;
+            _stageName = null;
+            _runWatch = Stopwatch.StartNew();
         }
 
-        private async Task InjectDriversToInstallWimAsync(CancellationToken cancellationToken)
+        private void BeginStage(string name)
         {
-            var installWimPath = Path.Combine(_config.Windows11Directory, "Sources", "install.wim");
-            var editions = await _dismService.GetWimInfoAsync(installWimPath, cancellationToken);
+            EndStage();
+            _stageName = name;
+            _stageWatch = Stopwatch.StartNew();
+        }
 
-            var editionsToProcess = SelectedEditions ?? editions.Select(e => e.ImageIndex).ToList();
-
-            int editionCount = 0;
-            int totalEditions = editionsToProcess.Count;
-
-            foreach (var editionIndex in editionsToProcess)
+        private void EndStage()
+        {
+            if (_stageWatch != null && _stageName != null)
             {
-                editionCount++;
-                var edition = editions.FirstOrDefault(e => e.ImageIndex == editionIndex);
-                var editionName = edition?.ImageName ?? $"Edition {editionIndex}";
+                _stageWatch.Stop();
+                _stageTimings.Add((_stageName, _stageWatch.Elapsed));
+                AddLog($"⏱ {_stageName}: {_stageWatch.Elapsed:hh\\:mm\\:ss}");
+            }
+            _stageWatch = null;
+            _stageName = null;
+        }
 
-                AddLog($"Injecting drivers into {editionName}...");
-                CurrentOperationText = $"Mounting {editionName} ({editionCount}/{totalEditions})...";
-                CurrentOperationProgress = 0;
-
-                var mountPath = Path.Combine(_config.MountDirectory, $"Edition_{editionIndex}");
-                FileSystemHelper.EnsureDirectoryExists(mountPath);
-
-                await _dismService.MountWimAsync(installWimPath, editionIndex, mountPath, new Progress<string>(msg => 
-                { 
-                    AddLog(msg); 
-                    CurrentOperationText = msg;
-                    CurrentOperationProgress = 20;
-                }), cancellationToken);
-
-                CurrentOperationText = $"Adding drivers to {editionName} ({editionCount}/{totalEditions})...";
-                CurrentOperationProgress = 40;
-
-                // Inject drivers from all driver sources
-                await InjectAllDriverSourcesAsync(mountPath, cancellationToken);
-
-                // Remove Windows apps if option is enabled
-                if (RemoveWindowsApps)
-                {
-                    // Collect all package names from selected apps (flattening multi-architecture entries)
-                    var appsToRemove = WindowsApps
-                        .Where(app => app.IsSelected)
-                        .SelectMany(app => app.PackageNames.Any() ? app.PackageNames : new List<string> { app.PackageName })
-                        .ToList();
-
-                    if (appsToRemove.Any())
-                    {
-                        AddLog($"Removing {appsToRemove.Count} Windows app package(s) from {editionName}...");
-                        CurrentOperationText = $"Removing Windows apps from {editionName}...";
-                        CurrentOperationProgress = 50;
-
-                        await _dismService.RemoveProvisionedAppsAsync(mountPath, appsToRemove, new Progress<string>(msg =>
-                        {
-                            AddLog(msg);
-                            CurrentOperationText = msg;
-                        }), cancellationToken);
-                    }
-                }
-
-                // Check for WinRE
-                var winrePath = Path.Combine(mountPath, "Windows", "System32", "Recovery", "Winre.wim");
-                if (File.Exists(winrePath))
-                {
-                    AddLog($"  Processing WinRE for {editionName}...");
-                    CurrentOperationText = $"Mounting WinRE for {editionName}...";
-                    CurrentOperationProgress = 60;
-                    var mountWinRE = Path.Combine(_config.MountDirectory, $"WinRE_{editionIndex}");
-                    FileSystemHelper.EnsureDirectoryExists(mountWinRE);
-
-                    await _dismService.MountWimAsync(winrePath, 1, mountWinRE, new Progress<string>(msg => 
-                    { 
-                        AddLog(msg); 
-                        CurrentOperationText = msg;
-                    }), cancellationToken);
-
-                    CurrentOperationText = $"Adding drivers to WinRE for {editionName}...";
-                    CurrentOperationProgress = 70;
-
-                    // Inject drivers from all driver sources
-                    await InjectAllDriverSourcesAsync(mountWinRE, cancellationToken);
-
-                    CurrentOperationText = $"Unmounting WinRE for {editionName}...";
-                    CurrentOperationProgress = 80;
-                    await _dismService.UnmountWimAsync(mountWinRE, true, new Progress<string>(msg => 
-                    { 
-                        AddLog(msg); 
-                        CurrentOperationText = msg;
-                    }), cancellationToken, deleteMountDirectory: true);
-                }
-
-                CurrentOperationText = $"Unmounting {editionName}...";
-                CurrentOperationProgress = 90;
-                await _dismService.UnmountWimAsync(mountPath, true, new Progress<string>(msg => 
-                { 
-                    AddLog(msg); 
-                    CurrentOperationText = msg;
-                }), cancellationToken, deleteMountDirectory: true);
-
-                CurrentOperationProgress = 100;
+        private void LogStageSummary()
+        {
+            if (_stageTimings.Count == 0) return;
+            AddLog("=== Build timings ===");
+            foreach (var (name, elapsed) in _stageTimings)
+            {
+                AddLog($"  {name,-24} {elapsed:hh\\:mm\\:ss}");
+            }
+            if (_runWatch != null)
+            {
+                AddLog($"  {"Total",-24} {_runWatch.Elapsed:hh\\:mm\\:ss}");
             }
         }
 
         /// <summary>
-        /// Inject drivers from all driver sources (MSI, ZIP, folders) into a mounted image
+        /// Reduce install.wim/install.esd to only the selected editions before any servicing.
+        /// Also converts install.esd to install.wim (ESD can't be mounted).
+        /// Returns the indices to service in the resulting install.wim, or null on failure.
         /// </summary>
-        private async Task InjectAllDriverSourcesAsync(string mountPath, CancellationToken cancellationToken)
+        private async Task<List<int>?> PrepareInstallImageAsync(CancellationToken cancellationToken)
         {
-            if (!DriverSources.Any())
+            var sourcesDir = Path.Combine(_config.Windows11Directory, "Sources");
+            var wimPath = Path.Combine(sourcesDir, "install.wim");
+            var esdPath = Path.Combine(sourcesDir, "install.esd");
+
+            var isEsd = !File.Exists(wimPath) && File.Exists(esdPath);
+            var sourcePath = isEsd ? esdPath : wimPath;
+            if (!File.Exists(sourcePath))
             {
-                AddLog("⚠ No driver sources configured");
+                AddLog("✗ install.wim / install.esd not found in extracted ISO");
+                return null;
+            }
+
+            // Files copied from an ISO are often read-only
+            File.SetAttributes(sourcePath, FileAttributes.Normal);
+
+            var editions = await _dismService.GetWimInfoAsync(sourcePath, cancellationToken);
+            if (editions.Count == 0)
+            {
+                AddLog("✗ Could not read editions from install image");
+                return null;
+            }
+
+            var wanted = (SelectedEditions ?? new List<int>())
+                .Where(i => editions.Any(e => e.ImageIndex == i))
+                .Distinct()
+                .OrderBy(i => i)
+                .ToList();
+            if (wanted.Count == 0)
+            {
+                wanted = editions.Select(e => e.ImageIndex).ToList();
+                AddLog($"No specific editions selected - servicing all {wanted.Count}");
+            }
+
+            if (!isEsd && wanted.Count == editions.Count)
+            {
+                AddLog($"Keeping all {wanted.Count} edition(s); nothing to trim");
+                return wanted;
+            }
+
+            AddLog(isEsd
+                ? $"Converting install.esd to install.wim with {wanted.Count} of {editions.Count} edition(s)..."
+                : $"Trimming install.wim to {wanted.Count} of {editions.Count} edition(s) before servicing...");
+            foreach (var index in wanted)
+            {
+                AddLog($"  ✓ {editions.First(e => e.ImageIndex == index).ImageName}");
+            }
+
+            var tempPath = Path.Combine(sourcesDir, "install.prep.wim");
+            var ok = await _dismService.ExportImagesAsync(
+                sourcePath,
+                wanted,
+                tempPath,
+                isEsd ? "max" : null, // keep existing compression for WIM - much faster
+                new Progress<string>(msg => { AddLog($"  {msg}"); CurrentOperationText = msg; }),
+                cancellationToken);
+            if (!ok)
+            {
+                AddLog("✗ Failed to prepare install image");
+                return null;
+            }
+
+            File.Delete(sourcePath);
+            File.Move(tempPath, wimPath);
+            AddLog($"✓ install.wim now holds {wanted.Count} edition(s)");
+
+            // Exported images are renumbered 1..N
+            return Enumerable.Range(1, wanted.Count).ToList();
+        }
+
+        /// <summary>
+        /// Inject the given driver folders into a mounted image (one DISM call per folder)
+        /// </summary>
+        private async Task InjectDriverFoldersAsync(string mountPath, IReadOnlyList<string> driverFolders, CancellationToken cancellationToken)
+        {
+            for (int i = 0; i < driverFolders.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                AddLog($"  [{i + 1}/{driverFolders.Count}] Adding drivers from {driverFolders[i]}");
+                var ok = await _dismService.AddDriversAsync(
+                    mountPath,
+                    driverFolders[i],
+                    new Progress<string>(msg => AddLog($"    {msg}")),
+                    cancellationToken);
+                if (!ok)
+                {
+                    AddLog($"  ⚠ DISM reported a problem adding drivers from {driverFolders[i]} - continuing");
+                }
+            }
+        }
+
+        private async Task InjectDriversToBootWimAsync(IReadOnlyList<string> bootDrivers, CancellationToken cancellationToken)
+        {
+            if (bootDrivers.Count == 0)
+            {
+                AddLog("Skipping boot.wim - no boot-critical drivers to add");
                 return;
             }
 
-            AddLog($"Injecting drivers from {DriverSources.Count} driver pack(s)...");
-
-            int sourceCount = 0;
-            foreach (var driverSource in DriverSources)
+            var bootWimPath = Path.Combine(_config.Windows11Directory, "Sources", "boot.wim");
+            if (!File.Exists(bootWimPath))
             {
-                sourceCount++;
-                AddLog($"[{sourceCount}/{DriverSources.Count}] Processing: {driverSource.DisplayName} ({driverSource.TypeLabel})");
+                AddLog("⚠ boot.wim not found, skipping boot image drivers");
+                return;
+            }
+            File.SetAttributes(bootWimPath, FileAttributes.Normal);
 
-                string? driverPath = null;
+            var targets = new[]
+            {
+                (Index: 1, Name: "WinPE", Mount: _config.MountPEDirectory),
+                (Index: 2, Name: "Windows Setup", Mount: _config.MountSetupDirectory)
+            };
+
+            foreach (var target in targets)
+            {
+                AddLog($"Injecting boot drivers into {target.Name}...");
+                CurrentOperationText = $"Mounting {target.Name}...";
+                CurrentOperationProgress = 0;
+                FileSystemHelper.EnsureDirectoryExists(target.Mount);
+
+                var mounted = await _dismService.MountWimAsync(bootWimPath, target.Index, target.Mount,
+                    new Progress<string>(msg => { AddLog(msg); CurrentOperationText = msg; }), cancellationToken);
+                if (!mounted)
+                {
+                    AddLog($"✗ Could not mount {target.Name}, skipping");
+                    continue;
+                }
 
                 try
                 {
-                    // Prepare driver path based on source type
-                    switch (driverSource.Type)
-                    {
-                        case DriverSourceType.Msi:
-                            var msiTempPath = Path.Combine(_config.DriversDirectory, $"MSI_Extract_{sourceCount}");
-                            FileSystemHelper.EnsureDirectoryExists(msiTempPath);
-
-                            AddLog($"  Extracting MSI: {driverSource.DisplayName}...");
-                            var msiExtracted = await _driverService.ExtractDriverMsiAsync(
-                                driverSource.Path,
-                                msiTempPath,
-                                new Progress<string>(msg => AddLog($"    {msg}")),
-                                cancellationToken);
-
-                            if (msiExtracted)
-                            {
-                                driverPath = msiTempPath;
-                            }
-                            break;
-
-                        case DriverSourceType.Zip:
-                            var zipTempPath = Path.Combine(_config.DriversDirectory, $"ZIP_Extract_{sourceCount}");
-                            FileSystemHelper.EnsureDirectoryExists(zipTempPath);
-
-                            AddLog($"  Extracting ZIP: {driverSource.DisplayName}...");
-                            var zipExtracted = await _driverService.ExtractDriverZipAsync(
-                                driverSource.Path,
-                                zipTempPath,
-                                new Progress<string>(msg => AddLog($"    {msg}")),
-                                cancellationToken);
-
-                            if (zipExtracted)
-                            {
-                                driverPath = zipTempPath;
-                            }
-                            break;
-
-                        case DriverSourceType.Folder:
-                            driverPath = driverSource.Path;
-                            AddLog($"  Using folder: {driverSource.DisplayName}");
-                            break;
-                    }
-
-                    // Inject drivers if path is valid
-                    if (!string.IsNullOrEmpty(driverPath) && Directory.Exists(driverPath))
-                    {
-                        AddLog($"  Injecting drivers from: {driverPath}");
-                        await _dismService.AddDriversAsync(
-                            mountPath,
-                            driverPath,
-                            new Progress<string>(msg => AddLog($"    {msg}")),
-                            cancellationToken);
-                        AddLog($"  ✓ Completed: {driverSource.DisplayName}");
-                    }
-                    else
-                    {
-                        AddLog($"  ✗ Failed to prepare driver source: {driverSource.DisplayName}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    AddLog($"  ✗ Error processing {driverSource.DisplayName}: {ex.Message}");
-                    // Continue with next driver source rather than failing completely
-                }
-            }
-
-            AddLog($"✓ All driver packs processed ({DriverSources.Count} total)");
-        }
-
-        private async Task DeleteUnselectedEditionsAsync(CancellationToken cancellationToken)
-        {
-            var installWimPath = Path.Combine(_config.Windows11Directory, "Sources", "install.wim");
-
-            if (!File.Exists(installWimPath))
-            {
-                AddLog("⚠ install.wim not found, skipping edition deletion");
-                return;
-            }
-
-            if (SelectedEditions == null || !SelectedEditions.Any())
-            {
-                AddLog("ℹ No specific editions selected, keeping all editions");
-                return;
-            }
-
-            AddLog("Removing unselected Windows editions from install.wim...");
-            CurrentOperationText = "Deleting unselected editions...";
-            CurrentOperationProgress = 0;
-
-            var deletedCount = await _dismService.DeleteUnselectedEditionsAsync(
-                installWimPath, 
-                SelectedEditions, 
-                new Progress<string>(msg =>
-                {
-                    AddLog(msg);
-                    CurrentOperationText = msg;
+                    CurrentOperationText = $"Adding drivers to {target.Name}...";
                     CurrentOperationProgress = 50;
-                }), 
-                cancellationToken);
-
-            if (deletedCount > 0)
-            {
-                AddLog($"✓ Removed {deletedCount} unselected edition(s) from install.wim");
-                AddLog("ℹ Windows installation will now only show selected edition(s)");
+                    await InjectDriverFoldersAsync(target.Mount, bootDrivers, cancellationToken);
+                }
+                finally
+                {
+                    CurrentOperationText = $"Unmounting {target.Name}...";
+                    await _dismService.UnmountWimAsync(target.Mount, !cancellationToken.IsCancellationRequested,
+                        new Progress<string>(msg => { AddLog(msg); CurrentOperationText = msg; }),
+                        CancellationToken.None, deleteMountDirectory: true);
+                }
             }
 
             CurrentOperationProgress = 100;
+        }
+
+        private async Task InjectDriversToInstallWimAsync(
+            IReadOnlyList<int> editionIndices,
+            IReadOnlyList<string> fullDrivers,
+            IReadOnlyList<string> bootDrivers,
+            CancellationToken cancellationToken)
+        {
+            var installWimPath = Path.Combine(_config.Windows11Directory, "Sources", "install.wim");
+            var editions = await _dismService.GetWimInfoAsync(installWimPath, cancellationToken);
+
+            // WinRE is (almost always) identical across editions in one ISO. Service it once,
+            // then copy the result into every edition whose WinRE matches the original.
+            string? servicedWinRe = null;
+            string? originalWinReHash = null;
+            var winReWorkDir = Path.Combine(_config.MountDirectory, "WinRE_Work");
+
+            int count = 0;
+            foreach (var editionIndex in editionIndices)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                count++;
+                var editionName = editions.FirstOrDefault(e => e.ImageIndex == editionIndex)?.ImageName ?? $"Edition {editionIndex}";
+                var mountPath = Path.Combine(_config.MountDirectory, $"Edition_{editionIndex}");
+                FileSystemHelper.EnsureDirectoryExists(mountPath);
+
+                AddLog($"Servicing {editionName} ({count}/{editionIndices.Count})...");
+                CurrentOperationText = $"Mounting {editionName} ({count}/{editionIndices.Count})...";
+                CurrentOperationProgress = 0;
+
+                var mounted = await _dismService.MountWimAsync(installWimPath, editionIndex, mountPath,
+                    new Progress<string>(msg => { AddLog(msg); CurrentOperationText = msg; }), cancellationToken);
+                if (!mounted)
+                {
+                    AddLog($"✗ Could not mount {editionName}, skipping");
+                    continue;
+                }
+
+                var commit = false;
+                try
+                {
+                    CurrentOperationText = $"Adding drivers to {editionName} ({count}/{editionIndices.Count})...";
+                    CurrentOperationProgress = 20;
+                    await InjectDriverFoldersAsync(mountPath, fullDrivers, cancellationToken);
+
+                    if (RemoveWindowsApps)
+                    {
+                        var appsToRemove = WindowsApps
+                            .Where(app => app.IsSelected)
+                            .SelectMany(app => app.PackageNames.Any() ? app.PackageNames : new List<string> { app.PackageName })
+                            .ToList();
+
+                        if (appsToRemove.Any())
+                        {
+                            AddLog($"Removing {appsToRemove.Count} Windows app package(s) from {editionName}...");
+                            CurrentOperationText = $"Removing Windows apps from {editionName}...";
+                            CurrentOperationProgress = 50;
+                            await _dismService.RemoveProvisionedAppsAsync(mountPath, appsToRemove,
+                                new Progress<string>(msg => { AddLog(msg); CurrentOperationText = msg; }), cancellationToken);
+                        }
+                    }
+
+                    var winRePath = Path.Combine(mountPath, "Windows", "System32", "Recovery", "Winre.wim");
+                    if (File.Exists(winRePath) && bootDrivers.Count > 0)
+                    {
+                        CurrentOperationProgress = 65;
+                        var hash = await FileSystemHelper.ComputeSha256Async(winRePath, cancellationToken);
+
+                        if (originalWinReHash == null)
+                        {
+                            AddLog($"  Servicing WinRE once (from {editionName})...");
+                            servicedWinRe = await ServiceWinReAsync(winRePath, bootDrivers, winReWorkDir, cancellationToken);
+                            originalWinReHash = hash;
+                        }
+
+                        if (hash == originalWinReHash && servicedWinRe == null)
+                        {
+                            AddLog($"  ⚠ WinRE servicing failed earlier - leaving WinRE unchanged in {editionName}");
+                        }
+                        else if (hash == originalWinReHash)
+                        {
+                            AddLog($"  Applying serviced WinRE to {editionName}");
+                            var attrs = File.GetAttributes(winRePath);
+                            File.SetAttributes(winRePath, FileAttributes.Normal);
+                            File.Copy(servicedWinRe, winRePath, overwrite: true);
+                            File.SetAttributes(winRePath, attrs);
+                        }
+                        else
+                        {
+                            // Different WinRE in this edition (unusual) - service it on its own
+                            AddLog($"  WinRE in {editionName} differs - servicing separately");
+                            var separate = await ServiceWinReAsync(winRePath, bootDrivers,
+                                Path.Combine(_config.MountDirectory, $"WinRE_Work_{editionIndex}"), cancellationToken);
+                            if (separate != null)
+                            {
+                                var attrs = File.GetAttributes(winRePath);
+                                File.SetAttributes(winRePath, FileAttributes.Normal);
+                                File.Copy(separate, winRePath, overwrite: true);
+                                File.SetAttributes(winRePath, attrs);
+                            }
+                        }
+                    }
+
+                    commit = true;
+                }
+                finally
+                {
+                    CurrentOperationText = $"Unmounting {editionName}...";
+                    CurrentOperationProgress = 90;
+                    await _dismService.UnmountWimAsync(mountPath, commit && !cancellationToken.IsCancellationRequested,
+                        new Progress<string>(msg => { AddLog(msg); CurrentOperationText = msg; }),
+                        CancellationToken.None, deleteMountDirectory: true);
+                }
+
+                CurrentOperationProgress = 100;
+            }
+
+            try
+            {
+                if (Directory.Exists(winReWorkDir)) Directory.Delete(winReWorkDir, true);
+            }
+            catch
+            {
+                // Temp folder - cleaned with the rest of Temp later
+            }
+        }
+
+        /// <summary>
+        /// Copy a WinRE image out, add boot drivers, and export it compacted (WinRE has to fit
+        /// in the recovery partition, so keeping it small matters). Returns the serviced file path.
+        /// </summary>
+        private async Task<string?> ServiceWinReAsync(string winRePath, IReadOnlyList<string> bootDrivers, string workDir, CancellationToken cancellationToken)
+        {
+            FileSystemHelper.EnsureDirectoryExists(workDir);
+            var workWim = Path.Combine(workDir, "winre.wim");
+            var compactWim = Path.Combine(workDir, "winre.serviced.wim");
+            var mountDir = Path.Combine(workDir, "mount");
+            FileSystemHelper.EnsureDirectoryExists(mountDir);
+
+            File.Copy(winRePath, workWim, overwrite: true);
+            File.SetAttributes(workWim, FileAttributes.Normal);
+
+            var mounted = await _dismService.MountWimAsync(workWim, 1, mountDir,
+                new Progress<string>(msg => AddLog($"    {msg}")), cancellationToken);
+            if (!mounted)
+            {
+                AddLog("  ✗ Could not mount WinRE - leaving it unchanged");
+                return null;
+            }
+
+            var commit = false;
+            try
+            {
+                await InjectDriverFoldersAsync(mountDir, bootDrivers, cancellationToken);
+                commit = true;
+            }
+            finally
+            {
+                await _dismService.UnmountWimAsync(mountDir, commit && !cancellationToken.IsCancellationRequested,
+                    new Progress<string>(msg => AddLog($"    {msg}")), CancellationToken.None, deleteMountDirectory: true);
+            }
+
+            var exported = await _dismService.ExportImagesAsync(workWim, new[] { 1 }, compactWim, "max",
+                new Progress<string>(msg => AddLog($"    {msg}")), cancellationToken);
+            var result = exported ? compactWim : workWim;
+            AddLog($"  ✓ WinRE serviced ({FileSystemHelper.FormatBytes(new FileInfo(result).Length)})");
+            return result;
+        }
+
+        /// <summary>
+        /// Export install.wim into a fresh file to drop data superseded by servicing
+        /// </summary>
+        private async Task CompactInstallWimAsync(CancellationToken cancellationToken)
+        {
+            var sourcesDir = Path.Combine(_config.Windows11Directory, "Sources");
+            var wimPath = Path.Combine(sourcesDir, "install.wim");
+            if (!File.Exists(wimPath)) return;
+
+            var editions = await _dismService.GetWimInfoAsync(wimPath, cancellationToken);
+            if (editions.Count == 0) return;
+
+            var before = new FileInfo(wimPath).Length;
+            AddLog($"Compacting install.wim ({FileSystemHelper.FormatBytes(before)})...");
+            CurrentOperationText = "Compacting install.wim...";
+
+            var tempPath = Path.Combine(sourcesDir, "install.compact.wim");
+            var ok = await _dismService.ExportImagesAsync(wimPath,
+                editions.Select(e => e.ImageIndex).OrderBy(i => i).ToList(),
+                tempPath, "max",
+                new Progress<string>(msg => { AddLog($"  {msg}"); CurrentOperationText = msg; }),
+                cancellationToken);
+
+            if (!ok)
+            {
+                AddLog("⚠ Compaction failed - keeping the uncompacted install.wim");
+                try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { }
+                return;
+            }
+
+            File.SetAttributes(wimPath, FileAttributes.Normal);
+            File.Delete(wimPath);
+            File.Move(tempPath, wimPath);
+            var after = new FileInfo(wimPath).Length;
+            AddLog($"✓ install.wim compacted: {FileSystemHelper.FormatBytes(before)} → {FileSystemHelper.FormatBytes(after)}");
         }
 
         private async Task SplitWimIfNeededAsync(CancellationToken cancellationToken)

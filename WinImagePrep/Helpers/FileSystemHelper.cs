@@ -216,6 +216,16 @@ namespace WinImagePrep.Helpers
         }
 
         /// <summary>
+        /// SHA-256 of a file as a hex string
+        /// </summary>
+        public static async System.Threading.Tasks.Task<string> ComputeSha256Async(string path, System.Threading.CancellationToken cancellationToken = default)
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1024, useAsync: true);
+            var hash = await System.Security.Cryptography.SHA256.HashDataAsync(stream, cancellationToken);
+            return Convert.ToHexString(hash);
+        }
+
+        /// <summary>
         /// Format bytes to human-readable string
         /// </summary>
         public static string FormatBytes(long bytes)

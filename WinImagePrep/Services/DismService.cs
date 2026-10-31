@@ -333,6 +333,60 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// Export the given image indices from one WIM/ESD into a new WIM, in order.
+        /// The destination indices are 1..N. Exporting drops data no longer referenced
+        /// (deleted editions, superseded files from servicing) and converts ESD to WIM.
+        /// </summary>
+        /// <param name="compress">"max", "fast" or "none"; null keeps the source compression (quickest)</param>
+        public async Task<bool> ExportImagesAsync(
+            string sourcePath,
+            IReadOnlyList<int> sourceIndices,
+            string destinationWimPath,
+            string? compress = null,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (File.Exists(destinationWimPath))
+                {
+                    File.SetAttributes(destinationWimPath, FileAttributes.Normal);
+                    File.Delete(destinationWimPath);
+                }
+
+                for (int i = 0; i < sourceIndices.Count; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var index = sourceIndices[i];
+                    progress?.Report($"Exporting image {index} ({i + 1}/{sourceIndices.Count})...");
+
+                    var arguments = $"/Export-Image /SourceImageFile:\"{sourcePath}\" /SourceIndex:{index} " +
+                                    $"/DestinationImageFile:\"{destinationWimPath}\"" +
+                                    (compress != null ? $" /Compress:{compress}" : string.Empty);
+
+                    progress?.Report($"DISM command: dism.exe {arguments}");
+                    var result = await ProcessHelper.ExecuteProcessAsync(_dismPath, arguments, cancellationToken);
+                    if (!result.Success)
+                    {
+                        progress?.Report($"✗ Export of image {index} failed: exit code {result.ExitCode} {result.Error}");
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error exporting images: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Check if a path has a mounted image
         /// </summary>
         public bool IsMounted(string mountPath)
