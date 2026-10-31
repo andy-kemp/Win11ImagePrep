@@ -66,14 +66,19 @@ jobs:
           }
           Write-Host "Window: '$($p.MainWindowTitle)'"
           Start-Sleep -Seconds 4
-          [Win]::MoveWindow($h, 0, 0, 940, 960, $true) | Out-Null
-          Start-Sleep -Seconds 2
-          $r = New-Object Win+RECT; [Win]::GetWindowRect($h, [ref]$r) | Out-Null
-          $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
-          $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
-          [Win]::PrintWindow($h, $hdc, 2) | Out-Null
-          $g.ReleaseHdc($hdc); $g.Dispose()
-          $bmp.Save("$PWD/release/screenshot-main-window.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          function Shot($w, $hh, $name) {
+            [Win]::MoveWindow($h, 0, 0, $w, $hh, $true) | Out-Null
+            Start-Sleep -Seconds 2
+            $r = New-Object Win+RECT; [Win]::GetWindowRect($h, [ref]$r) | Out-Null
+            $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
+            $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
+            [Win]::PrintWindow($h, $hdc, 2) | Out-Null
+            $g.ReleaseHdc($hdc); $g.Dispose()
+            $bmp.Save("$PWD/release/$name", [System.Drawing.Imaging.ImageFormat]::Png)
+          }
+          # As it opens on this small screen, then made tall enough to show everything
+          Shot 940 960 'screenshot-main-window.png'
+          Shot 940 1250 'screenshot-main-window-full.png'
           Stop-Process -Id $p.Id -Force
 
       - uses: actions/upload-artifact@v4
