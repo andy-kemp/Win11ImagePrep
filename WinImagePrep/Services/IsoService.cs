@@ -556,35 +556,29 @@ namespace WinImagePrep.Services
                 var bootDir = Path.Combine(sourceDirectory, "boot");
                 var efiBootDir = Path.Combine(sourceDirectory, "efi", "microsoft", "boot");
 
-                // Check for UEFI boot file (efisys.bin or efisys_noprompt.bin)
-                var efisysPath = Path.Combine(bootDir, "efisys.bin");
-                var efisysNopromptPath = Path.Combine(bootDir, "efisys_noprompt.bin");
+                // UEFI boot image. Windows ISOs keep it in efi\microsoft\boot\ (not boot\); the ADK's
+                // Oscdimg folder has a copy too. efisys.bin shows "Press any key to boot from CD or DVD",
+                // as Microsoft's own ISOs do; efisys_noprompt.bin boots straight into setup.
+                var adkOscdimgDir = Path.GetDirectoryName(oscdimgPath) ?? string.Empty;
+                var efiCandidates = new[]
+                {
+                    Path.Combine(efiBootDir, "efisys.bin"),
+                    Path.Combine(efiBootDir, "efisys_noprompt.bin"),
+                    Path.Combine(bootDir, "efisys.bin"),
+                    Path.Combine(bootDir, "efisys_noprompt.bin"),
+                    Path.Combine(adkOscdimgDir, "efisys.bin"),
+                    Path.Combine(adkOscdimgDir, "efisys_noprompt.bin"),
+                };
 
-                string? bootFile = null;
-                if (File.Exists(efisysPath))
+                string? bootFile = efiCandidates.FirstOrDefault(File.Exists);
+                if (bootFile != null)
                 {
-                    bootFile = efisysPath;
-                    progress?.Report($"✓ Found UEFI boot file: efisys.bin");
-                }
-                else if (File.Exists(efisysNopromptPath))
-                {
-                    bootFile = efisysNopromptPath;
-                    progress?.Report($"✓ Found UEFI boot file: efisys_noprompt.bin");
+                    progress?.Report($"✓ Found UEFI boot file: {bootFile}");
                 }
                 else
                 {
-                    progress?.Report($"✗ Boot file not found at: {efisysPath}");
-                    progress?.Report($"✗ Also checked: {efisysNopromptPath}");
-                    progress?.Report($"Boot directory exists: {Directory.Exists(bootDir)}");
-                    if (Directory.Exists(bootDir))
-                    {
-                        var bootFiles = Directory.GetFiles(bootDir);
-                        progress?.Report($"Files in boot directory:");
-                        foreach (var file in bootFiles)
-                        {
-                            progress?.Report($"  - {Path.GetFileName(file)}");
-                        }
-                    }
+                    progress?.Report("✗ UEFI boot file (efisys.bin) not found. Looked in:");
+                    foreach (var c in efiCandidates) progress?.Report($"  - {c}");
                     progress?.Report("The source directory must contain Windows boot files");
                     return false;
                 }

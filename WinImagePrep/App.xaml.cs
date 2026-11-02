@@ -24,6 +24,11 @@ namespace WinImagePrep
             {
                 base.OnStartup(e);
 
+                // Every window picks up the AKC theme (Inter, warm text and background) by default
+                FrameworkElement.StyleProperty.OverrideMetadata(
+                    typeof(Window),
+                    new FrameworkPropertyMetadata(FindResource("AkcWindow")));
+
                 // Parse command-line arguments for state restoration
                 ParseCommandLineArgs(e.Args);
 

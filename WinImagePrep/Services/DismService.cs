@@ -333,6 +333,111 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// Export the given image indices from one WIM/ESD into a new WIM, in order.
+        /// The destination indices are 1..N. Exporting drops data no longer referenced
+        /// (deleted editions, superseded files from servicing) and converts ESD to WIM.
+        /// </summary>
+        /// <param name="compress">"max", "fast" or "none"; null keeps the source compression (quickest)</param>
+        public async Task<bool> ExportImagesAsync(
+            string sourcePath,
+            IReadOnlyList<int> sourceIndices,
+            string destinationWimPath,
+            string? compress = null,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (File.Exists(destinationWimPath))
+                {
+                    File.SetAttributes(destinationWimPath, FileAttributes.Normal);
+                    File.Delete(destinationWimPath);
+                }
+
+                for (int i = 0; i < sourceIndices.Count; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var index = sourceIndices[i];
+                    progress?.Report($"Exporting image {index} ({i + 1}/{sourceIndices.Count})...");
+
+                    var arguments = $"/Export-Image /SourceImageFile:\"{sourcePath}\" /SourceIndex:{index} " +
+                                    $"/DestinationImageFile:\"{destinationWimPath}\"" +
+                                    (compress != null ? $" /Compress:{compress}" : string.Empty);
+
+                    progress?.Report($"DISM command: dism.exe {arguments}");
+                    var result = await ProcessHelper.ExecuteProcessAsync(_dismPath, arguments, cancellationToken);
+                    if (!result.Success)
+                    {
+                        progress?.Report($"✗ Export of image {index} failed: exit code {result.ExitCode} {result.Error}");
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Error exporting images: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Split sources\install.wim into install.swm, install2.swm... (3,800 MB pieces) and delete the
+        /// original. Done whatever the size, so the same files work on FAT32 USB, in an ISO and for
+        /// saved images. Windows Setup finds the .swm files on its own, including a single install.swm.
+        /// Returns true if install.swm exists afterwards (or there was no install.wim to split).
+        /// </summary>
+        public async Task<bool> SplitInstallWimAsync(
+            string sourcesDirectory,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            var wim = Path.Combine(sourcesDirectory, "install.wim");
+            var swm = Path.Combine(sourcesDirectory, "install.swm");
+            if (!File.Exists(wim))
+            {
+                if (File.Exists(swm)) progress?.Report("install.wim is already split");
+                return true;
+            }
+
+            progress?.Report($"Splitting install.wim ({FileSystemHelper.FormatBytes(new FileInfo(wim).Length)}) into .swm files...");
+            File.SetAttributes(wim, FileAttributes.Normal);
+
+            // Clear out pieces from an earlier, interrupted split so they can't be mixed in
+            foreach (var old in Directory.EnumerateFiles(sourcesDirectory, "install*.swm"))
+            {
+                File.SetAttributes(old, FileAttributes.Normal);
+                File.Delete(old);
+            }
+
+            var ok = await SplitWimAsync(wim, swm, 3800, progress, cancellationToken);
+            if (!ok || !File.Exists(swm))
+            {
+                progress?.Report("✗ install.wim could not be split; it has been left as it is");
+                return false;
+            }
+
+            try
+            {
+                File.Delete(wim);
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"⚠ Split done, but install.wim couldn't be deleted: {ex.Message}. Delete it by hand: Setup must see only the .swm files.");
+                return true;
+            }
+
+            var parts = Directory.GetFiles(sourcesDirectory, "install*.swm").Length;
+            progress?.Report($"✓ install.wim split into {parts} file(s)");
+            return true;
+        }
+
+        /// <summary>
         /// Check if a path has a mounted image
         /// </summary>
         public bool IsMounted(string mountPath)

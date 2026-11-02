@@ -6,71 +6,246 @@
         <!-- Converters -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
 
-        <!-- Global Styles -->
+        <!-- ================================================================
+             Andy Kemp Consulting theme: the copper look used on
+             tools/docs/demos.andykemp.com (light theme, Inter)
+             ================================================================ -->
+        <FontFamily x:Key="AkcFont">pack://application:,,,/Fonts/#Inter</FontFamily>
+        <FontFamily x:Key="AkcMono">Cascadia Mono, Consolas</FontFamily>
+
+        <Color x:Key="AkcCopperColor">#8A4E2E</Color>
+        <SolidColorBrush x:Key="AkcBg" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="AkcBgSoft" Color="#F7F3EF"/>
+        <SolidColorBrush x:Key="AkcPanelRaised" Color="#F4EDE6"/>
+        <SolidColorBrush x:Key="AkcText" Color="#302923"/>
+        <SolidColorBrush x:Key="AkcHeading" Color="#201A16"/>
+        <SolidColorBrush x:Key="AkcMuted" Color="#625850"/>
+        <SolidColorBrush x:Key="AkcBorder" Color="#E5D9CE"/>
+        <SolidColorBrush x:Key="AkcBorderStrong" Color="#C9A88F"/>
+        <SolidColorBrush x:Key="AkcCopper" Color="#8A4E2E"/>
+        <SolidColorBrush x:Key="AkcCopperDark" Color="#60351F"/>
+        <SolidColorBrush x:Key="AkcOk" Color="#2F6B3A"/>
+        <SolidColorBrush x:Key="AkcOkBg" Color="#E7F2E8"/>
+        <SolidColorBrush x:Key="AkcWarn" Color="#8A5A00"/>
+        <SolidColorBrush x:Key="AkcWarnBg" Color="#FDF3DC"/>
+        <SolidColorBrush x:Key="AkcDanger" Color="#A33A2A"/>
+        <SolidColorBrush x:Key="AkcDangerDark" Color="#7A2A1D"/>
+        <SolidColorBrush x:Key="AkcLogBg" Color="#1F1915"/>
+        <SolidColorBrush x:Key="AkcLogText" Color="#EAD9C9"/>
+
+        <!-- Every window: Inter, warm text, white background (applied in App.OnStartup) -->
+        <Style x:Key="AkcWindow" TargetType="Window">
+            <Setter Property="FontFamily" Value="{StaticResource AkcFont}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcText}"/>
+            <Setter Property="Background" Value="{StaticResource AkcBg}"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        </Style>
+
+        <!-- Section heading with a numbered copper badge: set Tag to the number -->
+        <Style x:Key="AkcSectionHeading" TargetType="ContentControl">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="22" Height="22" CornerRadius="11" Background="{StaticResource AkcCopper}" Margin="0,0,8,0">
+                                <TextBlock Text="{TemplateBinding Tag}" Foreground="White" FontWeight="Bold" FontSize="11.5"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ContentPresenter VerticalAlignment="Center" TextElement.FontWeight="Bold" TextElement.FontSize="14.5"
+                                              TextElement.Foreground="{StaticResource AkcHeading}"/>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Buttons: secondary by default (white, copper outline) -->
         <Style TargetType="Button">
-            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Padding" Value="12,6"/>
             <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcCopperDark}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorderStrong}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="7" SnapsToDevicePixels="True"/>
+                            <!-- Hover/press shade works whatever the button's own background is -->
+                            <Border x:Name="Shade" CornerRadius="7" Background="#000000" Opacity="0"/>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              RecognizesAccessKey="True"/>
+                            <Border x:Name="Focus" CornerRadius="8" BorderBrush="{StaticResource AkcCopper}" BorderThickness="2"
+                                    Margin="-3" Visibility="Collapsed"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Shade" Property="Opacity" Value="0.07"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Shade" Property="Opacity" Value="0.14"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Focus" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource AkcCopper}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcCopper}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="16,8"/>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcDanger}"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcDanger}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="10,4"/>
+        </Style>
+
+        <!-- Small icon-only button (remove, verify) -->
+        <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource AkcText}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorderStrong}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource AkcText}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorderStrong}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
         <Style TargetType="TextBox">
-            <Setter Property="Padding" Value="5,3"/>
+            <Setter Property="Padding" Value="6,4"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorderStrong}"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcText}"/>
+        </Style>
+
+        <Style TargetType="PasswordBox">
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorderStrong}"/>
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Padding" Value="5,3"/>
+            <Setter Property="Padding" Value="6,4"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorderStrong}"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcText}"/>
         </Style>
 
+        <Style TargetType="Menu">
+            <Setter Property="Background" Value="{StaticResource AkcBgSoft}"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcText}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorder}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="4,2"/>
+        </Style>
+
+        <!-- GroupBox as a card: small uppercase heading, rounded border -->
         <Style TargetType="GroupBox">
-            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Padding" Value="12,8,12,12"/>
             <Setter Property="Margin" Value="0,5"/>
-        </Style>
-
-        <!-- Primary Button Style -->
-        <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="#0078D4"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Padding" Value="15,8"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorder}"/>
+            <Setter Property="Background" Value="White"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="3">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"
-                                            Margin="{TemplateBinding Padding}"/>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" CornerRadius="10" SnapsToDevicePixels="True">
+                            <DockPanel>
+                                <ContentPresenter DockPanel.Dock="Top" ContentSource="Header" Margin="12,10,12,0"
+                                                  TextElement.FontWeight="Bold" TextElement.FontSize="11"
+                                                  TextElement.Foreground="{StaticResource AkcMuted}"
+                                                  RecognizesAccessKey="True">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Typography.Capitals" Value="AllSmallCaps"/>
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
+                                <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                            </DockPanel>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#005A9E"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#CCCCCC"/>
-                    <Setter Property="Foreground" Value="#666666"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- Danger Button Style -->
-        <Style x:Key="DangerButton" TargetType="Button">
-            <Setter Property="Background" Value="#E81123"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Padding" Value="8,3"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="BorderThickness" Value="0"/>
+        <!-- ProgressBar: copper fill on a warm rounded track; indeterminate shows a moving band -->
+        <Style TargetType="ProgressBar">
+            <Setter Property="Foreground" Value="{StaticResource AkcCopper}"/>
+            <Setter Property="Background" Value="{StaticResource AkcPanelRaised}"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="5" ClipToBounds="True">
+                            <Grid ClipToBounds="True">
+                                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="5"/>
+                                <Border x:Name="Band" Width="90" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}"
+                                        CornerRadius="5" Visibility="Collapsed">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform x:Name="BandMove" X="-90"/>
+                                    </Border.RenderTransform>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsIndeterminate" Value="True">
+                                <Setter TargetName="PART_Indicator" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="Band" Property="Visibility" Value="Visible"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="BandStory">
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation Storyboard.TargetName="BandMove" Storyboard.TargetProperty="X"
+                                                             From="-90" To="600" Duration="0:0:1.6"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="BandStory"/>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Application.Resources>
 </Application>

@@ -1,0 +1,86 @@
+# Publishes a release when a version tag (v5.9.0, ...) is pushed:
+#   1. builds the app and updater on Windows
+#   2. commits publish/WinImagePrep.exe, publish/WinImagePrep.Updater.exe AND version.json to main
+#      in ONE commit, so the in-app updater never sees a new version before its exe is there
+#   3. creates the GitHub release with WinImagePrep_full.exe and SHA-256 checksums
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          lfs: true
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check the tag matches the project version
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}".TrimStart('v')
+          [xml]$app = Get-Content WinImagePrep/WinImagePrep.csproj
+          [xml]$upd = Get-Content WinImagePrep.Updater/WinImagePrep.Updater.csproj
+          $appVer = ($app.Project.PropertyGroup | Where-Object Version | Select-Object -First 1).Version.Trim()
+          $updVer = ($upd.Project.PropertyGroup | Where-Object Version | Select-Object -First 1).Version.Trim()
+          if ($appVer -ne $tag) { throw "Tag $tag doesn't match WinImagePrep.csproj Version $appVer" }
+          "version=$appVer" >> $env:GITHUB_OUTPUT
+          "updater=$updVer" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        run: |
+          dotnet publish WinImagePrep/WinImagePrep.csproj -c Release -r win-x64 --self-contained -o out/app
+          dotnet publish WinImagePrep.Updater/WinImagePrep.Updater.csproj -c Release -r win-x64 --self-contained -o out/updater
+
+      - name: Publish binaries and version.json to main (one commit)
+        shell: pwsh
+        run: |
+          Copy-Item out/app/WinImagePrep.exe publish/WinImagePrep.exe -Force
+          Copy-Item out/updater/WinImagePrep.Updater.exe publish/WinImagePrep.Updater.exe -Force
+          [ordered]@{
+            version        = "${{ steps.ver.outputs.version }}"
+            updaterVersion = "${{ steps.ver.outputs.updater }}"
+            releaseDate    = (Get-Date -Format 'yyyy-MM-dd')
+            releaseNotes   = "Faster driver injection, ISO creation with one-click ADK install, new look. See docs.andykemp.com/win11-image-prep/whats-new/"
+          } | ConvertTo-Json | Set-Content version.json -Encoding utf8NoBOM
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git lfs install --local
+          git add publish/WinImagePrep.exe publish/WinImagePrep.Updater.exe version.json
+          git commit -m "Publish Win11 Image Prep ${{ steps.ver.outputs.version }} binary"
+          git push origin HEAD:main
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item out/app/WinImagePrep.exe release/WinImagePrep_full.exe
+          Copy-Item out/updater/WinImagePrep.Updater.exe release/WinImagePrep.Updater.exe
+          Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release/SHA256SUMS.txt
+          # Release notes: this version's section of CHANGELOG.md
+          $log = Get-Content CHANGELOG.md -Raw
+          $v = [regex]::Escape("${{ steps.ver.outputs.version }}")
+          $m = [regex]::Match($log, "(?s)## \[$v\][^\n]*\n(.*?)(?=\n---|\n## \[)")
+          $notes = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "See CHANGELOG.md" }
+          $notes += "`n`nDownload **WinImagePrep_full.exe** (single file, no install). Check it against SHA256SUMS.txt.`n`nDocs: https://docs.andykemp.com/win11-image-prep/"
+          Set-Content release-notes.md $notes
+          gh release create "${{ github.ref_name }}" release/* --title "Win11 Image Prep ${{ steps.ver.outputs.version }}" --notes-file release-notes.md --latest

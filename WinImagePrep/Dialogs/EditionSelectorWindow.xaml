@@ -19,7 +19,7 @@
                    Text="Select Windows Editions to Process" 
                    FontSize="18" 
                    FontWeight="Bold" 
-                   Foreground="#0078D4" 
+                   Foreground="#8A4E2E" 
                    Margin="0,0,0,10"/>
 
         <!-- Instructions -->
@@ -37,7 +37,7 @@
 
         <!-- Edition List with Checkboxes -->
         <Border Grid.Row="2" 
-                BorderBrush="#CCCCCC" 
+                BorderBrush="#E5D9CE" 
                 BorderThickness="1" 
                 Margin="0,0,0,15">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -58,7 +58,7 @@
                                             <Run Text="{Binding ImageSizeDisplay, Mode=OneWay}"/>
                                         </TextBlock>
                                         <TextBlock Text="{Binding Description}" 
-                                                   Foreground="Gray" 
+                                                   Foreground="#625850" 
                                                    FontSize="11" 
                                                    TextWrapping="Wrap"
                                                    Margin="0,2,0,0"/>
@@ -89,7 +89,7 @@
                     Width="100" 
                     Height="32" 
                     Margin="0,0,10,0"
-                    Background="#0078D4"
+                    Background="#8A4E2E"
                     Foreground="White"
                     FontWeight="Bold"
                     Click="BtnOk_Click"/>

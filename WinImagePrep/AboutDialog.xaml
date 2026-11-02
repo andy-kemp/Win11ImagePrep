@@ -13,26 +13,26 @@
         <Style x:Key="TitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="28"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Foreground" Value="#201A16"/>
             <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
 
         <Style x:Key="VersionStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Foreground" Value="#7F8C8D"/>
+            <Setter Property="Foreground" Value="#625850"/>
             <Setter Property="Margin" Value="0,0,0,20"/>
         </Style>
 
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#34495E"/>
+            <Setter Property="Foreground" Value="#201A16"/>
             <Setter Property="Margin" Value="0,15,0,8"/>
         </Style>
 
         <Style x:Key="BodyTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="#34495E"/>
+            <Setter Property="Foreground" Value="#201A16"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="LineHeight" Value="20"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
@@ -40,15 +40,15 @@
 
         <Style x:Key="LinkStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="#8A4E2E"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="TextDecorations" Value="Underline"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
 
         <Style x:Key="PathBoxStyle" TargetType="Border">
-            <Setter Property="Background" Value="#F8F9FA"/>
-            <Setter Property="BorderBrush" Value="#DEE2E6"/>
+            <Setter Property="Background" Value="#F7F3EF"/>
+            <Setter Property="BorderBrush" Value="#E5D9CE"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="10"/>
@@ -56,7 +56,7 @@
         </Style>
 
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Background" Value="#8A4E2E"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -76,16 +76,16 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#106EBE"/>
+                    <Setter Property="Background" Value="#8A4E2E"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-            <Setter Property="Background" Value="#6C757D"/>
+            <Setter Property="Background" Value="#625850"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#5A6268"/>
+                    <Setter Property="Background" Value="#302923"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -136,14 +136,14 @@
                     <TextBlock Text="{Binding WorkingFolder}" 
                                FontFamily="Consolas" 
                                FontSize="11" 
-                               Foreground="#495057"
+                               Foreground="#302923"
                                TextWrapping="Wrap"/>
                 </Border>
 
                 <!-- Copyright -->
                 <TextBlock Style="{StaticResource BodyTextStyle}" 
                            FontSize="11" 
-                           Foreground="#7F8C8D"
+                           Foreground="#625850"
                            TextAlignment="Center"
                            Margin="0,20,0,0">
                     © 2025 Andy Kemp Consulting Ltd. All rights reserved.

@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.Win32;
+using WinImagePrep.Helpers;
 using WinImagePrep.Models;
 using WinImagePrep.Services;
 
@@ -13,11 +15,15 @@ namespace WinImagePrep.Dialogs
     {
         private readonly string _savedImagesDir;
         private readonly UsbService _usbService;
+        private readonly IsoService _isoService = new IsoService();
+        private readonly DismService _dismService = new DismService();
+        private readonly string? _adkSetupUrl;
 
-        public SavedImageWindow(string savedImagesDirectory)
+        public SavedImageWindow(string savedImagesDirectory, string? adkSetupUrl = null)
         {
             InitializeComponent();
             _savedImagesDir = savedImagesDirectory;
+            _adkSetupUrl = adkSetupUrl;
             _usbService = new UsbService();
 
             LoadSavedImages();
@@ -148,7 +154,98 @@ namespace WinImagePrep.Dialogs
             if (result != MessageBoxResult.Yes)
                 return;
 
-            await CreateUsbFromSavedImageAsync(selectedImage, usbDrive);
+            SetBusy(true);
+            try
+            {
+                // Older saved images can hold a single install.wim over 4 GB, which FAT32 can't take
+                var sources = Path.Combine(_savedImagesDir, selectedImage, "sources");
+                if (!await _dismService.SplitInstallWimAsync(sources, new Progress<string>(AddLog)))
+                {
+                    MessageBox.Show("install.wim in this saved image couldn't be split for the USB. Check the log for details.",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                await CreateUsbFromSavedImageAsync(selectedImage, usbDrive);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async void BtnCreateIso_Click(object sender, RoutedEventArgs e)
+        {
+            if (cmbSavedImages.SelectedItem is not string selectedImage ||
+                selectedImage.Contains("No saved images"))
+            {
+                MessageBox.Show("Please select a saved image.", "No Image Selected",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var oscdimg = await IsoToolsPrompt.EnsureAsync(_isoService, _adkSetupUrl, AddLog, SetBusy);
+            if (string.IsNullOrEmpty(oscdimg))
+            {
+                return;
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                Filter = "ISO Files (*.iso)|*.iso",
+                Title = "Save ISO",
+                FileName = $"{FileSystemHelper.GetSafeFileName(selectedImage)}.iso",
+                DefaultExt = ".iso"
+            };
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            var imagePath = Path.Combine(_savedImagesDir, selectedImage);
+            var labelFile = Path.Combine(imagePath, "iso-label.txt");
+            var label = File.Exists(labelFile) ? File.ReadAllText(labelFile).Trim() : "WIN11";
+
+            SetBusy(true);
+            try
+            {
+                AddLog($"Creating ISO from saved image '{selectedImage}'...");
+                var ok = await _isoService.CreateBootableIsoAsync(imagePath, dialog.FileName, label, new Progress<string>(AddLog));
+                if (ok)
+                {
+                    var open = MessageBox.Show(
+                        $"ISO created:\n{dialog.FileName}\n\nShow it in File Explorer?",
+                        "ISO created", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                    if (open == MessageBoxResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{dialog.FileName}\"");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("The ISO couldn't be created. Check the log for details.",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ Error: {ex.Message}");
+                MessageBox.Show($"An error occurred:\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private void SetBusy(bool busy)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                btnCreateIso.IsEnabled = !busy;
+                btnCreateUsb.IsEnabled = !busy;
+                cmbSavedImages.IsEnabled = !busy;
+                Cursor = busy ? System.Windows.Input.Cursors.Wait : null;
+            });
         }
 
         private async Task CreateUsbFromSavedImageAsync(string imageName, UsbDriveInfo usbDrive)

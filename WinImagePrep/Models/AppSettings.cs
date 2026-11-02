@@ -71,6 +71,39 @@ namespace WinImagePrep.Models
         /// </summary>
         public string? PendingUpdateVersion { get; set; }
 
+        /// <summary>
+        /// Default driver classes injected into boot images (WinPE, Setup, WinRE).
+        /// These are what's needed to see disks, reach the network and use a keyboard/touchpad
+        /// during setup and recovery. Everything else (graphics, audio, camera, firmware...) only
+        /// goes into install.wim.
+        /// </summary>
+        public static readonly string[] DefaultBootDriverClasses =
+        {
+            "SCSIAdapter", "HDC", "DiskDrive", "Net", "USB", "HIDClass", "Keyboard", "Mouse", "System"
+        };
+
+        /// <summary>
+        /// Driver classes (INF [Version] Class=) injected into boot images
+        /// </summary>
+        public List<string> BootDriverClasses { get; set; } = new List<string>(DefaultBootDriverClasses);
+
+        /// <summary>
+        /// Inject the full driver set into boot images instead of only boot-critical classes.
+        /// Slower and bloats boot.wim/WinRE; use only if a device can't see its disk or keyboard in setup.
+        /// </summary>
+        public bool InjectAllDriversIntoBootImages { get; set; } = false;
+
+        /// <summary>
+        /// Export install.wim after servicing to drop superseded data (smaller image, faster USB copy)
+        /// </summary>
+        public bool CompactImageAfterServicing { get; set; } = true;
+
+        /// <summary>
+        /// Where to download Windows ADK setup from when installing the Deployment Tools for ISO
+        /// creation. Empty uses Microsoft's current link (see PrerequisiteService.DefaultAdkSetupUrl).
+        /// </summary>
+        public string? AdkSetupUrl { get; set; }
+
         // Validation constants
         public const long MinimumFreeSpaceGB = 25;
         public const string DefaultWorkingRoot = @"C:\ProgramData\Win11ImagePrep";
@@ -157,7 +190,11 @@ namespace WinImagePrep.Models
                 SelectedAppsForRemoval = new List<string>(this.SelectedAppsForRemoval),
                 EnableUnattendedInstall = this.EnableUnattendedInstall,
                 UnattendedInstallConfig = this.UnattendedInstallConfig?.Clone(),
-                PendingUpdateVersion = this.PendingUpdateVersion
+                PendingUpdateVersion = this.PendingUpdateVersion,
+                BootDriverClasses = new List<string>(this.BootDriverClasses),
+                InjectAllDriversIntoBootImages = this.InjectAllDriversIntoBootImages,
+                CompactImageAfterServicing = this.CompactImageAfterServicing,
+                AdkSetupUrl = this.AdkSetupUrl
             };
         }
 
