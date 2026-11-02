@@ -41,6 +41,123 @@ jobs:
           Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release/SHA256SUMS.txt
           Get-Content release/SHA256SUMS.txt
 
+      - name: Screenshot the main window
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Start-Transcript -Path "$PWD/release/screenshot-log.txt" | Out-Null
+          # Skip first-run and update prompts so the main window opens straight away
+          New-Item -ItemType Directory -Force C:\ProgramData\Win11ImagePrep | Out-Null
+          '{"FirstRunComplete":true,"FirstRunUpdateCheckComplete":true,"CheckForUpdates":false}' | Set-Content C:\ProgramData\Win11ImagePrep\settings.json
+          # A dummy saved image so the saved-image window has something to show
+          New-Item -ItemType Directory -Force C:\ProgramData\Win11ImagePrep\SavedImages\Surface7th\sources | Out-Null
+          'CPBA_A64FRE_EN-GB_DV9' | Set-Content C:\ProgramData\Win11ImagePrep\SavedImages\Surface7th\iso-label.txt
+          Add-Type -AssemblyName System.Drawing
+          Add-Type @"
+          using System; using System.Runtime.InteropServices;
+          public static class Win {
+            [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint f);
+            [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int hh, bool r);
+          }
+          "@
+          $p = Start-Process -FilePath (Resolve-Path release/WinImagePrep_test_*.exe) -PassThru
+          $h = [IntPtr]::Zero
+          for ($i = 0; $i -lt 60 -and $h -eq [IntPtr]::Zero; $i++) {
+            Start-Sleep -Seconds 1; $p.Refresh()
+            # The main window's title has the version; the splash screen's doesn't
+            if ($p.MainWindowTitle -like 'Win11 Image Prep v*' -or $p.MainWindowTitle -like 'Windows Image Preparation Tool v*') { $h = $p.MainWindowHandle }
+          }
+          Write-Host "Window: '$($p.MainWindowTitle)'"
+          Start-Sleep -Seconds 4
+          function Shot($w, $hh, $name) {
+            [Win]::MoveWindow($h, 0, 0, $w, $hh, $true) | Out-Null
+            Start-Sleep -Seconds 2
+            $r = New-Object Win+RECT; [Win]::GetWindowRect($h, [ref]$r) | Out-Null
+            $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
+            $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
+            [Win]::PrintWindow($h, $hdc, 2) | Out-Null
+            $g.ReleaseHdc($hdc); $g.Dispose()
+            $bmp.Save("$PWD/release/$name", [System.Drawing.Imaging.ImageFormat]::Png)
+          }
+          # As it opens on this small screen
+          Shot 940 960 'screenshot-main-window.png'
+          # Scrolled to the bottom (log collapsed on a short screen), then with the log opened.
+          # The UI Automation code is compiled only after its assemblies are loaded, so a problem
+          # there can't stop the screenshots above.
+          try {
+            Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+            $uia = [scriptblock]::Create(@'
+              param($h)
+              $A = [System.Windows.Automation.AutomationElement]
+              $root = $A::FromHandle($h)
+              $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+              $scroll = $null; $area = 0
+              foreach ($el in $all) {
+                $sp = $null
+                if ($el.TryGetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern, [ref]$sp)) {
+                  $rect = $el.Current.BoundingRectangle
+                  if ($rect.Width * $rect.Height -gt $area) { $area = $rect.Width * $rect.Height; $scroll = $sp }
+                }
+              }
+              $cond = New-Object System.Windows.Automation.PropertyCondition ($A::AutomationIdProperty, 'LogToggle')
+              $toggle = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
+              $tp = $null
+              if ($toggle) { $tp = $toggle.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern) }
+              [pscustomobject]@{ Scroll = $scroll; Toggle = $tp }
+          '@)
+            $ui = & $uia $h
+            if ($ui.Scroll) { $ui.Scroll.SetScrollPercent(-1, 100) }
+            Shot 940 960 'screenshot-main-window-bottom.png'
+            if ($ui.Toggle) {
+              $ui.Toggle.Toggle()
+              Start-Sleep -Seconds 1
+              if ($ui.Scroll) { $ui.Scroll.SetScrollPercent(-1, 100) }
+              Shot 940 960 'screenshot-main-window-log-open.png'
+            } else { Write-Host 'LogToggle not found' }
+            # Open "From saved image" and capture that window
+            $open = [scriptblock]::Create(@'
+              param($h)
+              $A = [System.Windows.Automation.AutomationElement]
+              $root = $A::FromHandle($h)
+              $cond = New-Object System.Windows.Automation.PropertyCondition ($A::NameProperty, 'From saved image')
+              $btn = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
+              if ($btn) { $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); $true } else { $false }
+          '@)
+            if (& $open $h) {
+              Start-Sleep -Seconds 3
+              $dlg = (Get-Process -Id $p.Id).MainWindowHandle
+              $found = [IntPtr]::Zero
+              Add-Type @"
+              using System; using System.Runtime.InteropServices; using System.Text;
+              public static class Find {
+                public delegate bool EnumProc(IntPtr h, IntPtr l);
+                [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc f, IntPtr l);
+                [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+                [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
+                public static IntPtr ByTitle(uint pid, string title) {
+                  IntPtr r = IntPtr.Zero;
+                  EnumWindows((h, l) => { uint wp; GetWindowThreadProcessId(h, out wp); var sb = new StringBuilder(256); GetWindowText(h, sb, 256);
+                    if (wp == pid && sb.ToString() == title) { r = h; return false; } return true; }, IntPtr.Zero);
+                  return r;
+                }
+              }
+          "@
+              $sh = [Find]::ByTitle([uint32]$p.Id, 'Use a Saved Image')
+              if ($sh -ne [IntPtr]::Zero) {
+                $r = New-Object Win+RECT; [Win]::GetWindowRect($sh, [ref]$r) | Out-Null
+                $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
+                $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
+                [Win]::PrintWindow($sh, $hdc, 2) | Out-Null
+                $g.ReleaseHdc($hdc); $g.Dispose()
+                $bmp.Save("$PWD/release/screenshot-saved-image.png", [System.Drawing.Imaging.ImageFormat]::Png)
+              } else { Write-Host 'Saved image window not found' }
+            } else { Write-Host 'From saved image button not found' }
+          } catch { Write-Host "UI Automation step failed: $_" }
+          Stop-Process -Id $p.Id -Force
+          Stop-Transcript | Out-Null
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.meta.outputs.tag }}

@@ -1,7 +1,7 @@
 <Window x:Class="WinImagePrep.Dialogs.SavedImageWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Create USB from Saved Image" 
+        Title="Use a Saved Image" 
         Height="500" 
         Width="650" 
         WindowStartupLocation="CenterScreen">
@@ -17,10 +17,10 @@
 
         <!-- Title -->
         <TextBlock Grid.Row="0" 
-                   Text="Create USB from Saved Image" 
+                   Text="Use a Saved Image" 
                    FontSize="18" 
                    FontWeight="Bold" 
-                   Foreground="#0078D4" 
+                   Foreground="#8A4E2E" 
                    Margin="0,0,0,15"/>
 
         <!-- Saved Image Selection -->
@@ -35,9 +35,9 @@
 
         <!-- Image Label Info -->
         <Border Grid.Row="2" 
-                BorderBrush="#0078D4" 
+                BorderBrush="#8A4E2E" 
                 BorderThickness="1" 
-                Background="#F0F0F0" 
+                Background="#F7F3EF" 
                 Padding="10" 
                 Margin="0,0,0,10">
             <StackPanel>
@@ -72,8 +72,8 @@
                   Padding="5" 
                   Margin="0,0,0,15">
             <ListBox x:Name="lstLog"
-                     Background="Black"
-                     Foreground="Lime"
+                     Background="#1F1915"
+                     Foreground="#EAD9C9"
                      FontWeight="Bold"
                      FontSize="11"
                      FontFamily="Consolas"
@@ -84,14 +84,19 @@
         <StackPanel Grid.Row="5" 
                     Orientation="Horizontal" 
                     HorizontalAlignment="Right">
-            <Button Content="Create USB" 
+            <Button x:Name="btnCreateIso"
+                    Content="Create ISO"
+                    Width="120"
+                    Height="36"
+                    Margin="0,0,10,0"
+                    ToolTip="Make a bootable ISO file from this saved image (for Hyper-V, Ventoy or another USB tool)"
+                    Click="BtnCreateIso_Click"/>
+            <Button x:Name="btnCreateUsb"
+                    Content="Create USB" 
                     Width="120" 
                     Height="36" 
                     Margin="0,0,10,0"
-                    Background="#0078D4"
-                    Foreground="White"
-                    FontWeight="Bold"
-                    FontSize="14"
+                    Style="{StaticResource PrimaryButton}"
                     Click="BtnCreateUsb_Click"/>
             <Button Content="Close" 
                     Width="100" 

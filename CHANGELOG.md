@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.0] - 2026-11-02
+
+### Changed
+- **Much faster driver injection.** Each driver pack is extracted once instead of once per image; WinPE, Windows Setup and WinRE get only boot-critical drivers (storage, network, USB, keyboard, touchpad, chipset) while every driver still goes into Windows; WinRE is serviced once and reused in every edition.
+- Unselected editions are removed before servicing, and install.wim is compacted afterwards.
+- install.wim is always split into .swm files, whatever its size, so one image works on FAT32 USB, in an ISO and saved for later.
+- New look in the Andy Kemp Consulting style: copper theme, Inter font, logo header, numbered sections. The app is now called Win11 Image Prep.
+- The window fits smaller screens such as a Surface; the operation log can be shown or hidden and starts hidden on short screens.
+- Each build stage is timed, with a summary at the end of the log.
+
+### Added
+- **ISO creation works end to end.** If the Windows ADK Deployment Tools (oscdimg) are missing, the app offers to install them: it downloads Microsoft's setup, checks it is signed by Microsoft and installs only the Deployment Tools.
+- **Tools > Check prerequisites...** shows what's installed and offers the install.
+- **Create ISO from a saved image** in the saved image window.
+- install.esd ISOs (Media Creation Tool) are converted to install.wim during the build.
+- Settings: `BootDriverClasses`, `InjectAllDriversIntoBootImages`, `CompactImageAfterServicing`, `AdkSetupUrl`.
+
+### Fixed
+- ISO creation looked for the UEFI boot file in the wrong folder (`boot\` instead of `efi\microsoft\boot\`).
+- Older saved images with a single install.wim over 4 GB are split before a USB is written.
+
+---
+
 ## [5.4.4] - 2026-01-25
 
 ### Fixed

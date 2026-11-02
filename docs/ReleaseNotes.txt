@@ -1,4 +1,24 @@
 ================================================================================
+Win11 Image Prep - Release Notes
+================================================================================
+
+Version 5.9.0
+Release Date: 2 November 2026
+Publisher: Andy Kemp Consulting Ltd
+
+* Much faster driver injection: each driver pack is extracted once, boot
+  images get only the drivers setup and recovery need, and the recovery
+  image is serviced once and reused.
+* Create ISO works end to end, with a one-click install of the Windows ADK
+  Deployment Tools if they're missing (Tools > Check prerequisites).
+* Create ISO from a saved image.
+* install.wim is always split into .swm files.
+* New Andy Kemp Consulting look; fits smaller screens; log can be hidden.
+* Each build stage is timed in the log.
+
+Full details: https://docs.andykemp.com/win11-image-prep/whats-new/
+
+================================================================================
 WinImagePrep - Release Notes
 ================================================================================
 

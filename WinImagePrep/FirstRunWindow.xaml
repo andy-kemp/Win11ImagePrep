@@ -19,7 +19,7 @@
         <Style x:Key="TitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Foreground" Value="#201A16"/>
             <Setter Property="Margin" Value="0,0,0,15"/>
         </Style>
 
@@ -27,14 +27,14 @@
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Foreground" Value="#201A16"/>
             <Setter Property="Margin" Value="0,15,0,10"/>
         </Style>
 
         <!-- Body Text Style -->
         <Style x:Key="BodyTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="#34495E"/>
+            <Setter Property="Foreground" Value="#201A16"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="LineHeight" Value="20"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
@@ -42,7 +42,7 @@
 
         <!-- Button Style -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Background" Value="#8A4E2E"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -62,23 +62,23 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#106EBE"/>
+                    <Setter Property="Background" Value="#8A4E2E"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-            <Setter Property="Background" Value="#6C757D"/>
+            <Setter Property="Background" Value="#625850"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#5A6268"/>
+                    <Setter Property="Background" Value="#302923"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="InfoBoxStyle" TargetType="Border">
-            <Setter Property="Background" Value="#E7F3FF"/>
-            <Setter Property="BorderBrush" Value="#B3D9FF"/>
+            <Setter Property="Background" Value="#F7F3EF"/>
+            <Setter Property="BorderBrush" Value="#E5D9CE"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="5"/>
             <Setter Property="Padding" Value="15"/>
@@ -86,8 +86,8 @@
         </Style>
 
         <Style x:Key="WarningBoxStyle" TargetType="Border">
-            <Setter Property="Background" Value="#FFF4E5"/>
-            <Setter Property="BorderBrush" Value="#FFD699"/>
+            <Setter Property="Background" Value="#FDF3DC"/>
+            <Setter Property="BorderBrush" Value="#E9CF8F"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="5"/>
             <Setter Property="Padding" Value="15"/>
@@ -145,8 +145,8 @@
                 <TextBlock Style="{StaticResource BodyTextStyle}">
                     All temporary and output files will be stored in:
                 </TextBlock>
-                <Border Background="#F8F9FA" 
-                        BorderBrush="#DEE2E6" 
+                <Border Background="#F7F3EF" 
+                        BorderBrush="#E5D9CE" 
                         BorderThickness="1" 
                         CornerRadius="4" 
                         Padding="12"
@@ -154,9 +154,9 @@
                     <TextBlock Text="{Binding WorkingFolder}" 
                                FontFamily="Consolas" 
                                FontSize="12" 
-                               Foreground="#495057"/>
+                               Foreground="#302923"/>
                 </Border>
-                <TextBlock Style="{StaticResource BodyTextStyle}" FontSize="11" Foreground="#6C757D">
+                <TextBlock Style="{StaticResource BodyTextStyle}" FontSize="11" Foreground="#625850">
                     You can change this location later via Tools > Options.
                 </TextBlock>
 

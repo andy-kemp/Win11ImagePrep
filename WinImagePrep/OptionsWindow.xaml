@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:WinImagePrep.Converters"
         mc:Ignorable="d"
-        Title="Options - Windows Image Preparation Tool"
+        Title="Options - Win11 Image Prep"
         Width="700" 
         Height="750"
         WindowStartupLocation="CenterScreen"
@@ -24,14 +24,14 @@
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Foreground" Value="#201A16"/>
             <Setter Property="Margin" Value="0,15,0,10"/>
         </Style>
 
         <!-- Label Style -->
         <Style x:Key="LabelStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="#34495E"/>
+            <Setter Property="Foreground" Value="#201A16"/>
             <Setter Property="Margin" Value="0,5,0,3"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
@@ -39,7 +39,7 @@
         <!-- Read-Only Label Style -->
         <Style x:Key="ReadOnlyLabelStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Foreground" Value="#7F8C8D"/>
+            <Setter Property="Foreground" Value="#625850"/>
             <Setter Property="Margin" Value="0,3,0,1"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
@@ -47,19 +47,19 @@
         <!-- Path Display Style -->
         <Style x:Key="PathDisplayStyle" TargetType="TextBox">
             <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="Background" Value="#F8F9FA"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="#F7F3EF"/>
+            <Setter Property="BorderBrush" Value="#E5D9CE"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="FontFamily" Value="Consolas"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Foreground" Value="#495057"/>
+            <Setter Property="Foreground" Value="#302923"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
 
         <!-- Button Style -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Background" Value="#8A4E2E"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -79,20 +79,20 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#106EBE"/>
+                    <Setter Property="Background" Value="#8A4E2E"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#CCCCCC"/>
+                    <Setter Property="Background" Value="#E5D9CE"/>
                     <Setter Property="Cursor" Value="Arrow"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-            <Setter Property="Background" Value="#6C757D"/>
+            <Setter Property="Background" Value="#625850"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#5A6268"/>
+                    <Setter Property="Background" Value="#302923"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -111,11 +111,11 @@
             <TextBlock Text="Application Settings" 
                        FontSize="20" 
                        FontWeight="Bold" 
-                       Foreground="#2C3E50"
+                       Foreground="#201A16"
                        Margin="0,0,0,5"/>
             <TextBlock Text="Configure storage locations and application behavior" 
                        FontSize="12" 
-                       Foreground="#7F8C8D"/>
+                       Foreground="#625850"/>
         </StackPanel>
 
         <!-- Settings Content -->
@@ -123,8 +123,8 @@
             <StackPanel>
                 <!-- Storage Locations Section -->
                 <TextBlock Text="Storage Locations" Style="{StaticResource SectionTitleStyle}"/>
-                <Border Background="#F8F9FA" 
-                        BorderBrush="#DEE2E6" 
+                <Border Background="#F7F3EF" 
+                        BorderBrush="#E5D9CE" 
                         BorderThickness="1" 
                         CornerRadius="5" 
                         Padding="15"
@@ -133,7 +133,7 @@
                         <TextBlock Text="Working Folder" Style="{StaticResource LabelStyle}"/>
                         <TextBlock Text="Main directory for all ISO processing, driver injection, and temporary files" 
                                    FontSize="11" 
-                                   Foreground="#6C757D" 
+                                   Foreground="#625850" 
                                    TextWrapping="Wrap"
                                    Margin="0,0,0,8"/>
 
@@ -185,8 +185,8 @@
 
                 <!-- Application Settings Section -->
                 <TextBlock Text="Application Settings" Style="{StaticResource SectionTitleStyle}"/>
-                <Border Background="#F8F9FA" 
-                        BorderBrush="#DEE2E6" 
+                <Border Background="#F7F3EF" 
+                        BorderBrush="#E5D9CE" 
                         BorderThickness="1" 
                         CornerRadius="5" 
                         Padding="15"
@@ -228,17 +228,17 @@
                 Visibility="{Binding ValidationMessage, Converter={StaticResource StringToVisibilityConverter}}">
             <Border.Style>
                 <Style TargetType="Border">
-                    <Setter Property="Background" Value="#D1ECF1"/>
-                    <Setter Property="BorderBrush" Value="#BEE5EB"/>
+                    <Setter Property="Background" Value="#F4EDE6"/>
+                    <Setter Property="BorderBrush" Value="#E5D9CE"/>
                     <Setter Property="BorderThickness" Value="1"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsValidationError}" Value="True">
-                            <Setter Property="Background" Value="#F8D7DA"/>
-                            <Setter Property="BorderBrush" Value="#F5C6CB"/>
+                            <Setter Property="Background" Value="#FBEAE6"/>
+                            <Setter Property="BorderBrush" Value="#EBC3BA"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding IsValidationSuccess}" Value="True">
-                            <Setter Property="Background" Value="#D4EDDA"/>
-                            <Setter Property="BorderBrush" Value="#C3E6CB"/>
+                            <Setter Property="Background" Value="#E7F2E8"/>
+                            <Setter Property="BorderBrush" Value="#CFE3D1"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
@@ -250,13 +250,13 @@
                        FontSize="11">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
-                        <Setter Property="Foreground" Value="#0C5460"/>
+                        <Setter Property="Foreground" Value="#60351F"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsValidationError}" Value="True">
-                                <Setter Property="Foreground" Value="#721C24"/>
+                                <Setter Property="Foreground" Value="#7A2A1D"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsValidationSuccess}" Value="True">
-                                <Setter Property="Foreground" Value="#155724"/>
+                                <Setter Property="Foreground" Value="#2F6B3A"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

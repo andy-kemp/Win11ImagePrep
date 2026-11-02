@@ -73,6 +73,7 @@ namespace WinImagePrep.ViewModels
             ExitCommand = new RelayCommand(ExitApplication);
             OpenOptionsCommand = new RelayCommand(OpenOptions);
             CheckForUpdatesCommand = new RelayCommand(async () => await CheckForUpdatesAsync());
+            CheckPrerequisitesCommand = new RelayCommand(async () => await CheckPrerequisitesAsync());
             OpenUserGuideCommand = new RelayCommand(OpenUserGuide);
             OpenOnlineDocumentationCommand = new RelayCommand(OpenOnlineDocumentation);
             OpenGitHubReadmeCommand = new RelayCommand(OpenGitHubReadme);
@@ -95,7 +96,7 @@ namespace WinImagePrep.ViewModels
             // Load saved unattended install settings
             EnableUnattendedInstall = settings.EnableUnattendedInstall;
 
-            AddLog("Windows Image Preparation Tool - Ready");
+            AddLog("Win11 Image Prep - Ready");
             AddLog("NEW: Windows app removal + Edition selection features");
             AddLog("Please select a Windows ISO and driver source to begin");
         }
@@ -263,7 +264,7 @@ namespace WinImagePrep.ViewModels
             get
             {
                 var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                return $"Windows Image Preparation Tool v{version?.Major}.{version?.Minor}.{version?.Build}";
+                return $"Win11 Image Prep v{version?.Major}.{version?.Minor}.{version?.Build}";
             }
         }
 
@@ -580,6 +581,7 @@ namespace WinImagePrep.ViewModels
         public ICommand ExitCommand { get; }
         public ICommand OpenOptionsCommand { get; }
         public ICommand CheckForUpdatesCommand { get; }
+        public ICommand CheckPrerequisitesCommand { get; }
         public ICommand OpenUserGuideCommand { get; }
         public ICommand OpenOnlineDocumentationCommand { get; }
         public ICommand OpenGitHubReadmeCommand { get; }
@@ -2133,46 +2135,16 @@ namespace WinImagePrep.ViewModels
             AddLog($"✓ install.wim compacted: {FileSystemHelper.FormatBytes(before)} → {FileSystemHelper.FormatBytes(after)}");
         }
 
+        /// <summary>
+        /// Split install.wim into .swm files. Always done, whatever its size, so the image works on a
+        /// FAT32 USB, in an ISO and when saved for later.
+        /// </summary>
         private async Task SplitWimIfNeededAsync(CancellationToken cancellationToken)
         {
-            var installWimPath = Path.Combine(_config.Windows11Directory, "Sources", "install.wim");
-
-            if (File.Exists(installWimPath))
-            {
-                var fileInfo = new FileInfo(installWimPath);
-                if (fileInfo.Length > 4L * 1024 * 1024 * 1024) // > 4GB
-                {
-                    AddLog($"install.wim is {FileSystemHelper.FormatBytes(fileInfo.Length)} - splitting for FAT32...");
-
-                    var swmPath = Path.Combine(_config.Windows11Directory, "Sources", "install.swm");
-                    await _dismService.SplitWimAsync(installWimPath, swmPath, 3800, new Progress<string>(AddLog), cancellationToken);
-
-                    if (File.Exists(swmPath))
-                    {
-                        try
-                        {
-                            // Clear read-only attribute before deleting
-                            if (File.Exists(installWimPath))
-                            {
-                                var wimFileInfo = new FileInfo(installWimPath);
-                                if (wimFileInfo.IsReadOnly)
-                                {
-                                    wimFileInfo.IsReadOnly = false;
-                                    AddLog("Cleared read-only flag on install.wim before deletion");
-                                }
-                                File.Delete(installWimPath);
-                                AddLog("✓ Deleted original install.wim after split");
-                            }
-                            AddLog("✓ WIM split successfully");
-                        }
-                        catch (Exception ex)
-                        {
-                            AddLog($"⚠ Warning: Could not delete install.wim: {ex.Message}");
-                            AddLog("The split files (.swm) will be used instead");
-                        }
-                    }
-                }
-            }
+            await _dismService.SplitInstallWimAsync(
+                Path.Combine(_config.Windows11Directory, "Sources"),
+                new Progress<string>(AddLog),
+                cancellationToken);
         }
 
         private void RefreshUsbDrives()
@@ -2622,7 +2594,7 @@ namespace WinImagePrep.ViewModels
 
         private void OpenSavedImageDialog()
         {
-            var savedImageWindow = new Dialogs.SavedImageWindow(_config.SavedImagesDirectory);
+            var savedImageWindow = new Dialogs.SavedImageWindow(_config.SavedImagesDirectory, _settingsService.CurrentSettings.AdkSetupUrl);
             savedImageWindow.ShowDialog();
         }
 
@@ -2637,6 +2609,93 @@ namespace WinImagePrep.ViewModels
             var efisysNopromptPath = Path.Combine(bootDir, "efisys_noprompt.bin");
 
             return File.Exists(efisysPath) || File.Exists(efisysNopromptPath);
+        }
+
+        /// <summary>
+        /// Return the path to oscdimg.exe, offering to install the Windows ADK Deployment Tools if
+        /// they're missing. Returns null if they aren't installed (declined, cancelled or failed).
+        /// </summary>
+        private async Task<string?> EnsureIsoToolsAsync()
+        {
+            var wasProcessing = IsProcessing;
+            try
+            {
+                return await IsoToolsPrompt.EnsureAsync(
+                    _isoService,
+                    _settingsService.CurrentSettings.AdkSetupUrl,
+                    msg => { AddLog(msg); CurrentOperationText = msg; },
+                    busy => IsProcessing = busy || wasProcessing);
+            }
+            finally
+            {
+                IsProcessing = wasProcessing;
+            }
+        }
+
+        private async Task<string?> InstallIsoToolsAsync()
+        {
+            var wasProcessing = IsProcessing;
+            try
+            {
+                return await IsoToolsPrompt.InstallAsync(
+                    _isoService,
+                    _settingsService.CurrentSettings.AdkSetupUrl,
+                    msg => { AddLog(msg); CurrentOperationText = msg; },
+                    busy => IsProcessing = busy || wasProcessing);
+            }
+            finally
+            {
+                IsProcessing = wasProcessing;
+                CurrentOperationText = string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Tools > Check prerequisites: show what's installed and offer to install what's missing.
+        /// </summary>
+        private async Task CheckPrerequisitesAsync()
+        {
+            var results = new PrerequisiteService(_isoService).Check();
+            AddLog("=== Prerequisites ===");
+            foreach (var r in results)
+            {
+                AddLog($"  {(r.IsMet ? "✓" : "✗")} {r.Name}: {r.Detail}");
+            }
+
+            var text = string.Join("\n\n", results.Select(r => $"{(r.IsMet ? "✓" : "✗")}  {r.Name}\n      {r.Detail}"));
+            var missing = results.Where(r => !r.IsMet && r.CanInstall).ToList();
+            if (missing.Count == 0)
+            {
+                MessageBox.Show(text, "Prerequisites", MessageBoxButton.OK,
+                    results.All(r => r.IsMet) ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                return;
+            }
+
+            var answer = MessageBox.Show(
+                text + "\n\nInstall the Windows ADK Deployment Tools now? Win11 Image Prep downloads the setup " +
+                "from Microsoft, checks its signature and installs only the Deployment Tools.",
+                "Prerequisites", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer == MessageBoxResult.Yes)
+            {
+                var path = await InstallIsoToolsAsync();
+                if (path != null)
+                {
+                    MessageBox.Show("The Windows ADK Deployment Tools are installed. You can now create ISO files.",
+                        "Prerequisites", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+        }
+
+        private void OpenUrl(string url)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = url, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Failed to open browser: {ex.Message}");
+            }
         }
 
         private async Task CreateCustomIsoAsync()
@@ -2683,45 +2742,13 @@ namespace WinImagePrep.ViewModels
                     return;
                 }
 
-                // Check if oscdimg is available before proceeding
-                var oscdimgPath = _isoService.FindOscdimgPath();
+                // ISO creation needs oscdimg from the Windows ADK Deployment Tools: offer to install it
+                var oscdimgPath = await EnsureIsoToolsAsync();
                 if (string.IsNullOrEmpty(oscdimgPath))
                 {
-                    var installResult = MessageBox.Show(
-                        "Windows ADK Required\n\n" +
-                        "Creating ISO files requires the Windows Assessment and Deployment Kit (ADK).\n\n" +
-                        "The ADK includes oscdimg.exe which is needed to create bootable ISO images.\n\n" +
-                        "To install:\n" +
-                        "1. Download Windows ADK from Microsoft\n" +
-                        "2. Run the installer\n" +
-                        "3. Select 'Deployment Tools' during installation\n" +
-                        "4. Restart this application\n\n" +
-                        "Download link:\n" +
-                        "https://go.microsoft.com/fwlink/?linkid=2243390\n\n" +
-                        "Would you like to open the download page in your browser?",
-                        "Windows ADK Not Found",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
-
-                    if (installResult == MessageBoxResult.Yes)
-                    {
-                        try
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = "https://go.microsoft.com/fwlink/?linkid=2243390",
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            AddLog($"Failed to open browser: {ex.Message}");
-                        }
-                    }
                     return;
                 }
 
-                AddLog($"✓ Found oscdimg at: {oscdimgPath}");
 
                 // Prompt for output ISO name and location
                 var dialog = new SaveFileDialog
@@ -2838,17 +2865,9 @@ namespace WinImagePrep.ViewModels
 
                     if (string.IsNullOrEmpty(oscdimgCheck))
                     {
-                        errorMessage = "Failed to create custom ISO.\n\n" +
-                            "⚠️ Windows ADK not installed!\n\n" +
-                            "The Windows Assessment and Deployment Kit (ADK) is required " +
-                            "to create ISO files using oscdimg.exe.\n\n" +
-                            "To install:\n" +
-                            "1. Download Windows ADK from Microsoft\n" +
-                            "2. Run the installer\n" +
-                            "3. Select 'Deployment Tools' during installation\n" +
-                            "4. Restart this application\n\n" +
-                            "Download link:\n" +
-                            "https://go.microsoft.com/fwlink/?linkid=2243390\n\n" +
+errorMessage = "Failed to create custom ISO.\n\n" +
+                            "The Windows ADK Deployment Tools aren't installed. Use Tools > Check prerequisites " +
+                            "to install them, then try again.\n\n" +
                             "Check the log for details.";
                     }
                     else
