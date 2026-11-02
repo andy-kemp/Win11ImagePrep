@@ -1,10 +1,14 @@
 # Checks that the ADK install the app does still works: Microsoft's link downloads, the file is
 # signed by Microsoft, and the silent Deployment Tools install puts oscdimg.exe where the app looks.
-# Run it by hand (Actions > ADK install check) if Microsoft changes the ADK.
+# Runs when this file or PrerequisiteService.cs changes, or by hand (Actions > ADK install check).
 name: ADK install check
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/adk-install-check.yml
+      - WinImagePrep/Services/PrerequisiteService.cs
 
 jobs:
   check:
