@@ -98,6 +98,12 @@ namespace WinImagePrep.Models
         /// </summary>
         public bool CompactImageAfterServicing { get; set; } = true;
 
+        /// <summary>
+        /// Where to download Windows ADK setup from when installing the Deployment Tools for ISO
+        /// creation. Empty uses Microsoft's current link (see PrerequisiteService.DefaultAdkSetupUrl).
+        /// </summary>
+        public string? AdkSetupUrl { get; set; }
+
         // Validation constants
         public const long MinimumFreeSpaceGB = 25;
         public const string DefaultWorkingRoot = @"C:\ProgramData\Win11ImagePrep";
@@ -187,7 +193,8 @@ namespace WinImagePrep.Models
                 PendingUpdateVersion = this.PendingUpdateVersion,
                 BootDriverClasses = new List<string>(this.BootDriverClasses),
                 InjectAllDriversIntoBootImages = this.InjectAllDriversIntoBootImages,
-                CompactImageAfterServicing = this.CompactImageAfterServicing
+                CompactImageAfterServicing = this.CompactImageAfterServicing,
+                AdkSetupUrl = this.AdkSetupUrl
             };
         }
 

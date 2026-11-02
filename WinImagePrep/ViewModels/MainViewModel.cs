@@ -73,6 +73,7 @@ namespace WinImagePrep.ViewModels
             ExitCommand = new RelayCommand(ExitApplication);
             OpenOptionsCommand = new RelayCommand(OpenOptions);
             CheckForUpdatesCommand = new RelayCommand(async () => await CheckForUpdatesAsync());
+            CheckPrerequisitesCommand = new RelayCommand(async () => await CheckPrerequisitesAsync());
             OpenUserGuideCommand = new RelayCommand(OpenUserGuide);
             OpenOnlineDocumentationCommand = new RelayCommand(OpenOnlineDocumentation);
             OpenGitHubReadmeCommand = new RelayCommand(OpenGitHubReadme);
@@ -580,6 +581,7 @@ namespace WinImagePrep.ViewModels
         public ICommand ExitCommand { get; }
         public ICommand OpenOptionsCommand { get; }
         public ICommand CheckForUpdatesCommand { get; }
+        public ICommand CheckPrerequisitesCommand { get; }
         public ICommand OpenUserGuideCommand { get; }
         public ICommand OpenOnlineDocumentationCommand { get; }
         public ICommand OpenGitHubReadmeCommand { get; }
@@ -2639,6 +2641,133 @@ namespace WinImagePrep.ViewModels
             return File.Exists(efisysPath) || File.Exists(efisysNopromptPath);
         }
 
+        /// <summary>
+        /// Return the path to oscdimg.exe, offering to install the Windows ADK Deployment Tools if
+        /// they're missing. Returns null if they aren't installed (declined, cancelled or failed).
+        /// </summary>
+        private async Task<string?> EnsureIsoToolsAsync()
+        {
+            var existing = _isoService.FindOscdimgPath();
+            if (!string.IsNullOrEmpty(existing))
+            {
+                return existing;
+            }
+
+            var answer = MessageBox.Show(
+                "Creating an ISO file needs oscdimg.exe, part of Microsoft's Windows ADK Deployment Tools, " +
+                "and it isn't installed.\n\n" +
+                "Install it now? Win11 Image Prep downloads the setup from Microsoft, checks it is signed by " +
+                "Microsoft, and installs only the Deployment Tools. It takes a few minutes, and Windows may ask " +
+                "for administrator permission.\n\n" +
+                "Yes: install now\nNo: open Microsoft's download page instead",
+                "Windows ADK Deployment Tools needed",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (answer == MessageBoxResult.No)
+            {
+                OpenUrl(PrerequisiteService.AdkDownloadPage);
+                return null;
+            }
+            if (answer != MessageBoxResult.Yes)
+            {
+                return null;
+            }
+
+            return await InstallIsoToolsAsync();
+        }
+
+        private async Task<string?> InstallIsoToolsAsync()
+        {
+            var wasProcessing = IsProcessing;
+            IsProcessing = true;
+            OverallProgressText = "Installing Windows ADK Deployment Tools...";
+            CurrentOperationText = "Installing Windows ADK Deployment Tools...";
+            try
+            {
+                var prereqs = new PrerequisiteService(_isoService);
+                var path = await prereqs.InstallAdkDeploymentToolsAsync(
+                    _settingsService.CurrentSettings.AdkSetupUrl,
+                    new Progress<string>(msg => { AddLog(msg); CurrentOperationText = msg; }));
+
+                if (path == null)
+                {
+                    MessageBox.Show(
+                        "The Deployment Tools didn't install. The log has the details.\n\n" +
+                        "You can install them yourself from Microsoft's Windows ADK page: choose only " +
+                        "'Deployment Tools'.",
+                        "Install failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                return path;
+            }
+            catch (OperationCanceledException ex)
+            {
+                AddLog($"ADK install cancelled: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"✗ ADK install failed: {ex.Message}");
+                MessageBox.Show($"The Deployment Tools couldn't be installed:\n\n{ex.Message}",
+                    "Install failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return null;
+            }
+            finally
+            {
+                OverallProgressText = string.Empty;
+                CurrentOperationText = string.Empty;
+                IsProcessing = wasProcessing;
+            }
+        }
+
+        /// <summary>
+        /// Tools > Check prerequisites: show what's installed and offer to install what's missing.
+        /// </summary>
+        private async Task CheckPrerequisitesAsync()
+        {
+            var results = new PrerequisiteService(_isoService).Check();
+            AddLog("=== Prerequisites ===");
+            foreach (var r in results)
+            {
+                AddLog($"  {(r.IsMet ? "✓" : "✗")} {r.Name}: {r.Detail}");
+            }
+
+            var text = string.Join("\n\n", results.Select(r => $"{(r.IsMet ? "✓" : "✗")}  {r.Name}\n      {r.Detail}"));
+            var missing = results.Where(r => !r.IsMet && r.CanInstall).ToList();
+            if (missing.Count == 0)
+            {
+                MessageBox.Show(text, "Prerequisites", MessageBoxButton.OK,
+                    results.All(r => r.IsMet) ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                return;
+            }
+
+            var answer = MessageBox.Show(
+                text + "\n\nInstall the Windows ADK Deployment Tools now? Win11 Image Prep downloads the setup " +
+                "from Microsoft, checks its signature and installs only the Deployment Tools.",
+                "Prerequisites", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer == MessageBoxResult.Yes)
+            {
+                var path = await InstallIsoToolsAsync();
+                if (path != null)
+                {
+                    MessageBox.Show("The Windows ADK Deployment Tools are installed. You can now create ISO files.",
+                        "Prerequisites", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+        }
+
+        private void OpenUrl(string url)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = url, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Failed to open browser: {ex.Message}");
+            }
+        }
+
         private async Task CreateCustomIsoAsync()
         {
             try
@@ -2683,41 +2812,10 @@ namespace WinImagePrep.ViewModels
                     return;
                 }
 
-                // Check if oscdimg is available before proceeding
-                var oscdimgPath = _isoService.FindOscdimgPath();
+                // ISO creation needs oscdimg from the Windows ADK Deployment Tools: offer to install it
+                var oscdimgPath = await EnsureIsoToolsAsync();
                 if (string.IsNullOrEmpty(oscdimgPath))
                 {
-                    var installResult = MessageBox.Show(
-                        "Windows ADK Required\n\n" +
-                        "Creating ISO files requires the Windows Assessment and Deployment Kit (ADK).\n\n" +
-                        "The ADK includes oscdimg.exe which is needed to create bootable ISO images.\n\n" +
-                        "To install:\n" +
-                        "1. Download Windows ADK from Microsoft\n" +
-                        "2. Run the installer\n" +
-                        "3. Select 'Deployment Tools' during installation\n" +
-                        "4. Restart this application\n\n" +
-                        "Download link:\n" +
-                        "https://go.microsoft.com/fwlink/?linkid=2243390\n\n" +
-                        "Would you like to open the download page in your browser?",
-                        "Windows ADK Not Found",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Information);
-
-                    if (installResult == MessageBoxResult.Yes)
-                    {
-                        try
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = "https://go.microsoft.com/fwlink/?linkid=2243390",
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            AddLog($"Failed to open browser: {ex.Message}");
-                        }
-                    }
                     return;
                 }
 
@@ -2838,17 +2936,9 @@ namespace WinImagePrep.ViewModels
 
                     if (string.IsNullOrEmpty(oscdimgCheck))
                     {
-                        errorMessage = "Failed to create custom ISO.\n\n" +
-                            "⚠️ Windows ADK not installed!\n\n" +
-                            "The Windows Assessment and Deployment Kit (ADK) is required " +
-                            "to create ISO files using oscdimg.exe.\n\n" +
-                            "To install:\n" +
-                            "1. Download Windows ADK from Microsoft\n" +
-                            "2. Run the installer\n" +
-                            "3. Select 'Deployment Tools' during installation\n" +
-                            "4. Restart this application\n\n" +
-                            "Download link:\n" +
-                            "https://go.microsoft.com/fwlink/?linkid=2243390\n\n" +
+errorMessage = "Failed to create custom ISO.\n\n" +
+                            "The Windows ADK Deployment Tools aren't installed. Use Tools > Check prerequisites " +
+                            "to install them, then try again.\n\n" +
                             "Check the log for details.";
                     }
                     else

@@ -29,6 +29,11 @@
                         <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
+                <MenuItem Header="Check _prerequisites..." Command="{Binding CheckPrerequisitesCommand}" ToolTip="Check for, and install, the tools ISO creation needs">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE9D5;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
+                    </MenuItem.Icon>
+                </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Options..." Command="{Binding OpenOptionsCommand}" ToolTip="Configure application settings">
                     <MenuItem.Icon>
