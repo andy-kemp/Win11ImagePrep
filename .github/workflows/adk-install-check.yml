@@ -1,0 +1,34 @@
+# Checks that the ADK install the app does still works: Microsoft's link downloads, the file is
+# signed by Microsoft, and the silent Deployment Tools install puts oscdimg.exe where the app looks.
+# Run it by hand (Actions > ADK install check) if Microsoft changes the ADK.
+name: ADK install check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - name: Download, verify and install Deployment Tools
+        shell: pwsh
+        run: |
+          $existing = Get-ChildItem 'C:\Program Files (x86)\Windows Kits' -Recurse -Filter oscdimg.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          Write-Host "oscdimg before: $($existing.FullName)"
+          $url = 'https://go.microsoft.com/fwlink/?linkid=2337875'
+          $setup = "$env:RUNNER_TEMP\adksetup.exe"
+          Invoke-WebRequest $url -OutFile $setup
+          $sig = Get-AuthenticodeSignature $setup
+          Write-Host "Size: $((Get-Item $setup).Length) bytes"
+          Write-Host "Signature: $($sig.Status) / $($sig.SignerCertificate.Subject)"
+          if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Not validly signed by Microsoft' }
+          (Get-Item $setup).VersionInfo | Format-List ProductVersion, FileDescription
+          $log = "$env:RUNNER_TEMP\adksetup.log"
+          $p = Start-Process $setup -ArgumentList "/quiet /norestart /ceip off /features OptionId.DeploymentTools /log `"$log`"" -Wait -PassThru
+          Write-Host "Exit code: $($p.ExitCode)"
+          $found = @(
+            'C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe'
+          ) | Where-Object { Test-Path $_ }
+          Write-Host "oscdimg after (app's first search path): $found"
+          Get-ChildItem (Split-Path $found) | Select-Object Name, Length | Format-Table
+          if (-not $found -or ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010)) { throw 'Install check failed' }
