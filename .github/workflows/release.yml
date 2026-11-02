@@ -44,7 +44,10 @@ jobs:
           if ("${{ github.ref_type }}" -eq 'tag' -and "${{ github.ref_name }}".TrimStart('v') -ne $appVer) {
             throw "Tag ${{ github.ref_name }} doesn't match WinImagePrep.csproj Version $appVer"
           }
-          if (gh release view "v$appVer" 2>$null) { throw "Release v$appVer already exists: bump Version in WinImagePrep.csproj first" }
+          gh release view "v$appVer" *> $null
+          $exists = ($LASTEXITCODE -eq 0)
+          $global:LASTEXITCODE = 0   # "not found" is the expected answer; don't let it fail the step
+          if ($exists) { throw "Release v$appVer already exists: bump Version in WinImagePrep.csproj first" }
           "version=$appVer" >> $env:GITHUB_OUTPUT
           "updater=$updVer" >> $env:GITHUB_OUTPUT
         env:
