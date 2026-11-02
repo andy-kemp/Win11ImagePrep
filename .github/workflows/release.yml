@@ -1,4 +1,5 @@
-# Publishes a release when a version tag (v5.9.0, ...) is pushed:
+# Publishes a release: run it from Actions > Release > Run workflow (on main), or push a v* tag.
+# It releases the Version in WinImagePrep.csproj and creates the v<version> tag itself.
 #   1. builds the app and updater on Windows
 #   2. commits publish/WinImagePrep.exe, publish/WinImagePrep.Updater.exe AND version.json to main
 #      in ONE commit, so the in-app updater never sees a new version before its exe is there
@@ -6,6 +7,7 @@
 name: Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
@@ -31,18 +33,22 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Check the tag matches the project version
+      - name: Read the version (and check a pushed tag matches it)
         id: ver
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}".TrimStart('v')
           [xml]$app = Get-Content WinImagePrep/WinImagePrep.csproj
           [xml]$upd = Get-Content WinImagePrep.Updater/WinImagePrep.Updater.csproj
           $appVer = ($app.Project.PropertyGroup | Where-Object Version | Select-Object -First 1).Version.Trim()
           $updVer = ($upd.Project.PropertyGroup | Where-Object Version | Select-Object -First 1).Version.Trim()
-          if ($appVer -ne $tag) { throw "Tag $tag doesn't match WinImagePrep.csproj Version $appVer" }
+          if ("${{ github.ref_type }}" -eq 'tag' -and "${{ github.ref_name }}".TrimStart('v') -ne $appVer) {
+            throw "Tag ${{ github.ref_name }} doesn't match WinImagePrep.csproj Version $appVer"
+          }
+          if (gh release view "v$appVer" 2>$null) { throw "Release v$appVer already exists: bump Version in WinImagePrep.csproj first" }
           "version=$appVer" >> $env:GITHUB_OUTPUT
           "updater=$updVer" >> $env:GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Build
         run: |
@@ -83,4 +89,5 @@ jobs:
           $notes = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "See CHANGELOG.md" }
           $notes += "`n`nDownload **WinImagePrep_full.exe** (single file, no install). Check it against SHA256SUMS.txt.`n`nDocs: https://docs.andykemp.com/win11-image-prep/"
           Set-Content release-notes.md $notes
-          gh release create "${{ github.ref_name }}" release/* --title "Win11 Image Prep ${{ steps.ver.outputs.version }}" --notes-file release-notes.md --latest
+          $sha = git rev-parse HEAD
+          gh release create "v${{ steps.ver.outputs.version }}" release/* --target $sha --title "Win11 Image Prep ${{ steps.ver.outputs.version }}" --notes-file release-notes.md --latest
