@@ -49,6 +49,9 @@ jobs:
           # Skip first-run and update prompts so the main window opens straight away
           New-Item -ItemType Directory -Force C:\ProgramData\Win11ImagePrep | Out-Null
           '{"FirstRunComplete":true,"FirstRunUpdateCheckComplete":true,"CheckForUpdates":false}' | Set-Content C:\ProgramData\Win11ImagePrep\settings.json
+          # A dummy saved image so the saved-image window has something to show
+          New-Item -ItemType Directory -Force C:\ProgramData\Win11ImagePrep\SavedImages\Surface7th\sources | Out-Null
+          'CPBA_A64FRE_EN-GB_DV9' | Set-Content C:\ProgramData\Win11ImagePrep\SavedImages\Surface7th\iso-label.txt
           Add-Type -AssemblyName System.Drawing
           Add-Type @"
           using System; using System.Runtime.InteropServices;
@@ -113,6 +116,44 @@ jobs:
               if ($ui.Scroll) { $ui.Scroll.SetScrollPercent(-1, 100) }
               Shot 940 960 'screenshot-main-window-log-open.png'
             } else { Write-Host 'LogToggle not found' }
+            # Open "From saved image" and capture that window
+            $open = [scriptblock]::Create(@'
+              param($h)
+              $A = [System.Windows.Automation.AutomationElement]
+              $root = $A::FromHandle($h)
+              $cond = New-Object System.Windows.Automation.PropertyCondition ($A::NameProperty, 'From saved image')
+              $btn = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
+              if ($btn) { $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); $true } else { $false }
+          '@)
+            if (& $open $h) {
+              Start-Sleep -Seconds 3
+              $dlg = (Get-Process -Id $p.Id).MainWindowHandle
+              $found = [IntPtr]::Zero
+              Add-Type @"
+              using System; using System.Runtime.InteropServices; using System.Text;
+              public static class Find {
+                public delegate bool EnumProc(IntPtr h, IntPtr l);
+                [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc f, IntPtr l);
+                [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+                [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
+                public static IntPtr ByTitle(uint pid, string title) {
+                  IntPtr r = IntPtr.Zero;
+                  EnumWindows((h, l) => { uint wp; GetWindowThreadProcessId(h, out wp); var sb = new StringBuilder(256); GetWindowText(h, sb, 256);
+                    if (wp == pid && sb.ToString() == title) { r = h; return false; } return true; }, IntPtr.Zero);
+                  return r;
+                }
+              }
+          "@
+              $sh = [Find]::ByTitle([uint32]$p.Id, 'Use a Saved Image')
+              if ($sh -ne [IntPtr]::Zero) {
+                $r = New-Object Win+RECT; [Win]::GetWindowRect($sh, [ref]$r) | Out-Null
+                $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
+                $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
+                [Win]::PrintWindow($sh, $hdc, 2) | Out-Null
+                $g.ReleaseHdc($hdc); $g.Dispose()
+                $bmp.Save("$PWD/release/screenshot-saved-image.png", [System.Drawing.Imaging.ImageFormat]::Png)
+              } else { Write-Host 'Saved image window not found' }
+            } else { Write-Host 'From saved image button not found' }
           } catch { Write-Host "UI Automation step failed: $_" }
           Stop-Process -Id $p.Id -Force
           Stop-Transcript | Out-Null
