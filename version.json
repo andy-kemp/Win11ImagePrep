@@ -1,6 +1,6 @@
 {
-  "version": "5.8.7",
+  "version": "5.9.0",
   "updaterVersion": "1.6.0",
-  "releaseDate": "2026-06-09",
-  "releaseNotes": "🧪 Test update: Version bump to test improved UAC update flow"
+  "releaseDate": "2026-11-02",
+  "releaseNotes": "Faster driver injection, ISO creation with one-click ADK install, new look. See docs.andykemp.com/win11-image-prep/whats-new/"
 }
