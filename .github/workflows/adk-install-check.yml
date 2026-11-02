@@ -18,7 +18,7 @@ jobs:
         shell: pwsh
         run: |
           $existing = Get-ChildItem 'C:\Program Files (x86)\Windows Kits' -Recurse -Filter oscdimg.exe -ErrorAction SilentlyContinue | Select-Object -First 1
-          Write-Host "::notice::oscdimg before install: $(if ($existing) { $existing.FullName } else { none })"
+          Write-Host "::notice::oscdimg before install: $(if ($existing) { $existing.FullName } else { 'none' })"
           $url = 'https://go.microsoft.com/fwlink/?linkid=2337875'
           $setup = "$env:RUNNER_TEMP\adksetup.exe"
           Invoke-WebRequest $url -OutFile $setup
