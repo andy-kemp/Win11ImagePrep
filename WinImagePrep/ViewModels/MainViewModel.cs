@@ -2135,46 +2135,16 @@ namespace WinImagePrep.ViewModels
             AddLog($"✓ install.wim compacted: {FileSystemHelper.FormatBytes(before)} → {FileSystemHelper.FormatBytes(after)}");
         }
 
+        /// <summary>
+        /// Split install.wim into .swm files. Always done, whatever its size, so the image works on a
+        /// FAT32 USB, in an ISO and when saved for later.
+        /// </summary>
         private async Task SplitWimIfNeededAsync(CancellationToken cancellationToken)
         {
-            var installWimPath = Path.Combine(_config.Windows11Directory, "Sources", "install.wim");
-
-            if (File.Exists(installWimPath))
-            {
-                var fileInfo = new FileInfo(installWimPath);
-                if (fileInfo.Length > 4L * 1024 * 1024 * 1024) // > 4GB
-                {
-                    AddLog($"install.wim is {FileSystemHelper.FormatBytes(fileInfo.Length)} - splitting for FAT32...");
-
-                    var swmPath = Path.Combine(_config.Windows11Directory, "Sources", "install.swm");
-                    await _dismService.SplitWimAsync(installWimPath, swmPath, 3800, new Progress<string>(AddLog), cancellationToken);
-
-                    if (File.Exists(swmPath))
-                    {
-                        try
-                        {
-                            // Clear read-only attribute before deleting
-                            if (File.Exists(installWimPath))
-                            {
-                                var wimFileInfo = new FileInfo(installWimPath);
-                                if (wimFileInfo.IsReadOnly)
-                                {
-                                    wimFileInfo.IsReadOnly = false;
-                                    AddLog("Cleared read-only flag on install.wim before deletion");
-                                }
-                                File.Delete(installWimPath);
-                                AddLog("✓ Deleted original install.wim after split");
-                            }
-                            AddLog("✓ WIM split successfully");
-                        }
-                        catch (Exception ex)
-                        {
-                            AddLog($"⚠ Warning: Could not delete install.wim: {ex.Message}");
-                            AddLog("The split files (.swm) will be used instead");
-                        }
-                    }
-                }
-            }
+            await _dismService.SplitInstallWimAsync(
+                Path.Combine(_config.Windows11Directory, "Sources"),
+                new Progress<string>(AddLog),
+                cancellationToken);
         }
 
         private void RefreshUsbDrives()
@@ -2624,7 +2594,7 @@ namespace WinImagePrep.ViewModels
 
         private void OpenSavedImageDialog()
         {
-            var savedImageWindow = new Dialogs.SavedImageWindow(_config.SavedImagesDirectory);
+            var savedImageWindow = new Dialogs.SavedImageWindow(_config.SavedImagesDirectory, _settingsService.CurrentSettings.AdkSetupUrl);
             savedImageWindow.ShowDialog();
         }
 
@@ -2647,76 +2617,36 @@ namespace WinImagePrep.ViewModels
         /// </summary>
         private async Task<string?> EnsureIsoToolsAsync()
         {
-            var existing = _isoService.FindOscdimgPath();
-            if (!string.IsNullOrEmpty(existing))
+            var wasProcessing = IsProcessing;
+            try
             {
-                return existing;
+                return await IsoToolsPrompt.EnsureAsync(
+                    _isoService,
+                    _settingsService.CurrentSettings.AdkSetupUrl,
+                    msg => { AddLog(msg); CurrentOperationText = msg; },
+                    busy => IsProcessing = busy || wasProcessing);
             }
-
-            var answer = MessageBox.Show(
-                "Creating an ISO file needs oscdimg.exe, part of Microsoft's Windows ADK Deployment Tools, " +
-                "and it isn't installed.\n\n" +
-                "Install it now? Win11 Image Prep downloads the setup from Microsoft, checks it is signed by " +
-                "Microsoft, and installs only the Deployment Tools. It takes a few minutes, and Windows may ask " +
-                "for administrator permission.\n\n" +
-                "Yes: install now\nNo: open Microsoft's download page instead",
-                "Windows ADK Deployment Tools needed",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            if (answer == MessageBoxResult.No)
+            finally
             {
-                OpenUrl(PrerequisiteService.AdkDownloadPage);
-                return null;
+                IsProcessing = wasProcessing;
             }
-            if (answer != MessageBoxResult.Yes)
-            {
-                return null;
-            }
-
-            return await InstallIsoToolsAsync();
         }
 
         private async Task<string?> InstallIsoToolsAsync()
         {
             var wasProcessing = IsProcessing;
-            IsProcessing = true;
-            OverallProgressText = "Installing Windows ADK Deployment Tools...";
-            CurrentOperationText = "Installing Windows ADK Deployment Tools...";
             try
             {
-                var prereqs = new PrerequisiteService(_isoService);
-                var path = await prereqs.InstallAdkDeploymentToolsAsync(
+                return await IsoToolsPrompt.InstallAsync(
+                    _isoService,
                     _settingsService.CurrentSettings.AdkSetupUrl,
-                    new Progress<string>(msg => { AddLog(msg); CurrentOperationText = msg; }));
-
-                if (path == null)
-                {
-                    MessageBox.Show(
-                        "The Deployment Tools didn't install. The log has the details.\n\n" +
-                        "You can install them yourself from Microsoft's Windows ADK page: choose only " +
-                        "'Deployment Tools'.",
-                        "Install failed", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-                return path;
-            }
-            catch (OperationCanceledException ex)
-            {
-                AddLog($"ADK install cancelled: {ex.Message}");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                AddLog($"✗ ADK install failed: {ex.Message}");
-                MessageBox.Show($"The Deployment Tools couldn't be installed:\n\n{ex.Message}",
-                    "Install failed", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return null;
+                    msg => { AddLog(msg); CurrentOperationText = msg; },
+                    busy => IsProcessing = busy || wasProcessing);
             }
             finally
             {
-                OverallProgressText = string.Empty;
-                CurrentOperationText = string.Empty;
                 IsProcessing = wasProcessing;
+                CurrentOperationText = string.Empty;
             }
         }
 
@@ -2819,7 +2749,6 @@ namespace WinImagePrep.ViewModels
                     return;
                 }
 
-                AddLog($"✓ Found oscdimg at: {oscdimgPath}");
 
                 // Prompt for output ISO name and location
                 var dialog = new SaveFileDialog

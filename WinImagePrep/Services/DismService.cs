@@ -387,6 +387,57 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// Split sources\install.wim into install.swm, install2.swm... (3,800 MB pieces) and delete the
+        /// original. Done whatever the size, so the same files work on FAT32 USB, in an ISO and for
+        /// saved images. Windows Setup finds the .swm files on its own, including a single install.swm.
+        /// Returns true if install.swm exists afterwards (or there was no install.wim to split).
+        /// </summary>
+        public async Task<bool> SplitInstallWimAsync(
+            string sourcesDirectory,
+            IProgress<string>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            var wim = Path.Combine(sourcesDirectory, "install.wim");
+            var swm = Path.Combine(sourcesDirectory, "install.swm");
+            if (!File.Exists(wim))
+            {
+                if (File.Exists(swm)) progress?.Report("install.wim is already split");
+                return true;
+            }
+
+            progress?.Report($"Splitting install.wim ({FileSystemHelper.FormatBytes(new FileInfo(wim).Length)}) into .swm files...");
+            File.SetAttributes(wim, FileAttributes.Normal);
+
+            // Clear out pieces from an earlier, interrupted split so they can't be mixed in
+            foreach (var old in Directory.EnumerateFiles(sourcesDirectory, "install*.swm"))
+            {
+                File.SetAttributes(old, FileAttributes.Normal);
+                File.Delete(old);
+            }
+
+            var ok = await SplitWimAsync(wim, swm, 3800, progress, cancellationToken);
+            if (!ok || !File.Exists(swm))
+            {
+                progress?.Report("✗ install.wim could not be split; it has been left as it is");
+                return false;
+            }
+
+            try
+            {
+                File.Delete(wim);
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"⚠ Split done, but install.wim couldn't be deleted: {ex.Message}. Delete it by hand: Setup must see only the .swm files.");
+                return true;
+            }
+
+            var parts = Directory.GetFiles(sourcesDirectory, "install*.swm").Length;
+            progress?.Report($"✓ install.wim split into {parts} file(s)");
+            return true;
+        }
+
+        /// <summary>
         /// Check if a path has a mounted image
         /// </summary>
         public bool IsMounted(string mountPath)
