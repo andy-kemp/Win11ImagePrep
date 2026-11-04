@@ -17,7 +17,7 @@ jobs:
           $fsi.FileSystemsToCreate = 4; $fsi.VolumeName = 'TESTISO'
           $fsi.Root.AddTree('C:\isosrc', $false)
           $res = $fsi.CreateResultImage(); $stream = $res.ImageStream
-          Add-Type -TypeDefinition 'using System; using System.IO; using System.Runtime.InteropServices.ComTypes; public static class S { public static void Save(object s, string p){ var i=(IStream)s; using (var f=File.Create(p)){ var b=new byte[65536]; var r=Marshal.AllocHGlobal(4); try { while(true){ i.Read(b,b.Length,r); int n=Marshal.ReadInt32(r); if(n==0)break; f.Write(b,0,n);} } finally { Marshal.FreeHGlobal(r);} } } }' -Language CSharp -ErrorAction SilentlyContinue
+          Add-Type -TypeDefinition 'using System; using System.IO; using System.Runtime.InteropServices; using System.Runtime.InteropServices.ComTypes; public static class S { public static void Save(object s, string p){ var i=(IStream)s; using (var f=File.Create(p)){ var b=new byte[65536]; var r=Marshal.AllocHGlobal(4); try { while(true){ i.Read(b,b.Length,r); int n=Marshal.ReadInt32(r); if(n==0)break; f.Write(b,0,n);} } finally { Marshal.FreeHGlobal(r);} } } }' -Language CSharp -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force C:\iso | Out-Null
           [S]::Save($stream, 'C:\iso\t.iso')
           Get-Item C:\iso\t.iso | Format-Table Name, Length
