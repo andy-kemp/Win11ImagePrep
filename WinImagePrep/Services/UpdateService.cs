@@ -138,6 +138,10 @@ namespace WinImagePrep.Services
             var release = _latestRelease ?? await GetLatestReleaseAsync(cancellationToken);
             if (release != null)
             {
+                // 5.9.7 and later update themselves in place (as Exchange Certificate Manager): one download,
+                // no separate updater to start. The updater is only used if this folder can't be written to.
+                var inPlace = await TryUpdateInPlaceAsync(release, progress, cancellationToken);
+                if (inPlace.HasValue) return inPlace.Value;
                 return await ApplyUpdateFromReleaseAsync(release, progress, cancellationToken);
             }
 
@@ -372,6 +376,137 @@ namespace WinImagePrep.Services
                 return false;
             }
         }
+        // ------------------------------------------------------------------
+        // In-place update
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Windows lets a running EXE be renamed, so the new version is downloaded next to this one, checked against
+        /// its published SHA-256, the running EXE is renamed to .old and the new one takes its name; the app then
+        /// starts the new EXE and closes. The .old file is removed on the next start (CleanUpAfterUpdateAsync).
+        /// Progress is shown in the splash, as the updater did.
+        /// </summary>
+        /// <returns>true when the new version has been started (the caller closes the app), false when the update
+        /// failed and nothing was changed, null when this folder can't be written to (use the updater instead).</returns>
+        private async Task<bool?> TryUpdateInPlaceAsync(ReleaseInfo release, IProgress<string>? progress, CancellationToken cancellationToken)
+        {
+            var exe = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(exe) || !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return null;
+            var incoming = exe + ".new";
+            var old = exe + ".old";
+            var to = release.Version.ToString(3);
+
+            SplashScreen? splash = null;
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                splash = new SplashScreen { Owner = Application.Current.MainWindow };
+                splash.ShowUpdate(GetCurrentVersionString(), to);
+                splash.Show();
+            });
+            void Status(string text, double? percent)
+            {
+                progress?.Report(text);
+                splash?.UpdateStatus(text);
+                splash?.SetProgress(percent);
+            }
+            void CloseSplash() => Application.Current?.Dispatcher.Invoke(() => splash?.Close());
+
+            try
+            {
+                Status($"Downloading version {to}…", 0);
+                try
+                {
+                    using var response = await _httpClient.GetAsync(release.MainExeUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    response.EnsureSuccessStatusCode();
+                    var total = response.Content.Headers.ContentLength ?? 0;
+                    await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
+                    await using var output = new FileStream(incoming, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+                    var buffer = new byte[81920];
+                    long read = 0;
+                    int n, lastPercent = -1;
+                    while ((n = await input.ReadAsync(buffer, cancellationToken)) > 0)
+                    {
+                        await output.WriteAsync(buffer.AsMemory(0, n), cancellationToken);
+                        read += n;
+                        if (total > 0)
+                        {
+                            var percent = (int)(read * 100 / total);
+                            if (percent != lastPercent)
+                            {
+                                lastPercent = percent;
+                                splash?.UpdateStatus($"Downloading version {to}… {read / 1048576.0:0.0} of {total / 1048576.0:0.0} MB");
+                                splash?.SetProgress(percent);
+                            }
+                        }
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    Logger.Info($"Can't write to {Path.GetDirectoryName(exe)}; using the updater, which runs as administrator");
+                    CloseSplash();
+                    return null;
+                }
+
+                Status("Checking the SHA-256…", null);
+                var actual = await Sha256Async(incoming, cancellationToken);
+                if (actual != release.MainExeSha256)
+                {
+                    File.Delete(incoming);
+                    Logger.Error($"Checksum mismatch: expected {release.MainExeSha256}, got {actual}");
+                    progress?.Report("✗ The download didn't match the published checksum, so it wasn't installed. Try again later.");
+                    CloseSplash();
+                    return false;
+                }
+
+                Status("Installing…", null);
+                try { if (File.Exists(old)) File.Delete(old); } catch { /* left from an earlier update; renamed over below */ }
+                File.Move(exe, old, overwrite: true);   // a running EXE can be renamed
+                try { File.Move(incoming, exe); }
+                catch
+                {
+                    File.Move(old, exe);                // put the original back
+                    throw;
+                }
+                Logger.Info($"Updated in place to {to}; previous version kept as {Path.GetFileName(old)} until the next start");
+
+                Status($"Updated to {to}. Restarting…", 100);
+                await Task.Delay(1000, cancellationToken);
+                Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(exe)! });
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                try { if (File.Exists(incoming)) File.Delete(incoming); } catch { }
+                Logger.Info("In-place update not allowed here; using the updater");
+                CloseSplash();
+                return null;
+            }
+            catch (Exception ex)
+            {
+                try { if (File.Exists(incoming)) File.Delete(incoming); } catch { }
+                Logger.Error($"In-place update failed: {ex}");
+                progress?.Report($"✗ Update failed: {ex.Message}");
+                CloseSplash();
+                return false;
+            }
+        }
+
+        /// <summary>Removes the .old and .new files an in-place update leaves next to the EXE. Run in the background on start.</summary>
+        public static async Task CleanUpAfterUpdateAsync()
+        {
+            var exe = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(exe)) return;
+            foreach (var leftover in new[] { exe + ".old", exe + ".new" })
+            {
+                // The previous process may still be closing, so give it a few tries
+                for (var i = 0; i < 10 && File.Exists(leftover); i++)
+                {
+                    try { File.Delete(leftover); break; }
+                    catch { await Task.Delay(1000); }
+                }
+            }
+        }
+
         // ------------------------------------------------------------------
         // GitHub Releases
         // ------------------------------------------------------------------
