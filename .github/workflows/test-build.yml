@@ -168,6 +168,14 @@ jobs:
           if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; Write-Host 'Render timed out' }
           Get-ChildItem release/screenshot-splash* | Format-Table Name, Length
 
+      - name: Render the updater window
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          $p = Start-Process -FilePath (Resolve-Path release/WinImagePrep.Updater.exe) -ArgumentList '--render-preview', "$PWD\release\screenshot-updater.png" -PassThru
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; Write-Host 'Render timed out' }
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.meta.outputs.tag }}

@@ -1,17 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <Version>1.7.0</Version>
-    <AssemblyVersion>1.7.0.0</AssemblyVersion>
-    <FileVersion>1.7.0.0</FileVersion>
+    <Version>1.8.0</Version>
+    <AssemblyVersion>1.8.0.0</AssemblyVersion>
+    <FileVersion>1.8.0.0</FileVersion>
     <Authors>Andy Kemp Consulting Ltd</Authors>
     <Company>Andy Kemp Consulting Ltd</Company>
-    <Product>WinImagePrep Updater</Product>
-    <Description>Update utility for WinImagePrep</Description>
+    <Product>Win11 Image Prep Updater</Product>
+    <Description>Update utility for Win11 Image Prep</Description>
 
     <!-- Standalone EXE Publishing -->
     <PublishSingleFile>true</PublishSingleFile>
@@ -22,6 +22,15 @@
 
     <!-- Fix for WPF DLL not found issue -->
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- AKC branding: same assets as the app (Inter: SIL Open Font License, see Fonts/Inter-LICENSE.txt) -->
+    <Resource Include="app.ico" />
+    <Resource Include="Assets\akc-logo-dark-bg.png" />
+    <Resource Include="Assets\atlas.png" />
+    <Resource Include="Fonts\Inter-Regular.ttf" />
+    <Resource Include="Fonts\Inter-Bold.ttf" />
+  </ItemGroup>
 </Project>

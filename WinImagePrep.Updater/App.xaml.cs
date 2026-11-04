@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Configuration;
 using System.Data;
 using System.IO;
@@ -84,6 +84,37 @@ public partial class App : Application
             Log("About to call base.OnStartup...");
             base.OnStartup(e);
             Log("Base OnStartup completed successfully");
+
+            // Test builds: "--render-preview <file.png>" draws the window mid-update to a PNG and exits
+            var renderAt = Array.IndexOf(e.Args, "--render-preview");
+            if (renderAt >= 0 && renderAt + 1 < e.Args.Length)
+            {
+                var target = e.Args[renderAt + 1];
+                try
+                {
+                    var preview = new MainWindow();
+                    preview.ShowPreview();
+                    var root = (FrameworkElement)preview.Content;
+                    preview.Content = null;
+                    var size = new Size(preview.Width, preview.Height);
+                    root.Measure(size);
+                    root.Arrange(new Rect(size));
+                    root.UpdateLayout();
+                    var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                        (int)(size.Width * 2), (int)(size.Height * 2), 192, 192, System.Windows.Media.PixelFormats.Pbgra32);
+                    bitmap.Render(root);
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                    using (var file = File.Create(target)) encoder.Save(file);
+                    Environment.Exit(0);
+                }
+                catch (Exception renderEx)
+                {
+                    try { File.WriteAllText(target + ".error.txt", renderEx.ToString()); } catch { }
+                    Environment.Exit(1);
+                }
+                return;
+            }
 
             // Manually create and show the MainWindow
             Log("Creating MainWindow...");

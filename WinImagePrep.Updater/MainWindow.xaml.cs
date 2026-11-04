@@ -35,6 +35,8 @@ public partial class MainWindow : Window
             {
                 File.AppendAllText(fallbackLog, "Calling InitializeComponent...\n");
                 InitializeComponent();
+                var own = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                VersionText.Text = own != null ? $"Updater {own.Major}.{own.Minor}.{own.Build}" : "Updater";
                 File.AppendAllText(fallbackLog, "InitializeComponent completed\n");
                 App.Log("InitializeComponent completed");
             }
@@ -86,6 +88,10 @@ public partial class MainWindow : Window
             _updaterDownloadUrl = updateInfo.UpdaterDownloadUrl;
             _expectedSha256 = updateInfo.ExpectedSha256;
             _expectedUpdaterSha256 = updateInfo.ExpectedUpdaterSha256;
+            if (!string.IsNullOrWhiteSpace(updateInfo.Version))
+            {
+                VersionText.Text = $"To version {updateInfo.Version}";
+            }
             _targetProcessName = updateInfo.ProcessName ?? string.Empty;
             _targetProcessId = updateInfo.ProcessId;
 
@@ -113,6 +119,7 @@ public partial class MainWindow : Window
         public string? UpdaterDownloadUrl { get; set; }
         public string? ExpectedSha256 { get; set; }
         public string? ExpectedUpdaterSha256 { get; set; }
+        public string? Version { get; set; }
         public string? ProcessName { get; set; }
         public int ProcessId { get; set; }
     }
@@ -134,7 +141,7 @@ public partial class MainWindow : Window
 
             var logPath = Path.Combine(Path.GetTempPath(), "WinImagePrep_Updater_*.log");
             MessageBox.Show(
-                $"Failed to update WinImagePrep:\n\n{ex.Message}\n\nCheck log files in %TEMP%:\n{logPath}",
+                $"Failed to update Win11 Image Prep:\n\n{ex.Message}\n\nCheck log files in %TEMP%:\n{logPath}",
                 "Update Failed",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -152,7 +159,7 @@ public partial class MainWindow : Window
         App.Log($"Target directory: {targetDirectory}");
 
         // Step 1: Wait for the target process to exit
-        UpdateStatus("Waiting for WinImagePrep to close...", 10);
+        UpdateStatus("Waiting for Win11 Image Prep to close...", 10);
         App.Log("Waiting for target process to exit");
         await WaitForProcessToExitAsync();
         App.Log("Target process exited");
@@ -237,7 +244,7 @@ exit
         File.Delete(tempUpdaterExe);
 
         // Step 4: Restart WinImagePrep
-        UpdateStatus("Starting WinImagePrep...", 90);
+        UpdateStatus("Starting Win11 Image Prep...", 90);
         await Task.Delay(500);
         App.Log($"Starting WinImagePrep: {_targetExePath}");
         Process.Start(new ProcessStartInfo
@@ -358,6 +365,23 @@ exit
             throw new InvalidOperationException($"The downloaded {label} didn't match the release checksum, so nothing was changed. Please try again later.");
         }
         App.Log($"{label} checksum verified: {actual}");
+    }
+
+    private void Window_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        // Borderless window: drag it from anywhere
+        try { DragMove(); } catch (InvalidOperationException) { }
+    }
+
+    /// <summary>
+    /// Test builds: show the window mid-download (no update runs) so it can be rendered to a PNG.
+    /// </summary>
+    public void ShowPreview()
+    {
+        VersionText.Text = "To version 5.9.2";
+        StatusText.Text = "Downloading updates...";
+        ProgressBar.Value = 45;
+        CloseButton.Visibility = Visibility.Collapsed;
     }
 
     private void UpdateStatus(string message, int progress)
