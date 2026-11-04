@@ -74,13 +74,18 @@ jobs:
           New-Item -ItemType Directory -Force release | Out-Null
           Copy-Item out/app/WinImagePrep.exe release/WinImagePrep_full.exe
           Copy-Item out/updater/WinImagePrep.Updater.exe release/WinImagePrep.Updater.exe
+          # The installer (Program Files, for Intune and other deployment tools)
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc /Q "/DAppVersion=${{ steps.ver.outputs.version }}" "/DSourceDir=$PWD\out\app" "/DUpdaterDir=$PWD\out\updater" "/O$PWD\release" installer\Win11ImagePrep.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Could not build the installer' }
           Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release/SHA256SUMS.txt
           # Release notes: this version's section of CHANGELOG.md
           $log = Get-Content CHANGELOG.md -Raw
           $v = [regex]::Escape("${{ steps.ver.outputs.version }}")
           $m = [regex]::Match($log, "(?s)## \[$v\][^\n]*\n(.*?)(?=\n---|\n## \[)")
           $notes = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "See CHANGELOG.md" }
-          $notes += "`n`nDownload **WinImagePrep_full.exe** (single file, no install). Check it against SHA256SUMS.txt.`n`nDocs: https://docs.andykemp.com/win11-image-prep/"
+          $notes += "`n`nDownload **WinImagePrep_full.exe** (single file, no install) or **Win11ImagePrep_Setup.exe** (installs to Program Files; silent with /VERYSILENT for Intune). Check them against SHA256SUMS.txt.`n`nDocs: https://docs.andykemp.com/win11-image-prep/"
           Set-Content release-notes.md $notes
           $sha = git rev-parse HEAD   # the source commit this release was built from
           function Upload-WithRetry($tag) {
@@ -122,7 +127,7 @@ jobs:
           $bucket = 'akc-download'
           $prefix = "win11-image-prep/$ver"
           New-Item -ItemType Directory -Force r2 | Out-Null
-          gh release download "v$ver" -D r2 -p WinImagePrep_full.exe -p WinImagePrep.Updater.exe -p SHA256SUMS.txt --clobber
+          gh release download "v$ver" -D r2 -p WinImagePrep_full.exe -p WinImagePrep.Updater.exe -p Win11ImagePrep_Setup.exe -p SHA256SUMS.txt --clobber
           if ($LASTEXITCODE -ne 0) { throw "Could not download the v$ver release files" }
           function Put($key, $file, $type, $cache) {
             for ($i = 1; $i -le 4; $i++) {
@@ -134,6 +139,9 @@ jobs:
           }
           Put "$prefix/WinImagePrep_full.exe" r2/WinImagePrep_full.exe 'application/vnd.microsoft.portable-executable' 'public, max-age=31536000, immutable'
           Put "$prefix/WinImagePrep.Updater.exe" r2/WinImagePrep.Updater.exe 'application/vnd.microsoft.portable-executable' 'public, max-age=31536000, immutable'
+          if (Test-Path r2/Win11ImagePrep_Setup.exe) {
+            Put "$prefix/Win11ImagePrep_Setup.exe" r2/Win11ImagePrep_Setup.exe 'application/vnd.microsoft.portable-executable' 'public, max-age=31536000, immutable'
+          }
           # version.json for the downloads page, then SHA256SUMS.txt, which marks the version as published there
           $appSha = ((Get-Content r2/SHA256SUMS.txt | Where-Object { $_ -match 'WinImagePrep_full\.exe$' }) -split '\s+')[0]
           [ordered]@{ version = $ver; file = 'WinImagePrep_full.exe'; sha256 = $appSha; published = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') } |
@@ -152,6 +160,7 @@ jobs:
             releaseDate    = (Get-Date -Format 'yyyy-MM-dd')
             app            = [ordered]@{ file = 'WinImagePrep_full.exe'; url = "$base/WinImagePrep_full.exe"; sha256 = $sums['WinImagePrep_full.exe']; size = (Get-Item r2/WinImagePrep_full.exe).Length }
             updater        = [ordered]@{ file = 'WinImagePrep.Updater.exe'; url = "$base/WinImagePrep.Updater.exe"; sha256 = $sums['WinImagePrep.Updater.exe']; size = (Get-Item r2/WinImagePrep.Updater.exe).Length }
+            setup          = $(if (Test-Path r2/Win11ImagePrep_Setup.exe) { [ordered]@{ file = 'Win11ImagePrep_Setup.exe'; url = "$base/Win11ImagePrep_Setup.exe"; sha256 = $sums['Win11ImagePrep_Setup.exe']; size = (Get-Item r2/Win11ImagePrep_Setup.exe).Length } } else { $null })
             checksums      = "$base/SHA256SUMS.txt"
             notes          = $(if ($m.Success) { $m.Groups[1].Value.Trim() } else { '' })
             docs           = 'https://docs.andykemp.com/win11-image-prep/'

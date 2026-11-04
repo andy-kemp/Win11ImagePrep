@@ -14,6 +14,7 @@ namespace WinImagePrep.Updater;
 public partial class MainWindow : Window
 {
     private readonly string _targetExePath = string.Empty;
+    private readonly string? _version;
     private readonly string _downloadUrl = string.Empty;
     private readonly string? _updaterDownloadUrl;
     private readonly string? _expectedSha256;
@@ -88,6 +89,7 @@ public partial class MainWindow : Window
             _updaterDownloadUrl = updateInfo.UpdaterDownloadUrl;
             _expectedSha256 = updateInfo.ExpectedSha256;
             _expectedUpdaterSha256 = updateInfo.ExpectedUpdaterSha256;
+            _version = updateInfo.Version;
             if (!string.IsNullOrWhiteSpace(updateInfo.Version))
             {
                 VersionText.Text = $"To version {updateInfo.Version}";
@@ -194,6 +196,7 @@ public partial class MainWindow : Window
         File.Copy(tempMainExe, _targetExePath, overwrite: true);
         File.Delete(tempMainExe);
         App.Log("Main EXE replaced");
+        RecordInstalledVersion();
 
         // Replace updater EXE (ourselves!) - we need a helper script
         var updaterPath = Path.Combine(targetDirectory, "WinImagePrep.Updater.exe");
@@ -344,6 +347,33 @@ exit
     /// If the app supplied a checksum (5.9.1 and later), refuse to install a file that doesn't match it.
     /// Nothing has been replaced at this point, so the installed version keeps working.
     /// </summary>
+    /// <summary>
+    /// If Win11ImagePrep_Setup.exe installed the app here, record the new version in its uninstall entry
+    /// (Settings > Apps, and what Intune reads), so it matches the EXE. The updater runs as administrator.
+    /// </summary>
+    private void RecordInstalledVersion()
+    {
+        if (string.IsNullOrWhiteSpace(_version)) return;
+        try
+        {
+            using var app = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Andy Kemp Consulting\Win11 Image Prep", writable: true);
+            var location = app?.GetValue("InstallLocation") as string;
+            var targetDir = Path.GetDirectoryName(Path.GetFullPath(_targetExePath))?.TrimEnd('\\');
+            if (app == null || string.IsNullOrEmpty(location) ||
+                !string.Equals(Path.GetFullPath(location).TrimEnd('\\'), targetDir, StringComparison.OrdinalIgnoreCase))
+                return;
+            app.SetValue("InstalledVersion", _version);
+            using var uninstall = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{669DE22E-E42E-4D1B-AE68-1A81A43BCF12}_is1", writable: true);
+            uninstall?.SetValue("DisplayVersion", _version);
+            App.Log($"Recorded installed version {_version}");
+        }
+        catch (Exception ex)
+        {
+            App.Log($"Could not record the installed version: {ex.Message}");
+        }
+    }
+
     private static void VerifyChecksum(string path, string? expected, string label)
     {
         if (string.IsNullOrWhiteSpace(expected))

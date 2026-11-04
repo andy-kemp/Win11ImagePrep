@@ -38,8 +38,52 @@ jobs:
           New-Item -ItemType Directory -Force release | Out-Null
           Copy-Item out/app/WinImagePrep.exe "release/WinImagePrep_test_$short.exe"
           Copy-Item out/updater/WinImagePrep.Updater.exe release/WinImagePrep.Updater.exe
+          # The installer, versioned from the project
+          [xml]$app = Get-Content WinImagePrep/WinImagePrep.csproj
+          $ver = ($app.Project.PropertyGroup | Where-Object Version | Select-Object -First 1).Version.Trim()
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc /Q "/DAppVersion=$ver" "/DSourceDir=$PWD\out\app" "/DUpdaterDir=$PWD\out\updater" "/O$PWD\release" installer\Win11ImagePrep.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Could not build the installer' }
           Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release/SHA256SUMS.txt
           Get-Content release/SHA256SUMS.txt
+
+      - name: Test the installer (silent install, managed updates, upgrade, uninstall)
+        shell: pwsh
+        run: |
+          $setup = Resolve-Path release/Win11ImagePrep_Setup.exe
+          $dir = "$env:ProgramFiles\Andy Kemp Consulting\Win11 Image Prep"
+          $key = 'HKLM:\SOFTWARE\Andy Kemp Consulting\Win11 Image Prep'
+          $un = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{669DE22E-E42E-4D1B-AE68-1A81A43BCF12}_is1'
+          function Check($what, $ok) { if ($ok) { Write-Host "OK   $what" } else { Write-Host "::error::FAIL $what"; $script:failed = $true } }
+          $failed = $false
+          # 1. Silent install with managed updates
+          $p = Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/MANAGEDUPDATES=1','/LOG=install.log' -Wait -PassThru
+          Check "install exit code 0 (got $($p.ExitCode))" ($p.ExitCode -eq 0)
+          Check 'WinImagePrep.exe in Program Files' (Test-Path "$dir\WinImagePrep.exe")
+          Check 'updater in Program Files' (Test-Path "$dir\WinImagePrep.Updater.exe")
+          Check 'Start menu shortcut' (Test-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Win11 Image Prep.lnk")
+          Check 'ManagedUpdates = 1' ((Get-ItemProperty $key).ManagedUpdates -eq 1)
+          Check 'InstallLocation recorded' ((Get-ItemProperty $key).InstallLocation -eq $dir)
+          $u = Get-ItemProperty $un
+          Check "uninstall entry: $($u.DisplayName) $($u.DisplayVersion)" ($u.DisplayName -eq 'Win11 Image Prep' -and $u.DisplayVersion)
+          $fv = (Get-Item "$dir\WinImagePrep.exe").VersionInfo.FileVersion
+          Write-Host "File version: $fv"
+          # 2. Upgrade (same version) without the switch keeps the managed choice
+          $p = Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          Check "reinstall exit code 0" ($p.ExitCode -eq 0)
+          Check 'ManagedUpdates kept on reinstall' ((Get-ItemProperty $key).ManagedUpdates -eq 1)
+          # 3. /MANAGEDUPDATES=0 turns it off
+          Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/MANAGEDUPDATES=0' -Wait | Out-Null
+          Check 'ManagedUpdates = 0' ((Get-ItemProperty $key).ManagedUpdates -eq 0)
+          # 4. Silent uninstall
+          $p = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          Start-Sleep -Seconds 3
+          Check "uninstall exit code 0" ($p.ExitCode -eq 0)
+          Check 'EXE removed' (-not (Test-Path "$dir\WinImagePrep.exe"))
+          Check 'uninstall entry removed' (-not (Test-Path $un))
+          Check 'app key removed' (-not (Test-Path $key))
+          if ($failed) { Get-Content install.log -Tail 40; exit 1 }
 
       - name: Screenshot the main window
         shell: pwsh

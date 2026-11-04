@@ -62,6 +62,12 @@ namespace WinImagePrep.Services
         /// </summary>
         public async Task<(bool updateAvailable, Version? latestVersion)> CheckForUpdateAsync(CancellationToken cancellationToken = default)
         {
+            if (InstallRegistry.UpdatesManagedByOrganisation)
+            {
+                Logger.Info("Updates are managed by the organisation (ManagedUpdates); not checking");
+                return (false, null);
+            }
+
             var release = await GetLatestReleaseAsync(cancellationToken);
             if (release != null)
             {
@@ -468,6 +474,7 @@ namespace WinImagePrep.Services
                     throw;
                 }
                 Logger.Info($"Updated in place to {to}; previous version kept as {Path.GetFileName(old)} until the next start");
+                InstallRegistry.RecordInstalledVersion(exe, to);
 
                 Status($"Updated to {to}. Restarting…", 100);
                 await Task.Delay(1000, cancellationToken);
