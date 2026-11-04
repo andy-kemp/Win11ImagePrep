@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.13] - 2026-11-04
+
+### Changed
+- **A new icon**: a copper PC with the Windows logo, for the app, the updater, the installer, the Start menu shortcut and the taskbar.
+
+---
+
 ## [5.9.12] - 2026-11-04
 
 ### Added
