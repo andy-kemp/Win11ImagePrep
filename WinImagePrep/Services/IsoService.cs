@@ -11,9 +11,9 @@ namespace WinImagePrep.Services
 {
     public class IsoService
     {
-        // Windows won't mount an ISO from a network location. That includes a Mac folder shared by Parallels
-        // (\\Mac\Home, \\psf) and a Windows Downloads or Desktop folder that Parallels redirects there. Such an
-        // ISO is copied to the local disk once (one copy kept) and mounted from there.
+        // Some locations can't be mounted from: a Mac folder shared by Parallels (\\Mac\Home, \\psf), including a
+        // Windows Downloads or Desktop folder that Parallels redirects there, and other shares or drives that refuse
+        // it. Such an ISO is copied to the local disk once (one copy kept) and mounted from there.
         private static readonly ConcurrentDictionary<string, string> LocalCopies = new(StringComparer.OrdinalIgnoreCase);
         private static string IsoCacheDirectory => Path.Combine(AppSettings.SettingsDirectory, "IsoCache");
 
@@ -21,18 +21,22 @@ namespace WinImagePrep.Services
         private static string MountPathFor(string isoPath) =>
             LocalCopies.TryGetValue(isoPath, out var local) && File.Exists(local) ? local : isoPath;
 
-        private static bool IsOnNetwork(string path)
+        /// <summary>
+        /// A Mac folder shared into Windows by Parallels (\\Mac\..., \\psf\...), directly or through a redirected
+        /// folder such as Downloads. Windows can't mount an ISO from there, so it's copied first. Other network
+        /// shares are tried in place, and copied only if the mount fails.
+        /// </summary>
+        private static bool IsParallelsShare(string path)
         {
+            static bool Unc(string? p) => p != null &&
+                (p.StartsWith(@"\\Mac\", StringComparison.OrdinalIgnoreCase) || p.StartsWith(@"\\psf\", StringComparison.OrdinalIgnoreCase));
             try
             {
                 var full = Path.GetFullPath(path);
-                if (full.StartsWith(@"\\", StringComparison.Ordinal)) return true;
-                var root = Path.GetPathRoot(full);
-                if (!string.IsNullOrEmpty(root) && new DriveInfo(root).DriveType == DriveType.Network) return true;
-                // A folder redirected by a link (a Parallels shared profile, say)
+                if (Unc(full)) return true;
                 for (var dir = new DirectoryInfo(Path.GetDirectoryName(full)!); dir != null; dir = dir.Parent)
                 {
-                    if (dir.LinkTarget is string target && target.StartsWith(@"\\", StringComparison.Ordinal)) return true;
+                    if (Unc(dir.LinkTarget)) return true;
                 }
             }
             catch { }
@@ -70,7 +74,7 @@ namespace WinImagePrep.Services
                     return null;
                 }
 
-                progress?.Report($"Windows can't mount an ISO from a network or shared folder, so it is being copied to {IsoCacheDirectory} ({FileSystemHelper.FormatBytes(source.Length)})...");
+                progress?.Report($"Copying the ISO to {IsoCacheDirectory} so Windows can mount it ({FileSystemHelper.FormatBytes(source.Length)})...");
                 var temp = local + ".part";
                 await using (var input = new FileStream(isoPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, true))
                 await using (var output = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20, true))
@@ -109,9 +113,9 @@ namespace WinImagePrep.Services
             IProgress<string>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            if (File.Exists(isoPath) && !LocalCopies.ContainsKey(isoPath) && IsOnNetwork(isoPath))
+            if (File.Exists(isoPath) && !LocalCopies.ContainsKey(isoPath) && IsParallelsShare(isoPath))
             {
-                progress?.Report("The ISO is on a network or shared folder");
+                progress?.Report("The ISO is in a Mac folder shared by Parallels");
                 await CopyToLocalAsync(isoPath, progress, cancellationToken);
             }
 
@@ -305,7 +309,7 @@ namespace WinImagePrep.Services
             {
                 progress?.Report("Reading ISO volume label...");
 
-                if (File.Exists(isoPath) && !LocalCopies.ContainsKey(isoPath) && IsOnNetwork(isoPath))
+                if (File.Exists(isoPath) && !LocalCopies.ContainsKey(isoPath) && IsParallelsShare(isoPath))
                     await CopyToLocalAsync(isoPath, progress, cancellationToken);
 
                 // Escape single quotes for PowerShell

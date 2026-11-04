@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [5.9.9] - 2026-11-04
 
 ### Fixed
-- **ISOs in a network or shared folder open.** Windows won't mount an ISO from a network location, which includes a Mac folder shared into Windows by Parallels and a Downloads or Desktop folder Parallels redirects there, so a good ISO was reported as invalid. The app now copies such an ISO to `C:\ProgramData\Win11ImagePrep\IsoCache` once (with progress) and mounts that; it does the same if an ISO won't mount where it is. One copy is kept and reused.
+- **ISOs that Windows won't mount where they are now open.** A Mac folder shared into Windows by Parallels (and a Downloads or Desktop folder Parallels redirects there) is one such place, so a good ISO was reported as invalid. The app now copies such an ISO to `C:\ProgramData\Win11ImagePrep\IsoCache` once (with progress) and mounts that; it does the same if an ISO won't mount where it is. One copy is kept and reused.
 - An ISO that's already mounted (left over from an earlier run) is reused instead of failing.
 
 ---
