@@ -1,9 +1,10 @@
 # Publishes a release: run it from Actions > Release > Run workflow (on main), or push a v* tag.
 # It releases the Version in WinImagePrep.csproj and creates the v<version> tag itself.
 #   1. builds the app and updater on Windows
-#   2. commits publish/WinImagePrep.exe, publish/WinImagePrep.Updater.exe AND version.json to main
-#      in ONE commit, so the in-app updater never sees a new version before its exe is there
-#   3. creates the GitHub release with WinImagePrep_full.exe and SHA-256 checksums
+#   2. creates the GitHub release (a draft until every file is uploaded) with WinImagePrep_full.exe,
+#      the updater and SHA-256 checksums: app 5.9.1 and later update from this
+#   3. for 5.9.0 and older, commits publish/*.exe AND version.json to main in ONE commit, so their
+#      updater never sees a new version before its exe is there (best effort; re-run to finish)
 name: Release
 
 on:
@@ -46,8 +47,11 @@ jobs:
           }
           $draft = gh release view "v$appVer" --json isDraft --jq .isDraft 2>$null
           $global:LASTEXITCODE = 0   # "not found" is the expected answer; don't let it fail the step
-          # A draft left by a failed run is fine to finish; a published release is not
-          if ($draft -eq 'false') { throw "Release v$appVer already exists: bump Version in WinImagePrep.csproj first" }
+          # Already published: skip the release and only finish the older-version publish (re-run).
+          # A draft left by a failed run is finished as normal.
+          $published = ($draft -eq 'false')
+          if ($published) { Write-Host "Release v$appVer is already published; this run only finishes the publish for older versions" }
+          "published=$($published.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           "version=$appVer" >> $env:GITHUB_OUTPUT
           "updater=$updVer" >> $env:GITHUB_OUTPUT
         env:
@@ -58,31 +62,8 @@ jobs:
           dotnet publish WinImagePrep/WinImagePrep.csproj -c Release -r win-x64 --self-contained -o out/app
           dotnet publish WinImagePrep.Updater/WinImagePrep.Updater.csproj -c Release -r win-x64 --self-contained -o out/updater
 
-      - name: Publish binaries and version.json to main (one commit)
-        shell: pwsh
-        run: |
-          Copy-Item out/app/WinImagePrep.exe publish/WinImagePrep.exe -Force
-          Copy-Item out/updater/WinImagePrep.Updater.exe publish/WinImagePrep.Updater.exe -Force
-          [ordered]@{
-            version        = "${{ steps.ver.outputs.version }}"
-            updaterVersion = "${{ steps.ver.outputs.updater }}"
-            releaseDate    = (Get-Date -Format 'yyyy-MM-dd')
-            releaseNotes   = "Faster driver injection, ISO creation with one-click ADK install, new look. See docs.andykemp.com/win11-image-prep/whats-new/"
-          } | ConvertTo-Json | Set-Content version.json -Encoding utf8NoBOM
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git lfs install --local
-          git add publish/WinImagePrep.exe publish/WinImagePrep.Updater.exe version.json
-          git diff --cached --quiet
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host 'Binaries and version.json already published (re-run); nothing to commit'
-            $global:LASTEXITCODE = 0
-          } else {
-            git commit -m "Publish Win11 Image Prep ${{ steps.ver.outputs.version }} binary"
-            git push origin HEAD:main
-          }
-
       - name: Create GitHub release
+        if: steps.ver.outputs.published != 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -98,7 +79,7 @@ jobs:
           $notes = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "See CHANGELOG.md" }
           $notes += "`n`nDownload **WinImagePrep_full.exe** (single file, no install). Check it against SHA256SUMS.txt.`n`nDocs: https://docs.andykemp.com/win11-image-prep/"
           Set-Content release-notes.md $notes
-          $sha = git rev-parse HEAD
+          $sha = git rev-parse HEAD   # the source commit this release was built from
           function Upload-WithRetry($tag) {
             foreach ($f in Get-ChildItem release -File) {
               $ok = $false
@@ -120,3 +101,43 @@ jobs:
           Upload-WithRetry $tag
           gh release edit $tag --draft=false --latest
           if ($LASTEXITCODE -ne 0) { throw 'Could not publish the release' }
+
+      # For app versions 5.9.0 and older, which update from version.json and publish/ on main.
+      # Best effort: 5.9.1 and later update from the GitHub release above, so a failure here
+      # (such as a Git LFS outage) doesn't stop the release; re-run the workflow later to finish it.
+      - name: Publish binaries and version.json to main for older versions (one commit)
+        shell: pwsh
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Use the release's own files, so older versions get exactly what the release has
+          $tag = "v${{ steps.ver.outputs.version }}"
+          New-Item -ItemType Directory -Force dl | Out-Null
+          gh release download $tag -D dl -p WinImagePrep_full.exe -p WinImagePrep.Updater.exe --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not download the $tag release files" }
+          Copy-Item dl/WinImagePrep_full.exe publish/WinImagePrep.exe -Force
+          Copy-Item dl/WinImagePrep.Updater.exe publish/WinImagePrep.Updater.exe -Force
+          [ordered]@{
+            version        = "${{ steps.ver.outputs.version }}"
+            updaterVersion = "${{ steps.ver.outputs.updater }}"
+            releaseDate    = (Get-Date -Format 'yyyy-MM-dd')
+            releaseNotes   = "See docs.andykemp.com/win11-image-prep/whats-new/"
+          } | ConvertTo-Json | Set-Content version.json -Encoding utf8NoBOM
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git lfs install --local
+          git add publish/WinImagePrep.exe publish/WinImagePrep.Updater.exe version.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'Binaries and version.json already published (re-run); nothing to commit'
+            $global:LASTEXITCODE = 0
+          } else {
+            git commit -m "Publish Win11 Image Prep ${{ steps.ver.outputs.version }} binary"
+            $pushed = $false
+            for ($i = 1; $i -le 3 -and -not $pushed; $i++) {
+              git push origin HEAD:main
+              if ($LASTEXITCODE -eq 0) { $pushed = $true } else { Write-Host "Push failed (attempt $i); retrying"; Start-Sleep -Seconds (20 * $i) }
+            }
+            if (-not $pushed) { throw 'Could not publish to main for older versions; re-run the workflow later' }
+          }
