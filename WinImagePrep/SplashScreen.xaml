@@ -46,13 +46,14 @@
                            RenderOptions.BitmapScalingMode="HighQuality"/>
 
                     <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,8,8,8">
+                        <TextBlock x:Name="txtUpdating" Text="Updating" Foreground="#B9AFA6" FontSize="16" FontWeight="SemiBold" Visibility="Collapsed"/>
                         <TextBlock Text="Win11 Image Prep" Foreground="White" FontSize="30" FontWeight="Bold" TextWrapping="Wrap"/>
                         <TextBlock x:Name="txtVersion" Text="Version" Foreground="#7FBF63" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0"/>
-                        <TextBlock Text="Windows 11 install media with your drivers already in it."
+                        <TextBlock x:Name="txtTagline" Text="Windows 11 install media with your drivers already in it."
                                    Foreground="#B9AFA6" FontSize="13" Margin="0,10,0,0" TextWrapping="Wrap"/>
                     </StackPanel>
 
-                    <ProgressBar Grid.Row="2" Grid.ColumnSpan="2" IsIndeterminate="True" Height="4" Foreground="#BD7448" Background="#2A2420"
+                    <ProgressBar x:Name="progressBar" Grid.Row="2" Grid.ColumnSpan="2" IsIndeterminate="True" Maximum="100" Height="4" Foreground="#BD7448" Background="#2A2420"
                                  BorderThickness="0" Margin="0,0,0,10"/>
 
                     <TextBlock x:Name="txtStatus" Grid.Row="3" Text="Starting…" Foreground="#B9AFA6" FontSize="12"

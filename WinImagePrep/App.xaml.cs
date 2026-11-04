@@ -444,6 +444,9 @@ namespace WinImagePrep
                     }
 
                     mainWindow.Show();
+
+                    // Remove what an in-place update left behind (the previous EXE, kept as .old)
+                    _ = Services.UpdateService.CleanUpAfterUpdateAsync();
                 }
                 catch (Exception ex)
                 {

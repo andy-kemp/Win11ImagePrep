@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.7] - 2026-11-04
+
+### Changed
+- **Faster updates.** The app now updates itself in place, as Exchange Certificate Manager does: it downloads the new version once, checks it against the published SHA-256, swaps it in next to the current EXE and restarts. No separate updater has to be downloaded and started, and the fixed pauses are gone. Progress shows in the splash screen ("Updating", from and to versions, MB downloaded). The previous EXE is kept as `.old` until the next start.
+- The separate updater is still used, and still published, when the app's folder can't be written to without administrator rights, and for versions 5.9.6 and earlier.
+
+---
+
 ## [5.9.6] - 2026-11-04
 
 ### Changed
