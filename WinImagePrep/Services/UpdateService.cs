@@ -471,7 +471,8 @@ namespace WinImagePrep.Services
 
                 Status($"Updated to {to}. Restarting…", 100);
                 await Task.Delay(1000, cancellationToken);
-                Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(exe)! });
+                // Without administrator rights, so drag and drop keeps working in the restarted app
+                ProcessHelper.StartUnelevated(exe);
                 return true;
             }
             catch (UnauthorizedAccessException)

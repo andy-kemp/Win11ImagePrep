@@ -213,7 +213,7 @@ copy /Y ""{tempUpdaterExe}"" ""{updaterPath}""
 if exist ""{tempUpdaterExe}"" del ""{tempUpdaterExe}""
 echo Starting application...
 cd /d ""{targetDirectory}""
-start """" ""{_targetExePath}""
+explorer.exe ""{_targetExePath}""
 if exist ""{batchScript}"" del ""{batchScript}""
 exit
 ";
@@ -247,11 +247,9 @@ exit
         UpdateStatus("Starting Win11 Image Prep...", 90);
         await Task.Delay(500);
         App.Log($"Starting WinImagePrep: {_targetExePath}");
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = _targetExePath,
-            UseShellExecute = true
-        });
+        // The updater runs as administrator. Start the app through Explorer so it gets the user's normal
+        // rights: an elevated app can't accept files dragged from Explorer.
+        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{_targetExePath}\"") { UseShellExecute = false });
         App.Log("WinImagePrep started");
 
         // Step 5: Complete

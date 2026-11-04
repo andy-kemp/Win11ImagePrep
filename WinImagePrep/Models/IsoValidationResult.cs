@@ -7,6 +7,8 @@ namespace WinImagePrep.Models
         public bool IsValid { get; set; }
         public bool HasBootWim { get; set; }
         public bool HasInstallWim { get; set; }
+        /// <summary>install.wim, install.esd or install.swm, whichever the ISO has</summary>
+        public string? InstallImageName { get; set; }
         public string Message { get; set; } = string.Empty;
         public string IsoPath { get; set; } = string.Empty;
         public string MountedDriveLetter { get; set; } = string.Empty;
