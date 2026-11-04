@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.11] - 2026-11-04
+
+### Added
+- **An installer, Win11ImagePrep_Setup.exe**, for Intune, Configuration Manager or any deployment tool. It installs for all users in `C:\Program Files\Andy Kemp Consulting\Win11 Image Prep`, with a Start menu shortcut and an uninstall entry.
+  - Silent install: `Win11ImagePrep_Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART`
+  - Silent uninstall: `"C:\Program Files\Andy Kemp Consulting\Win11 Image Prep\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART`
+  - `/MANAGEDUPDATES=1` turns the app's own updates off, for when Intune deploys new versions. It can also be set as policy: `HKLM\SOFTWARE\Policies\Andy Kemp Consulting\Win11 Image Prep`, DWORD `ManagedUpdates` = 1.
+- An installed copy can still update itself (the updater asks for administrator rights to replace the files in Program Files), and the new version is recorded in the uninstall entry, so Settings > Apps and Intune see it. Updater 1.8.3.
+
+---
+
 ## [5.9.10] - 2026-11-04
 
 ### Fixed

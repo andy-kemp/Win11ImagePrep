@@ -3447,6 +3447,16 @@ errorMessage = "Failed to create custom ISO.\n\n" +
         {
             try
             {
+                if (InstallRegistry.UpdatesManagedByOrganisation)
+                {
+                    AddLog("ℹ Updates are managed by your organisation on this device");
+                    MessageBox.Show(
+                        $"Win11 Image Prep {_updateService.GetCurrentVersionString()} is installed.\n\n" +
+                        "Updates on this device are managed by your organisation (for example through Intune), so the app doesn't update itself.",
+                        "Check for Updates", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
                 AddLog("Checking for updates...");
 
                 var (updateAvailable, latestVersion) = await _updateService.CheckForUpdateAsync();
