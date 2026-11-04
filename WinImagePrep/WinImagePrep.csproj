@@ -10,7 +10,7 @@
 	<ApplicationIcon>app.ico</ApplicationIcon>
 	<AssemblyName>WinImagePrep</AssemblyName>
 	<RootNamespace>WinImagePrep</RootNamespace>
-		<Version>5.9.9</Version>
+		<Version>5.9.10</Version>
 		<AssemblyVersion>5.9.9.0</AssemblyVersion>
 		<FileVersion>5.9.9.0</FileVersion>
 	<Authors>Andy Kemp Consulting Ltd</Authors>

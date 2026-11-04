@@ -411,13 +411,42 @@ namespace WinImagePrep.Services
                     var value = line.Substring(eq + 1);
                     var semi = value.IndexOf(';');
                     if (semi >= 0) value = value.Substring(0, semi);
-                    return value.Trim().Trim('"', '%');
+                    value = value.Trim().Trim('"');
+                    // Class=%Token% is defined in [Strings]
+                    if (value.Length > 2 && value[0] == '%' && value[^1] == '%')
+                        return ReadInfString(infPath, value.Trim('%')) ?? value.Trim('%');
+                    return value;
                 }
             }
             catch
             {
                 // Unreadable INF - treat as no class
             }
+            return null;
+        }
+
+        /// <summary>A value from an INF's [Strings] section, or null.</summary>
+        private static string? ReadInfString(string infPath, string token)
+        {
+            try
+            {
+                bool inStrings = false;
+                foreach (var raw in File.ReadLines(infPath))
+                {
+                    var line = raw.Trim();
+                    if (line.Length == 0 || line[0] == ';') continue;
+                    if (line[0] == '[')
+                    {
+                        inStrings = line.Equals("[Strings]", StringComparison.OrdinalIgnoreCase);
+                        continue;
+                    }
+                    if (!inStrings) continue;
+                    var eq = line.IndexOf('=');
+                    if (eq <= 0 || !line.Substring(0, eq).Trim().Equals(token, StringComparison.OrdinalIgnoreCase)) continue;
+                    return line.Substring(eq + 1).Trim().Trim('"');
+                }
+            }
+            catch { }
             return null;
         }
 
