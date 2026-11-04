@@ -144,6 +144,11 @@ namespace WinImagePrep.Services
             var release = _latestRelease ?? await GetLatestReleaseAsync(cancellationToken);
             if (release != null)
             {
+                // Installed with Win11ImagePrep_Setup.exe and automatic updates on: the SYSTEM task installs it,
+                // with no UAC prompt
+                var throughTask = TryUpdateThroughTask(release, progress);
+                if (throughTask.HasValue) return throughTask.Value;
+
                 // 5.9.7 and later update themselves in place (as Exchange Certificate Manager): one download,
                 // no separate updater to start. The updater is only used if this folder can't be written to.
                 var inPlace = await TryUpdateInPlaceAsync(release, progress, cancellationToken);
@@ -497,6 +502,74 @@ namespace WinImagePrep.Services
                 CloseSplash();
                 return false;
             }
+        }
+
+        public const string UpdateTaskName = @"\Andy Kemp Consulting\Win11 Image Prep update";
+
+        /// <summary>
+        /// For a copy installed by Win11ImagePrep_Setup.exe with automatic updates on: start the scheduled task
+        /// (it runs as SYSTEM, so no UAC prompt), which installs the new version once the app has closed, and start
+        /// a small hidden helper that reopens the app when the new version is in place. Null if this copy wasn't
+        /// installed that way, so the other update routes are used.
+        /// </summary>
+        private bool? TryUpdateThroughTask(ReleaseInfo release, IProgress<string>? progress)
+        {
+            var exe = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(exe) || !InstallRegistry.IsInstalledCopy(exe)) return null;
+            if (RunHidden("schtasks.exe", $"/query /tn \"{UpdateTaskName}\"") != 0)
+            {
+                Logger.Info("Installed copy without the automatic update task; using the updater");
+                return null;
+            }
+
+            try
+            {
+                // Tells the task the user asked for this update, so it waits for the app to close instead of skipping
+                Directory.CreateDirectory(Models.AppSettings.SettingsDirectory);
+                File.WriteAllText(Path.Combine(Models.AppSettings.SettingsDirectory, "update-now.flag"), release.Version.ToString(3));
+
+                if (RunHidden("schtasks.exe", $"/run /tn \"{UpdateTaskName}\"") != 0)
+                {
+                    Logger.Warning("Could not start the update task; using the updater");
+                    return null;
+                }
+
+                // Reopen the app (with the user's normal rights, through Explorer) once the new version is installed
+                var to = release.Version.ToString(3);
+                var script =
+                    $"$v=[version]'{to}'; $exe='{exe.Replace("'", "''")}'; " +
+                    "for ($i = 0; $i -lt 200; $i++) { Start-Sleep -Seconds 3; " +
+                    "try { $f = (Get-Item $exe).VersionInfo; " +
+                    "if ([version]::new($f.FileMajorPart, $f.FileMinorPart, $f.FileBuildPart) -ge $v) { Start-Sleep -Seconds 2; Start-Process explorer.exe -ArgumentList ('\"' + $exe + '\"'); break } } catch { } }";
+                Process.Start(new ProcessStartInfo("powershell.exe",
+                    $"-NoProfile -NonInteractive -WindowStyle Hidden -Command \"{script.Replace("\"", "\\\"")}\"")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
+
+                Logger.Info($"Started the update task for {to}");
+                progress?.Report($"Updating to {to} in the background. Win11 Image Prep will close and reopen when it's done (about a minute).");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"Update through the task failed ({ex.Message}); using the updater");
+                return null;
+            }
+        }
+
+        private static int RunHidden(string file, string arguments)
+        {
+            try
+            {
+                using var p = Process.Start(new ProcessStartInfo(file, arguments) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true });
+                if (p == null) return -1;
+                p.StandardOutput.ReadToEnd();
+                p.WaitForExit(15000);
+                return p.HasExited ? p.ExitCode : -1;
+            }
+            catch { return -1; }
         }
 
         /// <summary>Removes the .old and .new files an in-place update leaves next to the EXE. Run in the background on start.</summary>
