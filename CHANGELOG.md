@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.2] - 2026-11-04
+
+### Changed
+- The updater (1.8.0) has the same Andy Kemp look as the splash screen: black and copper, Atlas, the version it's updating to and www.andykemp.com in AKC green. It has the AKC icon too.
+
+---
+
 ## [5.9.1] - 2026-11-04
 
 ### Changed

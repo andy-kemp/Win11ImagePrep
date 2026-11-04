@@ -168,6 +168,14 @@ jobs:
           if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; Write-Host 'Render timed out' }
           Get-ChildItem release/screenshot-splash* | Format-Table Name, Length
 
+      - name: Render the updater window
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          $p = Start-Process -FilePath (Resolve-Path release/WinImagePrep.Updater.exe) -ArgumentList '--render-preview', "$PWD\release\screenshot-updater.png" -PassThru
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; Write-Host 'Render timed out' }
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.meta.outputs.tag }}
@@ -179,4 +187,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $notes = "Test build of branch ``${{ github.ref_name }}`` at ${{ github.sha }}. Not a release: for testing only. Check the download against SHA256SUMS.txt."
-          gh release create "${{ steps.meta.outputs.tag }}" release/* --prerelease --target "${{ github.sha }}" --title "Test build: ${{ github.ref_name }} (${{ github.sha }})" --notes $notes
+          function Upload-WithRetry($tag) {
+            foreach ($f in Get-ChildItem release -File) {
+              $ok = $false
+              for ($i = 1; $i -le 4 -and -not $ok; $i++) {
+                gh release upload $tag $f.FullName --clobber
+                if ($LASTEXITCODE -eq 0) { $ok = $true } else { Write-Host "Upload of $($f.Name) failed (attempt $i); retrying"; Start-Sleep -Seconds (10 * $i) }
+              }
+              if (-not $ok) { throw "Could not upload $($f.Name)" }
+            }
+            $global:LASTEXITCODE = 0
+          }
+          # Create empty first, then upload each file with retries (GitHub uploads can fail transiently)
+          gh release view "${{ steps.meta.outputs.tag }}" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "${{ steps.meta.outputs.tag }}" --prerelease --target "${{ github.sha }}" --title "Test build: ${{ github.ref_name }} (${{ github.sha }})" --notes $notes
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create the pre-release' }
+          }
+          Upload-WithRetry "${{ steps.meta.outputs.tag }}"

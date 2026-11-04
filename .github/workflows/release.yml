@@ -44,10 +44,10 @@ jobs:
           if ("${{ github.ref_type }}" -eq 'tag' -and "${{ github.ref_name }}".TrimStart('v') -ne $appVer) {
             throw "Tag ${{ github.ref_name }} doesn't match WinImagePrep.csproj Version $appVer"
           }
-          gh release view "v$appVer" *> $null
-          $exists = ($LASTEXITCODE -eq 0)
+          $draft = gh release view "v$appVer" --json isDraft --jq .isDraft 2>$null
           $global:LASTEXITCODE = 0   # "not found" is the expected answer; don't let it fail the step
-          if ($exists) { throw "Release v$appVer already exists: bump Version in WinImagePrep.csproj first" }
+          # A draft left by a failed run is fine to finish; a published release is not
+          if ($draft -eq 'false') { throw "Release v$appVer already exists: bump Version in WinImagePrep.csproj first" }
           "version=$appVer" >> $env:GITHUB_OUTPUT
           "updater=$updVer" >> $env:GITHUB_OUTPUT
         env:
@@ -73,8 +73,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git lfs install --local
           git add publish/WinImagePrep.exe publish/WinImagePrep.Updater.exe version.json
-          git commit -m "Publish Win11 Image Prep ${{ steps.ver.outputs.version }} binary"
-          git push origin HEAD:main
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'Binaries and version.json already published (re-run); nothing to commit'
+            $global:LASTEXITCODE = 0
+          } else {
+            git commit -m "Publish Win11 Image Prep ${{ steps.ver.outputs.version }} binary"
+            git push origin HEAD:main
+          }
 
       - name: Create GitHub release
         shell: pwsh
@@ -93,4 +99,24 @@ jobs:
           $notes += "`n`nDownload **WinImagePrep_full.exe** (single file, no install). Check it against SHA256SUMS.txt.`n`nDocs: https://docs.andykemp.com/win11-image-prep/"
           Set-Content release-notes.md $notes
           $sha = git rev-parse HEAD
-          gh release create "v${{ steps.ver.outputs.version }}" release/* --target $sha --title "Win11 Image Prep ${{ steps.ver.outputs.version }}" --notes-file release-notes.md --latest
+          function Upload-WithRetry($tag) {
+            foreach ($f in Get-ChildItem release -File) {
+              $ok = $false
+              for ($i = 1; $i -le 4 -and -not $ok; $i++) {
+                gh release upload $tag $f.FullName --clobber
+                if ($LASTEXITCODE -eq 0) { $ok = $true } else { Write-Host "Upload of $($f.Name) failed (attempt $i); retrying"; Start-Sleep -Seconds (10 * $i) }
+              }
+              if (-not $ok) { throw "Could not upload $($f.Name)" }
+            }
+            $global:LASTEXITCODE = 0
+          }
+          # Draft first, upload every file with retries, then publish: the app never sees a half-uploaded release
+          $tag = "v${{ steps.ver.outputs.version }}"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --draft --target $sha --title "Win11 Image Prep ${{ steps.ver.outputs.version }}" --notes-file release-notes.md
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release' }
+          }
+          Upload-WithRetry $tag
+          gh release edit $tag --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Could not publish the release' }
