@@ -126,6 +126,7 @@ jobs:
           Check 'app key removed' (-not (Test-Path $key))
           Check 'update task removed' ($null -eq (Task))
           if ($failed) { Get-Content install.log -Tail 40; exit 1 }
+          exit 0   # the tampered-installer run above leaves LASTEXITCODE at 1 on purpose
 
       - name: Screenshot the main window
         shell: pwsh
