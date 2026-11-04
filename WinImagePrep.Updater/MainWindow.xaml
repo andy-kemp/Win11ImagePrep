@@ -45,7 +45,8 @@
                    RenderOptions.BitmapScalingMode="HighQuality"/>
 
             <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,8,8,8">
-                <TextBlock Text="Updating Win11 Image Prep" Foreground="White" FontSize="28" FontWeight="Bold" TextWrapping="Wrap"/>
+                <TextBlock Text="Updating" Foreground="#B9AFA6" FontSize="16" FontWeight="SemiBold"/>
+                <TextBlock Text="Win11 Image Prep" Foreground="White" FontSize="30" FontWeight="Bold" TextWrapping="Wrap" Margin="0,2,0,0"/>
                 <!-- AKC green, www.andykemp.com's dark-theme green -->
                 <TextBlock x:Name="VersionText" Text="Updater" Foreground="#7FBF63" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0"/>
                 <TextBlock x:Name="StatusText" Text="Preparing update..." Foreground="#B9AFA6" FontSize="13"
