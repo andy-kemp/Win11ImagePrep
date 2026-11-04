@@ -1,6 +1,6 @@
 {
-  "version": "5.9.1",
-  "updaterVersion": "1.7.0",
+  "version": "5.9.2",
+  "updaterVersion": "1.8.0",
   "releaseDate": "2026-11-04",
-  "releaseNotes": "Faster driver injection, ISO creation with one-click ADK install, new look. See docs.andykemp.com/win11-image-prep/whats-new/"
+  "releaseNotes": "See docs.andykemp.com/win11-image-prep/whats-new/"
 }
