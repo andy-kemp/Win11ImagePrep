@@ -157,6 +157,8 @@ jobs:
             docs           = 'https://docs.andykemp.com/win11-image-prep/'
           } | ConvertTo-Json -Depth 4 | Set-Content r2/latest.json -Encoding utf8NoBOM
           Get-Content r2/latest.json
+          # The list of built-in apps the app offers to remove (it keeps a cached copy if this can't be reached)
+          Put 'win11-image-prep/app-list.json' app-list.json 'application/json' 'public, max-age=3600'
           Put 'win11-image-prep/latest.json' r2/latest.json 'application/json' 'no-cache'
 
       # For app versions 5.9.0 and older, which update from version.json and publish/ on main.
