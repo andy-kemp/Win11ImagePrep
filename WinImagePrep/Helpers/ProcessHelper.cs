@@ -9,6 +9,32 @@ namespace WinImagePrep.Helpers
     public static class ProcessHelper
     {
         /// <summary>
+        /// Start an EXE without administrator rights, even from an elevated process (after an update, say).
+        /// Windows blocks drag and drop into an elevated window, so the app must not inherit our elevation.
+        /// Explorer starts it with the signed-in user's normal rights.
+        /// </summary>
+        public static void StartUnelevated(string exePath)
+        {
+            if (AdminHelper.IsRunningAsAdministrator())
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo("explorer.exe", $"\"{exePath}\"") { UseShellExecute = false });
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"Could not start {exePath} through Explorer ({ex.Message}); starting it directly");
+                }
+            }
+            Process.Start(new ProcessStartInfo(exePath)
+            {
+                UseShellExecute = true,
+                WorkingDirectory = System.IO.Path.GetDirectoryName(exePath) ?? string.Empty
+            });
+        }
+
+        /// <summary>
         /// Execute a process and capture output
         /// </summary>
         public static async Task<ProcessResult> ExecuteProcessAsync(

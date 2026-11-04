@@ -417,6 +417,9 @@ namespace WinImagePrep.ViewModels
             }
         }
 
+        /// <summary>Running as administrator: Windows blocks drag and drop from Explorer into the window</summary>
+        public bool IsRunningElevated { get; } = AdminHelper.IsRunningAsAdministrator();
+
         private bool _isImageReady;
         public bool IsImageReady
         {
@@ -428,7 +431,7 @@ namespace WinImagePrep.ViewModels
         {
             try
             {
-                IsImageReady = Directory.Exists(_config.Windows11Directory) &&
+                IsImageReady = Directory.Exists(_config.Windows11Directory) && !IsDiscardedWork(_config.Windows11Directory) &&
                                (File.Exists(Path.Combine(_config.Windows11Directory, "boot", "efisys.bin")) ||
                                 File.Exists(Path.Combine(_config.Windows11Directory, "boot", "efisys_noprompt.bin")));
             }
@@ -632,7 +635,7 @@ namespace WinImagePrep.ViewModels
                 {
                     AddLog("✓ ISO validation successful");
                     AddLog($"  - boot.wim: {(result.HasBootWim ? "Found" : "Missing")}");
-                    AddLog($"  - install.wim: {(result.HasInstallWim ? "Found" : "Missing")}");
+                    AddLog($"  - install image: {result.InstallImageName ?? "Missing"}");
                     ShowWarning = false;
                 }
                 else
@@ -766,7 +769,9 @@ namespace WinImagePrep.ViewModels
                     return;
                 }
 
-                var installWimPath = $"{driveLetter}:\\Sources\\install.wim";
+                // install.wim, install.esd or a split install.swm
+                var installWimPath = Services.IsoService.FindInstallImage($"{driveLetter}:\\Sources")
+                                     ?? $"{driveLetter}:\\Sources\\install.wim";
                 var editions = await _dismService.GetWimInfoAsync(installWimPath);
 
                 await _isoService.DismountIsoAsync(SelectedIsoPath);
@@ -785,7 +790,7 @@ namespace WinImagePrep.ViewModels
                 }
                 else
                 {
-                    AddLog("No editions found in install.wim");
+                    AddLog("No editions found in the ISO's install image");
                 }
             }
             catch (Exception ex)
@@ -1458,6 +1463,7 @@ namespace WinImagePrep.ViewModels
                         CurrentOperationProgress = 50;
                     }),
                     _cancellationTokenSource.Token);
+                if (extracted) ClearDiscardedWork();
 
                 if (!extracted)
                 {
@@ -3787,6 +3793,54 @@ errorMessage = "Failed to create custom ISO.\n\n" +
 
         #region Helpers
 
+        // "Start fresh" on old work that can't all be deleted yet: remember it so the question isn't asked again
+        private static string DiscardedWorkMarker => Path.Combine(Models.AppSettings.SettingsDirectory, "discarded-work.txt");
+
+        private static bool IsDiscardedWork(string directory)
+        {
+            try
+            {
+                return File.Exists(DiscardedWorkMarker) &&
+                       string.Equals(File.ReadAllText(DiscardedWorkMarker).Trim(), directory.Trim(), StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        }
+
+        private static void MarkDiscardedWork(string directory)
+        {
+            try
+            {
+                Directory.CreateDirectory(Models.AppSettings.SettingsDirectory);
+                File.WriteAllText(DiscardedWorkMarker, directory);
+            }
+            catch (Exception ex) { Logger.Warning($"Could not record discarded work: {ex.Message}"); }
+        }
+
+        private static void ClearDiscardedWork()
+        {
+            try { if (File.Exists(DiscardedWorkMarker)) File.Delete(DiscardedWorkMarker); } catch { }
+        }
+
+        /// <summary>Delete a folder with administrator rights (one UAC prompt). False if declined or it failed.</summary>
+        private static bool DeleteDirectoryAsAdministrator(string directory)
+        {
+            try
+            {
+                using var p = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c attrib -r -s -h \"{directory}\\*\" /s /d >nul 2>&1 & rd /s /q \"{directory}\"",
+                    Verb = "runas",
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
+                p?.WaitForExit(120_000);
+            }
+            catch (System.ComponentModel.Win32Exception) { return false; } // UAC declined
+            catch (Exception ex) { Logger.Warning($"Elevated delete failed: {ex.Message}"); }
+            return !Directory.Exists(directory);
+        }
+
         public async Task CheckForExistingWorkAsync()
         {
             await Task.Run(() =>
@@ -3795,7 +3849,10 @@ errorMessage = "Failed to create custom ISO.\n\n" +
                 {
                     // Check if Windows11 directory exists and has content
                     if (!Directory.Exists(_config.Windows11Directory))
+                    {
+                        ClearDiscardedWork();
                         return;
+                    }
 
                     var files = Directory.GetFiles(_config.Windows11Directory, "*", SearchOption.AllDirectories);
                     if (files.Length == 0)
@@ -3806,6 +3863,15 @@ errorMessage = "Failed to create custom ISO.\n\n" +
                             Directory.Delete(_config.Windows11Directory, false);
                         }
                         catch { /* Ignore cleanup failures */ }
+                        ClearDiscardedWork();
+                        return;
+                    }
+
+                    // Already discarded ("No" last time) but not all of it could be deleted then: try again
+                    // quietly and never ask about it again. The next build clears the folder anyway.
+                    if (IsDiscardedWork(_config.Windows11Directory))
+                    {
+                        if (FileSystemHelper.ForceDeleteDirectory(_config.Windows11Directory, true)) ClearDiscardedWork();
                         return;
                     }
 
@@ -3825,36 +3891,32 @@ errorMessage = "Failed to create custom ISO.\n\n" +
 
                         if (result == MessageBoxResult.No)
                         {
-                            // User wants to start fresh - delete the directory
-                            try
+                            // User wants to start fresh - delete the directory. Files from an elevated build
+                            // may need administrator rights; if they still can't all go, the folder is marked as
+                            // discarded so this isn't asked again, and the next build clears it.
+                            var dir = _config.Windows11Directory;
+                            AddLog("Deleting existing temporary files...");
+                            bool deleted = false;
+                            try { deleted = FileSystemHelper.ForceDeleteDirectory(dir, true); }
+                            catch (Exception ex) { AddLog($"⚠ {ex.Message}"); }
+
+                            if (!deleted && !AdminHelper.IsRunningAsAdministrator())
                             {
-                                AddLog("Deleting existing temporary files...");
-                                bool deleted = FileSystemHelper.ForceDeleteDirectory(_config.Windows11Directory, true);
-                                if (deleted)
-                                {
-                                    AddLog($"✓ Deleted temporary directory: {_config.Windows11Directory}");
-                                }
-                                else
-                                {
-                                    AddLog($"⚠ Warning: Could not delete all temporary files");
-                                    MessageBox.Show(
-                                        "Some temporary files could not be deleted.\n\n" +
-                                        "They may be in use or locked. Try using the Repair/Cleanup option.",
-                                        "Cleanup Warning",
-                                        MessageBoxButton.OK,
-                                        MessageBoxImage.Warning);
-                                }
+                                AddLog("Some files were written by an administrator build; asking Windows for permission to delete them...");
+                                deleted = DeleteDirectoryAsAdministrator(dir);
                             }
-                            catch (Exception ex)
+
+                            if (deleted)
                             {
-                                AddLog($"⚠ Warning: Failed to delete temporary files: {ex.Message}");
-                                MessageBox.Show(
-                                    $"Could not delete temporary files:\n\n{ex.Message}\n\n" +
-                                    "You may need to manually delete the folder or use the Repair/Cleanup option.",
-                                    "Cleanup Warning",
-                                    MessageBoxButton.OK,
-                                    MessageBoxImage.Warning);
+                                AddLog($"✓ Deleted temporary directory: {dir}");
+                                ClearDiscardedWork();
                             }
+                            else
+                            {
+                                MarkDiscardedWork(dir);
+                                AddLog("⚠ Some files couldn't be deleted now. You won't be asked about them again, and they're cleared when you next build.");
+                            }
+                            UpdateImageReadyState();
                         }
                         else
                         {

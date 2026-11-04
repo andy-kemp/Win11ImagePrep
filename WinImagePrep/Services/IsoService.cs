@@ -232,6 +232,20 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
+        /// The Windows image in a sources folder: install.wim, install.esd (Media Creation Tool and some
+        /// Microsoft downloads) or install.swm (split for FAT32). Null if there's none.
+        /// </summary>
+        public static string? FindInstallImage(string sourcesDirectory)
+        {
+            foreach (var name in new[] { "install.wim", "install.esd", "install.swm" })
+            {
+                var path = Path.Combine(sourcesDirectory, name);
+                if (File.Exists(path)) return path;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Validate ISO integrity and check for required WIM files
         /// </summary>
         public async Task<IsoValidationResult> ValidateIsoAsync(
@@ -267,15 +281,20 @@ namespace WinImagePrep.Services
 
                 // Check for required files
                 var bootWimPath = $"{driveLetter}:\\Sources\\boot.wim";
-                var installWimPath = $"{driveLetter}:\\Sources\\install.wim";
+                var installImage = FindInstallImage($"{driveLetter}:\\Sources");
 
                 result.HasBootWim = File.Exists(bootWimPath);
-                result.HasInstallWim = File.Exists(installWimPath);
+                result.HasInstallWim = installImage != null;
+                result.InstallImageName = installImage != null ? Path.GetFileName(installImage) : null;
                 result.IsValid = result.HasBootWim && result.HasInstallWim;
 
                 if (!result.IsValid)
                 {
-                    result.Message = "Missing required WIM files (boot.wim or install.wim)";
+                    result.Message = !result.HasBootWim && !result.HasInstallWim
+                        ? "This doesn't look like Windows install media: there's no sources\\boot.wim or install image"
+                        : !result.HasBootWim
+                            ? "sources\\boot.wim is missing from the ISO"
+                            : "There's no install image in the ISO (sources\\install.wim, install.esd or install.swm)";
                 }
                 else
                 {

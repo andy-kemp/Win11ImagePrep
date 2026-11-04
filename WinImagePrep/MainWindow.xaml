@@ -152,6 +152,11 @@
                                    Foreground="{StaticResource AkcMuted}"
                                    FontSize="12"
                                    Margin="0,2,0,0"/>
+                        <!-- Windows blocks drag and drop into an elevated window -->
+                        <TextBlock Text="Running as administrator, so Windows blocks drag and drop. Use the buttons below, or close the app and open it normally."
+                                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{StaticResource AkcCopper}" FontSize="12" FontWeight="SemiBold" Margin="0,6,0,0"
+                                   Visibility="{Binding IsRunningElevated, Converter={StaticResource BoolToVisibilityConverter}}"/>
                     </StackPanel>
 
                     <!-- ISO File Display -->

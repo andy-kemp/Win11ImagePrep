@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.8] - 2026-11-04
+
+### Fixed
+- **Drag and drop works after an update.** The updater runs as administrator and started the app the same way, and Windows blocks drag and drop into an administrator window. The app (and updater 1.8.2) now restarts it with your normal rights. When the app is running as administrator, the drop area says so.
+- **ISOs with install.esd or a split install.swm are accepted.** Verify ISO and the edition list only looked for install.wim, so Media Creation Tool ISOs were reported as invalid. The message now says what's missing.
+- **Answering No to "Existing Work Found" deletes it and doesn't ask again.** Files from an administrator build couldn't be deleted without administrator rights, so the question came back every time. The app now asks Windows for permission to delete them; if that's declined, it remembers your answer and the next build clears them.
+
+---
+
 ## [5.9.7] - 2026-11-04
 
 ### Changed
