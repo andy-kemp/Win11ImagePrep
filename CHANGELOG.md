@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.12] - 2026-11-04
+
+### Added
+- **Automatic updates for installed copies.** Win11ImagePrep_Setup.exe adds a scheduled task, `\Andy Kemp Consulting\Win11 Image Prep update`, that runs as SYSTEM daily and after start-up. It checks downloads.andykemp.com and installs a newer version silently, after checking its SHA-256, and never while the app is open. **Update now** in the app starts the same task, so updating needs no administrator rights or UAC prompt; the app closes and reopens on the new version.
+- Installer switches: `/MANAGEDUPDATES=1` (no automatic or in-app updates, for Intune-managed versions) and `/AUTOUPDATE=0` (no task; the app's updater asks for administrator rights). Without them, an upgrade keeps the device's choice.
+
+---
+
 ## [5.9.11] - 2026-11-04
 
 ### Added

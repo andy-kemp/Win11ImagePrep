@@ -48,41 +48,83 @@ jobs:
           Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release/SHA256SUMS.txt
           Get-Content release/SHA256SUMS.txt
 
-      - name: Test the installer (silent install, managed updates, upgrade, uninstall)
+      - name: Test the installer (silent install, automatic updates, managed updates, uninstall)
         shell: pwsh
         run: |
           $setup = Resolve-Path release/Win11ImagePrep_Setup.exe
           $dir = "$env:ProgramFiles\Andy Kemp Consulting\Win11 Image Prep"
           $key = 'HKLM:\SOFTWARE\Andy Kemp Consulting\Win11 Image Prep'
           $un = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{669DE22E-E42E-4D1B-AE68-1A81A43BCF12}_is1'
+          $taskPath = '\Andy Kemp Consulting\'; $taskName = 'Win11 Image Prep update'
           function Check($what, $ok) { if ($ok) { Write-Host "OK   $what" } else { Write-Host "::error::FAIL $what"; $script:failed = $true } }
+          function Task { Get-ScheduledTask -TaskPath $taskPath -TaskName $taskName -ErrorAction SilentlyContinue }
+          function Install($extra) { (Start-Process $setup -ArgumentList (@('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') + $extra) -Wait -PassThru).ExitCode }
           $failed = $false
-          # 1. Silent install with managed updates
-          $p = Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/MANAGEDUPDATES=1','/LOG=install.log' -Wait -PassThru
-          Check "install exit code 0 (got $($p.ExitCode))" ($p.ExitCode -eq 0)
+          [xml]$app = Get-Content WinImagePrep/WinImagePrep.csproj
+          $ver = ($app.Project.PropertyGroup | Where-Object Version | Select-Object -First 1).Version.Trim()
+
+          # 1. Default silent install: automatic updates on
+          Check 'install exit code 0' ((Install @('/LOG=install.log')) -eq 0)
           Check 'WinImagePrep.exe in Program Files' (Test-Path "$dir\WinImagePrep.exe")
-          Check 'updater in Program Files' (Test-Path "$dir\WinImagePrep.Updater.exe")
+          Check 'updater and update script in Program Files' ((Test-Path "$dir\WinImagePrep.Updater.exe") -and (Test-Path "$dir\Update-Win11ImagePrep.ps1"))
           Check 'Start menu shortcut' (Test-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Win11 Image Prep.lnk")
-          Check 'ManagedUpdates = 1' ((Get-ItemProperty $key).ManagedUpdates -eq 1)
           Check 'InstallLocation recorded' ((Get-ItemProperty $key).InstallLocation -eq $dir)
           $u = Get-ItemProperty $un
-          Check "uninstall entry: $($u.DisplayName) $($u.DisplayVersion)" ($u.DisplayName -eq 'Win11 Image Prep' -and $u.DisplayVersion)
-          $fv = (Get-Item "$dir\WinImagePrep.exe").VersionInfo.FileVersion
-          Write-Host "File version: $fv"
-          # 2. Upgrade (same version) without the switch keeps the managed choice
-          $p = Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
-          Check "reinstall exit code 0" ($p.ExitCode -eq 0)
-          Check 'ManagedUpdates kept on reinstall' ((Get-ItemProperty $key).ManagedUpdates -eq 1)
-          # 3. /MANAGEDUPDATES=0 turns it off
-          Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/MANAGEDUPDATES=0' -Wait | Out-Null
-          Check 'ManagedUpdates = 0' ((Get-ItemProperty $key).ManagedUpdates -eq 0)
-          # 4. Silent uninstall
+          Check "uninstall entry: $($u.DisplayName) $($u.DisplayVersion)" ($u.DisplayName -eq 'Win11 Image Prep' -and $u.DisplayVersion -eq $ver)
+          Check 'AutoUpdate = 1' ((Get-ItemProperty $key).AutoUpdate -eq 1)
+          $t = Task
+          Check 'update task registered' ($null -ne $t)
+          Check "update task runs as SYSTEM ($($t.Principal.UserId))" ($t.Principal.UserId -eq 'SYSTEM')
+          $svc = New-Object -ComObject 'Schedule.Service'; $svc.Connect()
+          $sd = $svc.GetFolder('\Andy Kemp Consulting').GetTask($taskName).GetSecurityDescriptor(4)
+          Check "signed-in users can start the task ($sd)" ($sd -match ';;;AU\)')
+
+          # 2. The task itself, against the live latest.json (this test build is newer, or equal)
+          Start-ScheduledTask -TaskPath $taskPath -TaskName $taskName
+          for ($i = 0; $i -lt 30 -and (Task).State -eq 'Running'; $i++) { Start-Sleep -Seconds 2 }
+          Start-Sleep -Seconds 2
+          $log = Get-Content "$dir\Logs\auto-update.log" -ErrorAction SilentlyContinue
+          Write-Host "Task log: $($log -join ' | ')"
+          Check 'task ran and found nothing newer' ($log -match 'Up to date')
+
+          # 3. An update: a newer installer (99.0.0) offered through a local latest.json
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc /Q "/DAppVersion=99.0.0" "/DSourceDir=$PWD\out\app" "/DUpdaterDir=$PWD\out\updater" "/O$PWD\newer" "/FWin11ImagePrep_Setup" installer\Win11ImagePrep.iss
+          $newer = Resolve-Path newer\Win11ImagePrep_Setup.exe
+          # The script compares with the EXE's version, so pretend the installed one is older
+          [ordered]@{ version = '99.0.0'; setup = [ordered]@{ path = "$newer"; sha256 = (Get-FileHash $newer).Hash.ToLower() } } | ConvertTo-Json | Set-Content latest-test.json
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$dir\Update-Win11ImagePrep.ps1" -Manifest "$PWD\latest-test.json"
+          Write-Host "Script exit code: $LASTEXITCODE"
+          Check "update installed (uninstall entry $((Get-ItemProperty $un).DisplayVersion))" ((Get-ItemProperty $un).DisplayVersion -eq '99.0.0')
+          Check 'update logged' ((Get-Content "$dir\Logs\auto-update.log") -match 'Updated to 99.0.0')
+          Check 'downloaded installer removed' (-not (Test-Path "$dir\Updates\Win11ImagePrep_Setup.exe"))
+          Check 'automatic updates kept after the update' ($null -ne (Task))
+
+          # 4. A tampered installer is refused
+          '{"version":"100.0.0","setup":{"path":"' + ("$newer" -replace '\\','\\') + '","sha256":"' + ('0' * 64) + '"}}' | Set-Content latest-bad.json
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$dir\Update-Win11ImagePrep.ps1" -Manifest "$PWD\latest-bad.json"
+          Check 'checksum mismatch refused' (((Get-Content "$dir\Logs\auto-update.log") -match "doesn't match") -and (Get-ItemProperty $un).DisplayVersion -eq '99.0.0')
+
+          # 5. Managed updates: the task goes, and the choice is kept on reinstall
+          Check 'managed install exit code 0' ((Install @('/MANAGEDUPDATES=1')) -eq 0)
+          Check 'ManagedUpdates = 1' ((Get-ItemProperty $key).ManagedUpdates -eq 1)
+          Check 'update task removed when managed' ($null -eq (Task))
+          Install @() | Out-Null
+          Check 'managed kept on reinstall' (((Get-ItemProperty $key).ManagedUpdates -eq 1) -and ($null -eq (Task)))
+          Install @('/MANAGEDUPDATES=0') | Out-Null
+          Check 'unmanaged again: task back' (((Get-ItemProperty $key).ManagedUpdates -eq 0) -and ($null -ne (Task)))
+          Install @('/AUTOUPDATE=0') | Out-Null
+          Check 'AUTOUPDATE=0: no task' ($null -eq (Task))
+
+          # 6. Silent uninstall
+          Install @('/AUTOUPDATE=1') | Out-Null
           $p = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
           Start-Sleep -Seconds 3
           Check "uninstall exit code 0" ($p.ExitCode -eq 0)
           Check 'EXE removed' (-not (Test-Path "$dir\WinImagePrep.exe"))
           Check 'uninstall entry removed' (-not (Test-Path $un))
           Check 'app key removed' (-not (Test-Path $key))
+          Check 'update task removed' ($null -eq (Task))
           if ($failed) { Get-Content install.log -Tail 40; exit 1 }
 
       - name: Screenshot the main window
