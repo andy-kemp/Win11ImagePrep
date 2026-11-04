@@ -64,8 +64,8 @@ jobs:
           "@
           $p = Start-Process -FilePath (Resolve-Path release/WinImagePrep_test_*.exe) -PassThru
           $h = [IntPtr]::Zero
-          for ($i = 0; $i -lt 60 -and $h -eq [IntPtr]::Zero; $i++) {
-            Start-Sleep -Seconds 1; $p.Refresh()
+          for ($i = 0; $i -lt 240 -and $h -eq [IntPtr]::Zero; $i++) {
+            Start-Sleep -Milliseconds 250; $p.Refresh()
             # The main window's title has the version; the splash screen's doesn't
             if ($p.MainWindowTitle -like 'Win11 Image Prep v*' -or $p.MainWindowTitle -like 'Windows Image Preparation Tool v*') { $h = $p.MainWindowHandle }
           }
@@ -157,6 +157,16 @@ jobs:
           } catch { Write-Host "UI Automation step failed: $_" }
           Stop-Process -Id $p.Id -Force
           Stop-Transcript | Out-Null
+
+      - name: Render the splash screen
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          $exe = Resolve-Path release/WinImagePrep_test_*.exe
+          $p = Start-Process -FilePath $exe -ArgumentList '--render-splash', "$PWD\release\screenshot-splash.png" -PassThru
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; Write-Host 'Render timed out' }
+          Get-ChildItem release/screenshot-splash* | Format-Table Name, Length
 
       - uses: actions/upload-artifact@v4
         with:

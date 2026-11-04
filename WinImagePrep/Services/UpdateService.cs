@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
@@ -18,6 +19,15 @@ namespace WinImagePrep.Services
     public class UpdateService
     {
         private readonly HttpClient _httpClient;
+        // Updates come from the latest GitHub Release: the app and updater EXEs plus SHA256SUMS.txt.
+        // version.json and publish/ on main are still kept up to date for versions 5.9.0 and older,
+        // and are this version's fallback if the Releases API can't be reached.
+        private const string LatestReleaseApiUrl = "https://api.github.com/repos/andy-kemp/Win11ImagePrep/releases/latest";
+        private static readonly string[] MainExeAssetNames = { "WinImagePrep_full.exe", "WinImagePrep.exe" };
+        private const string UpdaterAssetName = "WinImagePrep.Updater.exe";
+        private const string ChecksumsAssetName = "SHA256SUMS.txt";
+        private ReleaseInfo? _latestRelease;
+
         private const string VersionCheckUrl = "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/version.json";
         private const string ExeDownloadUrl = "https://github.com/andy-kemp/Win11ImagePrep/raw/main/publish/WinImagePrep.exe";
         private const string UpdaterDownloadUrl = "https://github.com/andy-kemp/Win11ImagePrep/raw/main/publish/WinImagePrep.Updater.exe";
@@ -59,6 +69,21 @@ namespace WinImagePrep.Services
         /// Check if a newer version is available on GitHub
         /// </summary>
         public async Task<(bool updateAvailable, Version? latestVersion)> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+        {
+            var release = await GetLatestReleaseAsync(cancellationToken);
+            if (release != null)
+            {
+                var current = GetCurrentVersion();
+                var current3 = new Version(current.Major, current.Minor, Math.Max(current.Build, 0));
+                Logger.Info($"Latest release: {release.Version}, current: {current3}");
+                return (release.Version > current3, release.Version);
+            }
+
+            Logger.Warning("Latest GitHub release unavailable; falling back to version.json");
+            return await CheckForUpdateFromVersionJsonAsync(cancellationToken);
+        }
+
+        private async Task<(bool updateAvailable, Version? latestVersion)> CheckForUpdateFromVersionJsonAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -117,6 +142,18 @@ namespace WinImagePrep.Services
         /// Download and apply the update by first downloading the latest updater (if needed), then launching it
         /// </summary>
         public async Task<bool> DownloadAndApplyUpdateAsync(IProgress<string>? progress = null, CancellationToken cancellationToken = default)
+        {
+            var release = _latestRelease ?? await GetLatestReleaseAsync(cancellationToken);
+            if (release != null)
+            {
+                return await ApplyUpdateFromReleaseAsync(release, progress, cancellationToken);
+            }
+
+            Logger.Warning("Latest GitHub release unavailable; updating from main/publish instead");
+            return await ApplyUpdateFromMainAsync(progress, cancellationToken);
+        }
+
+        private async Task<bool> ApplyUpdateFromMainAsync(IProgress<string>? progress, CancellationToken cancellationToken)
         {
             try
             {
@@ -343,7 +380,225 @@ namespace WinImagePrep.Services
                 return false;
             }
         }
+        // ------------------------------------------------------------------
+        // GitHub Releases
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Read the latest (non-pre-release) GitHub release: its version, the app and updater EXEs and
+        /// their SHA-256 checksums from SHA256SUMS.txt. Returns null if any of that is missing.
+        /// </summary>
+        private async Task<ReleaseInfo?> GetLatestReleaseAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApiUrl);
+                request.Headers.UserAgent.ParseAdd("Win11ImagePrep-Updater");
+                request.Headers.Accept.ParseAdd("application/vnd.github+json");
+                using var response = await _httpClient.SendAsync(request, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warning($"Releases API returned {(int)response.StatusCode}");
+                    return null;
+                }
+
+                using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+                var root = doc.RootElement;
+                var tag = root.GetProperty("tag_name").GetString() ?? string.Empty;
+                if (!Version.TryParse(tag.TrimStart('v', 'V'), out var version))
+                {
+                    Logger.Warning($"Release tag '{tag}' is not a version");
+                    return null;
+                }
+
+                var assets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var asset in root.GetProperty("assets").EnumerateArray())
+                {
+                    var name = asset.GetProperty("name").GetString();
+                    var url = asset.GetProperty("browser_download_url").GetString();
+                    if (name != null && url != null) assets[name] = url;
+                }
+
+                var mainName = MainExeAssetNames.FirstOrDefault(assets.ContainsKey);
+                if (mainName == null || !assets.ContainsKey(UpdaterAssetName) || !assets.ContainsKey(ChecksumsAssetName))
+                {
+                    Logger.Warning($"Release {tag} is missing the app, updater or {ChecksumsAssetName}");
+                    return null;
+                }
+
+                var sums = await _httpClient.GetStringAsync(assets[ChecksumsAssetName], cancellationToken);
+                var hashes = ParseChecksums(sums);
+                if (!hashes.TryGetValue(mainName, out var mainSha) || !hashes.TryGetValue(UpdaterAssetName, out var updaterSha))
+                {
+                    Logger.Warning($"{ChecksumsAssetName} in release {tag} has no checksum for the app or updater");
+                    return null;
+                }
+
+                string? notes = null;
+                if (root.TryGetProperty("body", out var body)) notes = body.GetString();
+
+                _latestRelease = new ReleaseInfo(
+                    new Version(version.Major, version.Minor, Math.Max(version.Build, 0)),
+                    tag, assets[mainName], mainSha, assets[UpdaterAssetName], updaterSha, notes);
+                return _latestRelease;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"Could not read the latest release: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static Dictionary<string, string> ParseChecksums(string text)
+        {
+            // Lines like "<64 hex chars>  <file name>"
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var raw in text.Split('\n'))
+            {
+                var line = raw.Trim();
+                var space = line.IndexOf(' ');
+                if (space != 64) continue;
+                var hash = line.Substring(0, 64);
+                var name = line.Substring(space).Trim().TrimStart('*');
+                if (hash.All(Uri.IsHexDigit)) result[name] = hash.ToLowerInvariant();
+            }
+            return result;
+        }
+
+        private static async Task<string> Sha256Async(string path, CancellationToken cancellationToken)
+        {
+            await using var stream = File.OpenRead(path);
+            var hash = await System.Security.Cryptography.SHA256.HashDataAsync(stream, cancellationToken);
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
+
+        private async Task DownloadToFileAsync(string url, string path, string label, IProgress<string>? progress, CancellationToken cancellationToken)
+        {
+            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var total = response.Content.Headers.ContentLength ?? 0;
+            await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
+            await using var output = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+            var buffer = new byte[81920];
+            long read = 0;
+            int n;
+            var lastPercent = -1;
+            while ((n = await input.ReadAsync(buffer, cancellationToken)) > 0)
+            {
+                await output.WriteAsync(buffer.AsMemory(0, n), cancellationToken);
+                read += n;
+                if (total > 0)
+                {
+                    var percent = (int)(read * 100 / total);
+                    if (percent != lastPercent && percent % 5 == 0)
+                    {
+                        lastPercent = percent;
+                        progress?.Report($"Downloading {label}: {read / 1048576.0:F1} MB / {total / 1048576.0:F1} MB ({percent}%)");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Update from a GitHub release. The updater runs as administrator, so it is only used if its
+        /// checksum matches the release; the updater then checks the app's checksum before installing it.
+        /// </summary>
+        private async Task<bool> ApplyUpdateFromReleaseAsync(ReleaseInfo release, IProgress<string>? progress, CancellationToken cancellationToken)
+        {
+            try
+            {
+                progress?.Report($"Preparing update to v{release.Version}...");
+                var currentExePath = Process.GetCurrentProcess().MainModule?.FileName;
+                var exeDirectory = Path.GetDirectoryName(currentExePath ?? string.Empty);
+                if (string.IsNullOrEmpty(currentExePath) || string.IsNullOrEmpty(exeDirectory))
+                {
+                    progress?.Report("Error: Could not determine where the app is installed");
+                    return false;
+                }
+
+                // 1. Make sure the local updater is exactly the release's updater
+                var updaterPath = Path.Combine(exeDirectory, UpdaterAssetName);
+                var updaterOk = File.Exists(updaterPath) && await Sha256Async(updaterPath, cancellationToken) == release.UpdaterSha256;
+                if (!updaterOk)
+                {
+                    var temp = Path.Combine(Path.GetTempPath(), $"WinImagePrep.Updater_{Guid.NewGuid():N}.exe");
+                    progress?.Report("Downloading the updater...");
+                    await DownloadToFileAsync(release.UpdaterUrl, temp, "updater", progress, cancellationToken);
+                    var actual = await Sha256Async(temp, cancellationToken);
+                    if (actual != release.UpdaterSha256)
+                    {
+                        File.Delete(temp);
+                        progress?.Report("✗ The downloaded updater didn't match the release checksum, so it wasn't used. Try again later.");
+                        Logger.Error($"Updater checksum mismatch: expected {release.UpdaterSha256}, got {actual}");
+                        return false;
+                    }
+                    File.Copy(temp, updaterPath, overwrite: true);
+                    File.Delete(temp);
+                    progress?.Report("✓ Updater downloaded and checked");
+                }
+                else
+                {
+                    progress?.Report("✓ Updater is up to date");
+                }
+
+                // 2. Hand over to the updater (through a file: arguments are lost through UAC)
+                var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                var updateInfoPath = Path.Combine(programData, "WinImagePrep_UpdateInfo.json");
+                var current = Process.GetCurrentProcess();
+                File.WriteAllText(updateInfoPath, JsonSerializer.Serialize(new
+                {
+                    TargetExePath = currentExePath,
+                    DownloadUrl = release.MainExeUrl,
+                    ExpectedSha256 = release.MainExeSha256,
+                    UpdaterDownloadUrl = release.UpdaterUrl,
+                    ExpectedUpdaterSha256 = release.UpdaterSha256,
+                    Version = release.Version.ToString(),
+                    ProcessName = current.ProcessName,
+                    ProcessId = current.Id
+                }));
+
+                progress?.Report("Launching updater...");
+                try
+                {
+                    var process = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = updaterPath,
+                        UseShellExecute = true,
+                        Verb = "runas",
+                        WorkingDirectory = exeDirectory
+                    });
+                    if (process == null)
+                    {
+                        progress?.Report("Update cancelled - Administrator privileges required.");
+                        return false;
+                    }
+                    progress?.Report("Updater started. Application will close shortly...");
+                    await Task.Delay(1000, cancellationToken);
+                    return true;
+                }
+                catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+                {
+                    progress?.Report("Update cancelled - Administrator privileges are required to update.");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"Update failed: {ex.Message}");
+                Logger.Error($"Release update failed: {ex}");
+                return false;
+            }
+        }
     }
+
+    internal record ReleaseInfo(
+        Version Version,
+        string Tag,
+        string MainExeUrl,
+        string MainExeSha256,
+        string UpdaterUrl,
+        string UpdaterSha256,
+        string? Notes);
 
     internal class VersionInfo
     {

@@ -42,7 +42,7 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="_Help">
-                <MenuItem Header="_User Guide" Command="{Binding OpenUserGuideCommand}" ToolTip="Open local user guide">
+                <MenuItem Header="_User Guide" Command="{Binding OpenUserGuideCommand}" ToolTip="Open the user guide at docs.andykemp.com">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
@@ -63,7 +63,7 @@
                         <TextBlock Text="&#xEBE8;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Release _Notes" Command="{Binding OpenReleaseNotesCommand}" ToolTip="View release notes">
+                <MenuItem Header="Release _Notes" Command="{Binding OpenReleaseNotesCommand}" ToolTip="What's new in each version, at docs.andykemp.com">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>

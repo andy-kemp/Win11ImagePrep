@@ -3274,39 +3274,9 @@ errorMessage = "Failed to create custom ISO.\n\n" +
 
         private void OpenUserGuide()
         {
-            try
-            {
-                var userGuidePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "docs", "UserGuide.html");
-
-                if (File.Exists(userGuidePath))
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = userGuidePath,
-                        UseShellExecute = true
-                    });
-                    AddLog("✓ Opened local user guide");
-                }
-                else
-                {
-                    // Fallback to online documentation
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "https://docs.andykemp.com/win11-image-prep/",
-                        UseShellExecute = true
-                    });
-                    AddLog("✓ Opened online documentation (local guide not found)");
-                }
-            }
-            catch (Exception ex)
-            {
-                AddLog($"✗ Error opening user guide: {ex.Message}");
-                MessageBox.Show(
-                    $"Could not open User Guide.\n\nVisit: https://docs.andykemp.com/win11-image-prep/",
-                    "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
+            // The docs site is the user guide; the old bundled HTML guide described v4
+            OpenUrl("https://docs.andykemp.com/win11-image-prep/");
+            AddLog("✓ Opened the user guide (docs.andykemp.com)");
         }
 
         private void OpenOnlineDocumentation()
@@ -3379,38 +3349,8 @@ errorMessage = "Failed to create custom ISO.\n\n" +
 
         private void OpenReleaseNotes()
         {
-            try
-            {
-                var releaseNotesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "docs", "ReleaseNotes.txt");
-
-                if (File.Exists(releaseNotesPath))
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = releaseNotesPath,
-                        UseShellExecute = true
-                    });
-                    AddLog("✓ Opened release notes");
-                }
-                else
-                {
-                    AddLog("ℹ Release notes file not found");
-                    MessageBox.Show(
-                        "Release notes file not found.\n\nFor the latest changes, visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/releases",
-                        "Release Notes",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                AddLog($"✗ Error opening release notes: {ex.Message}");
-                MessageBox.Show(
-                    $"Could not open release notes: {ex.Message}",
-                    "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
+            OpenUrl("https://docs.andykemp.com/win11-image-prep/whats-new/");
+            AddLog("✓ Opened release notes (What's new)");
         }
 
         private void ConfigureUnattendedInstall()

@@ -29,6 +29,25 @@ namespace WinImagePrep
                     typeof(Window),
                     new FrameworkPropertyMetadata(FindResource("AkcWindow")));
 
+                // Test builds: "--render-splash <file.png>" draws the splash to a PNG and exits
+                var renderAt = Array.IndexOf(e.Args, "--render-splash");
+                if (renderAt >= 0 && renderAt + 1 < e.Args.Length)
+                {
+                    var target = e.Args[renderAt + 1];
+                    try
+                    {
+                        RenderSplashToPng(target);
+                        Environment.Exit(0);
+                    }
+                    catch (Exception renderEx)
+                    {
+                        // Never show a dialog here: this runs unattended on build machines
+                        try { System.IO.File.WriteAllText(target + ".error.txt", renderEx.ToString()); } catch { }
+                        Environment.Exit(1);
+                    }
+                    return;
+                }
+
                 // Parse command-line arguments for state restoration
                 ParseCommandLineArgs(e.Args);
 
@@ -76,6 +95,26 @@ namespace WinImagePrep
         /// <summary>
         /// Parse command-line arguments for state restoration after elevation
         /// </summary>
+        private static void RenderSplashToPng(string path)
+        {
+            var splash = new SplashScreen();
+            var root = (FrameworkElement)splash.Content;
+            splash.Content = null;  // render the content on its own, without showing a window
+            var size = new Size(splash.Width, splash.Height);
+            root.Measure(size);
+            root.Arrange(new Rect(size));
+            root.UpdateLayout();
+            const double scale = 2;  // crisp at 200%
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                (int)(size.Width * scale), (int)(size.Height * scale), 96 * scale, 96 * scale,
+                System.Windows.Media.PixelFormats.Pbgra32);
+            bitmap.Render(root);
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            using var file = System.IO.File.Create(path);
+            encoder.Save(file);
+        }
+
         private void ParseCommandLineArgs(string[] args)
         {
             try
