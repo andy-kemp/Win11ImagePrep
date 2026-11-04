@@ -33,8 +33,18 @@ namespace WinImagePrep
                 var renderAt = Array.IndexOf(e.Args, "--render-splash");
                 if (renderAt >= 0 && renderAt + 1 < e.Args.Length)
                 {
-                    RenderSplashToPng(e.Args[renderAt + 1]);
-                    Shutdown(0);
+                    var target = e.Args[renderAt + 1];
+                    try
+                    {
+                        RenderSplashToPng(target);
+                        Environment.Exit(0);
+                    }
+                    catch (Exception renderEx)
+                    {
+                        // Never show a dialog here: this runs unattended on build machines
+                        try { System.IO.File.WriteAllText(target + ".error.txt", renderEx.ToString()); } catch { }
+                        Environment.Exit(1);
+                    }
                     return;
                 }
 

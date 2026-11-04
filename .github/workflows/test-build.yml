@@ -161,9 +161,12 @@ jobs:
       - name: Render the splash screen
         shell: pwsh
         continue-on-error: true
+        timeout-minutes: 2
         run: |
           $exe = Resolve-Path release/WinImagePrep_test_*.exe
-          Start-Process -FilePath $exe -ArgumentList '--render-splash', "$PWD\release\screenshot-splash.png" -Wait -PassThru | Out-Null
+          $p = Start-Process -FilePath $exe -ArgumentList '--render-splash', "$PWD\release\screenshot-splash.png" -PassThru
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; Write-Host 'Render timed out' }
+          Get-ChildItem release/screenshot-splash* | Format-Table Name, Length
 
       - uses: actions/upload-artifact@v4
         with:
