@@ -34,7 +34,7 @@
             <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,0,12,0">
                 <TextBlock Text="Updating Win11 Image Prep" Foreground="White" FontSize="24" FontWeight="Bold"/>
                 <!-- AKC green, lifted for black -->
-                <TextBlock x:Name="VersionText" Text="Updater" Foreground="#7FA873" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                <TextBlock x:Name="VersionText" Text="Updater" Foreground="#7FBF63" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0"/>
                 <TextBlock x:Name="StatusText" Text="Preparing update..." Foreground="#B9AFA6" FontSize="13"
                            Margin="0,12,0,0" TextWrapping="Wrap"/>
             </StackPanel>
@@ -70,7 +70,7 @@
                     </ControlTemplate>
                 </Button.Template>
             </Button>
-            <TextBlock Grid.Row="3" Grid.Column="1" Text="www.andykemp.com" Foreground="#7FA873" FontSize="12"
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="www.andykemp.com" Foreground="#7FBF63" FontSize="12"
                        FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
         </Grid>
     </Border>
