@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -10,13 +11,124 @@ namespace WinImagePrep.Services
 {
     public class IsoService
     {
+        // Windows won't mount an ISO from a network location. That includes a Mac folder shared by Parallels
+        // (\\Mac\Home, \\psf) and a Windows Downloads or Desktop folder that Parallels redirects there. Such an
+        // ISO is copied to the local disk once (one copy kept) and mounted from there.
+        private static readonly ConcurrentDictionary<string, string> LocalCopies = new(StringComparer.OrdinalIgnoreCase);
+        private static string IsoCacheDirectory => Path.Combine(AppSettings.SettingsDirectory, "IsoCache");
+
+        /// <summary>The path to mount for an ISO: the local copy if one was made.</summary>
+        private static string MountPathFor(string isoPath) =>
+            LocalCopies.TryGetValue(isoPath, out var local) && File.Exists(local) ? local : isoPath;
+
+        private static bool IsOnNetwork(string path)
+        {
+            try
+            {
+                var full = Path.GetFullPath(path);
+                if (full.StartsWith(@"\\", StringComparison.Ordinal)) return true;
+                var root = Path.GetPathRoot(full);
+                if (!string.IsNullOrEmpty(root) && new DriveInfo(root).DriveType == DriveType.Network) return true;
+                // A folder redirected by a link (a Parallels shared profile, say)
+                for (var dir = new DirectoryInfo(Path.GetDirectoryName(full)!); dir != null; dir = dir.Parent)
+                {
+                    if (dir.LinkTarget is string target && target.StartsWith(@"\\", StringComparison.Ordinal)) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
         /// <summary>
-        /// Mount an ISO file and return the drive letter
+        /// Copy the ISO to the local disk (once) so Windows can mount it. Returns the local path, or null.
+        /// </summary>
+        private static async Task<string?> CopyToLocalAsync(string isoPath, IProgress<string>? progress, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var source = new FileInfo(isoPath);
+                Directory.CreateDirectory(IsoCacheDirectory);
+                var local = Path.Combine(IsoCacheDirectory, source.Name);
+                var existing = new FileInfo(local);
+                if (existing.Exists && existing.Length == source.Length && existing.LastWriteTimeUtc == source.LastWriteTimeUtc)
+                {
+                    progress?.Report($"Using the local copy of the ISO: {local}");
+                    LocalCopies[isoPath] = local;
+                    return local;
+                }
+
+                // Keep only one cached ISO
+                foreach (var old in Directory.GetFiles(IsoCacheDirectory, "*.iso"))
+                {
+                    try { File.Delete(old); } catch { }
+                }
+
+                var drive = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(local))!);
+                if (drive.AvailableFreeSpace < source.Length + 1024L * 1024 * 1024)
+                {
+                    progress?.Report($"✗ Not enough free space on {drive.Name} to copy the ISO locally ({FileSystemHelper.FormatBytes(source.Length)} needed)");
+                    return null;
+                }
+
+                progress?.Report($"Windows can't mount an ISO from a network or shared folder, so it is being copied to {IsoCacheDirectory} ({FileSystemHelper.FormatBytes(source.Length)})...");
+                var temp = local + ".part";
+                await using (var input = new FileStream(isoPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, true))
+                await using (var output = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20, true))
+                {
+                    var buffer = new byte[4 << 20];
+                    long done = 0;
+                    int n, last = -1;
+                    while ((n = await input.ReadAsync(buffer, cancellationToken)) > 0)
+                    {
+                        await output.WriteAsync(buffer.AsMemory(0, n), cancellationToken);
+                        done += n;
+                        var pct = (int)(done * 100 / Math.Max(1, source.Length));
+                        if (pct / 10 != last / 10) { last = pct; progress?.Report($"Copying ISO: {pct}%"); }
+                    }
+                }
+                File.Move(temp, local, overwrite: true);
+                File.SetLastWriteTimeUtc(local, source.LastWriteTimeUtc);
+                progress?.Report($"✓ ISO copied to {local}");
+                LocalCopies[isoPath] = local;
+                return local;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                progress?.Report($"✗ Could not copy the ISO locally: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Mount an ISO file and return the drive letter. An ISO on a network or shared folder is copied to the
+        /// local disk first, and one that won't mount where it is gets the same treatment.
         /// </summary>
         public async Task<string?> MountIsoAsync(
             string isoPath,
             IProgress<string>? progress = null,
             CancellationToken cancellationToken = default)
+        {
+            if (File.Exists(isoPath) && !LocalCopies.ContainsKey(isoPath) && IsOnNetwork(isoPath))
+            {
+                progress?.Report("The ISO is on a network or shared folder");
+                await CopyToLocalAsync(isoPath, progress, cancellationToken);
+            }
+
+            var letter = await MountIsoAtAsync(MountPathFor(isoPath), progress, cancellationToken);
+            if (letter == null && File.Exists(isoPath) && !LocalCopies.ContainsKey(isoPath))
+            {
+                progress?.Report("Windows couldn't mount the ISO where it is; trying a local copy");
+                if (await CopyToLocalAsync(isoPath, progress, cancellationToken) is string local)
+                    letter = await MountIsoAtAsync(local, progress, cancellationToken);
+            }
+            return letter;
+        }
+
+        private async Task<string?> MountIsoAtAsync(
+            string isoPath,
+            IProgress<string>? progress,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -38,9 +150,9 @@ namespace WinImagePrep.Services
                 var arguments = $"-Command \"" +
                     $"$ErrorActionPreference='Stop'; " +
                     $"try {{ " +
-                    $"$mount = Mount-DiskImage -ImagePath '{escapedPath}' -PassThru -StorageType ISO -Access ReadOnly; " +
-                    $"Start-Sleep -Seconds 3; " +
-                    $"$vol = Get-DiskImage -ImagePath '{escapedPath}' | Get-Volume; " +
+                    $"$img = Get-DiskImage -ImagePath '{escapedPath}' -ErrorAction SilentlyContinue; " +
+                    $"if (-not ($img -and $img.Attached)) {{ $null = Mount-DiskImage -ImagePath '{escapedPath}' -PassThru -StorageType ISO -Access ReadOnly; Start-Sleep -Seconds 3 }}; " +
+                    $"$vol = Get-DiskImage -ImagePath '{escapedPath}' | Get-Volume | Where-Object DriveLetter | Select-Object -First 1; " +
                     $"$driveLetter = $vol.DriveLetter; " +
                     $"if ([string]::IsNullOrEmpty($driveLetter)) {{ throw 'No drive letter assigned' }}; " +
                     $"Write-Output $driveLetter; " +
@@ -154,8 +266,8 @@ namespace WinImagePrep.Services
             {
                 progress?.Report($"Dismounting ISO: {Path.GetFileName(isoPath)}");
 
-                // Escape single quotes for PowerShell
-                var escapedPath = isoPath.Replace("'", "''");
+                // Escape single quotes for PowerShell (and dismount the local copy if that's what was mounted)
+                var escapedPath = MountPathFor(isoPath).Replace("'", "''");
 
                 var arguments = $"-Command \"Dismount-DiskImage -ImagePath '{escapedPath}'\"";
                 var result = await ProcessHelper.ExecuteProcessAsync("powershell.exe", arguments, cancellationToken);
@@ -193,8 +305,11 @@ namespace WinImagePrep.Services
             {
                 progress?.Report("Reading ISO volume label...");
 
+                if (File.Exists(isoPath) && !LocalCopies.ContainsKey(isoPath) && IsOnNetwork(isoPath))
+                    await CopyToLocalAsync(isoPath, progress, cancellationToken);
+
                 // Escape single quotes for PowerShell
-                var escapedPath = isoPath.Replace("'", "''");
+                var escapedPath = MountPathFor(isoPath).Replace("'", "''");
 
                 var arguments = $"-Command \"" +
                     $"$ErrorActionPreference='Stop'; " +
@@ -273,7 +388,8 @@ namespace WinImagePrep.Services
                 var driveLetter = await MountIsoAsync(isoPath, progress, cancellationToken);
                 if (string.IsNullOrEmpty(driveLetter))
                 {
-                    result.Message = "Failed to mount ISO";
+                    result.Message = "Windows couldn't open the ISO (mount failed). Show the log for the reason. " +
+                                     "If the file is still downloading, or is damaged, download it again.";
                     return result;
                 }
 
