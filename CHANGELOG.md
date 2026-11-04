@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.14] - 2026-11-04
+
+### Changed
+- **A new About window**, matching AKC AppDeploy: a black-and-copper band with the AKC logo, the app's icon and name, the version in AKC green and Atlas, then what the app does, links to www.andykemp.com, the docs and the downloads page, and your working folder with an Open button.
+
+---
+
 ## [5.9.13] - 2026-11-04
 
 ### Changed

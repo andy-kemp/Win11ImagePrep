@@ -1,181 +1,69 @@
 <Window x:Class="WinImagePrep.AboutDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="About WinImagePrep"
-        Height="550" 
-        Width="550"
+        Title="About Win11 Image Prep"
+        Width="560" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
-        ResizeMode="NoResize"
-        Background="White">
+        ResizeMode="NoResize">
+    <!-- As AKC AppDeploy's About window: a black-and-copper band at the top to match the splash, with the AKC logo,
+         the app's icon and name, the version in AKC green and Atlas; then the details in the theme's shared styles -->
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="#090909" Padding="28,22">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <Image Source="pack://application:,,,/Assets/akc-logo-dark-bg.png" Height="36" HorizontalAlignment="Left"
+                           RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,0,14"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="pack://application:,,,/Assets/app-icon.png" Height="32" Margin="0,0,10,0"
+                               RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
+                        <TextBlock Text="Win11 Image Prep" Foreground="White" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Version}" Foreground="#7FBF63" FontSize="13.5" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                </StackPanel>
+                <Image Grid.Column="1" Source="pack://application:,,,/Assets/atlas.png" Height="120"
+                       RenderOptions.BitmapScalingMode="HighQuality" Margin="12,-8,0,-22"/>
+            </Grid>
+        </Border>
 
-    <Window.Resources>
-        <Style x:Key="TitleStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="28"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#201A16"/>
-            <Setter Property="Margin" Value="0,0,0,5"/>
-        </Style>
-
-        <Style x:Key="VersionStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Foreground" Value="#625850"/>
-            <Setter Property="Margin" Value="0,0,0,20"/>
-        </Style>
-
-        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#201A16"/>
-            <Setter Property="Margin" Value="0,15,0,8"/>
-        </Style>
-
-        <Style x:Key="BodyTextStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="#201A16"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="LineHeight" Value="20"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
-        </Style>
-
-        <Style x:Key="LinkStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="#8A4E2E"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="TextDecorations" Value="Underline"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
-        </Style>
-
-        <Style x:Key="PathBoxStyle" TargetType="Border">
-            <Setter Property="Background" Value="#F7F3EF"/>
-            <Setter Property="BorderBrush" Value="#E5D9CE"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="10"/>
-            <Setter Property="Margin" Value="0,5,0,15"/>
-        </Style>
-
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#8A4E2E"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="25,10"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="3"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#8A4E2E"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-            <Setter Property="Background" Value="#625850"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#302923"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </Window.Resources>
-
-    <Grid Margin="30">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Header -->
-        <StackPanel Grid.Row="0" HorizontalAlignment="Center">
-            <TextBlock Text="WinImagePrep" Style="{StaticResource TitleStyle}" HorizontalAlignment="Center"/>
-            <TextBlock Text="{Binding Version}" Style="{StaticResource VersionStyle}" HorizontalAlignment="Center"/>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="22,4,22,18">
+            <Button Content="Website" Click="OpenWebsite_Click" Margin="0,0,8,0"/>
+            <Button Content="Documentation" Click="OpenDocumentation_Click" Margin="0,0,8,0"/>
+            <Button Content="Close" Style="{StaticResource PrimaryButton}" IsDefault="True" IsCancel="True" Click="Close_Click"/>
         </StackPanel>
 
-        <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <!-- Description -->
-                <TextBlock Style="{StaticResource BodyTextStyle}" FontWeight="SemiBold" TextAlignment="Center">
-                    Create customized Windows 11 installation media with integrated drivers.
-                </TextBlock>
+        <StackPanel Margin="28,18,28,8">
+            <TextBlock Style="{StaticResource AkcBody}" FontWeight="SemiBold"
+                       Text="Windows 11 install media with your drivers already in it: a USB stick, an ISO or a saved image, ready to deploy."/>
 
-                <!-- Developer -->
-                <TextBlock Text="Developed By" Style="{StaticResource SectionTitleStyle}"/>
-                <TextBlock Style="{StaticResource BodyTextStyle}">
-                    Andy Kemp Consulting Ltd
-                </TextBlock>
+            <TextBlock Text="Developed by" Style="{StaticResource AkcSubheading}"/>
+            <TextBlock Style="{StaticResource AkcBody}" Text="Andy Kemp Consulting Ltd"/>
 
-                <!-- Website -->
-                <TextBlock Text="Website" Style="{StaticResource SectionTitleStyle}"/>
-                <TextBlock Text="https://www.andykemp.com" 
-                           Style="{StaticResource LinkStyle}"
-                           MouseLeftButtonDown="WebsiteLink_Click"/>
+            <TextBlock Text="Links" Style="{StaticResource AkcSubheading}"/>
+            <TextBlock Style="{StaticResource AkcBody}">
+                <Hyperlink NavigateUri="https://www.andykemp.com" RequestNavigate="Link_RequestNavigate" Foreground="{StaticResource AkcCopper}">www.andykemp.com</Hyperlink>
+                <LineBreak/>
+                <Hyperlink NavigateUri="https://docs.andykemp.com/win11-image-prep/" RequestNavigate="Link_RequestNavigate" Foreground="{StaticResource AkcCopper}">docs.andykemp.com/win11-image-prep</Hyperlink>
+                <LineBreak/>
+                <Hyperlink NavigateUri="https://downloads.andykemp.com/win11-image-prep/" RequestNavigate="Link_RequestNavigate" Foreground="{StaticResource AkcCopper}">downloads.andykemp.com/win11-image-prep</Hyperlink>
+            </TextBlock>
 
-                <!-- Documentation -->
-                <TextBlock Text="Documentation" Style="{StaticResource SectionTitleStyle}"/>
-                <TextBlock Text="https://docs.andykemp.com/win11-image-prep/" 
-                           Style="{StaticResource LinkStyle}"
-                           MouseLeftButtonDown="DocumentationLink_Click"/>
+            <TextBlock Text="Your files" Style="{StaticResource AkcSubheading}"/>
+            <TextBlock Style="{StaticResource AkcMutedText}" Text="Settings, logs, saved images and the working files for a build are kept here."/>
+            <Border Style="{StaticResource AkcPathBox}" Margin="0,6,0,0">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Open" Margin="8,0,0,0" Padding="10,3" Click="OpenFolder_Click"/>
+                    <TextBlock Text="{Binding WorkingFolder}" FontFamily="{StaticResource AkcMono}" FontSize="11.5" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </DockPanel>
+            </Border>
 
-                <!-- Working Folder -->
-                <TextBlock Text="Working Folder" Style="{StaticResource SectionTitleStyle}"/>
-                <Border Style="{StaticResource PathBoxStyle}">
-                    <TextBlock Text="{Binding WorkingFolder}" 
-                               FontFamily="Consolas" 
-                               FontSize="11" 
-                               Foreground="#302923"
-                               TextWrapping="Wrap"/>
-                </Border>
-
-                <!-- Copyright -->
-                <TextBlock Style="{StaticResource BodyTextStyle}" 
-                           FontSize="11" 
-                           Foreground="#625850"
-                           TextAlignment="Center"
-                           Margin="0,20,0,0">
-                    © 2025 Andy Kemp Consulting Ltd. All rights reserved.
-                </TextBlock>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Action Buttons -->
-        <Grid Grid.Row="2" Margin="0,20,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <Button Grid.Column="1"
-                    Content="Open Website"
-                    Click="OpenWebsite_Click"
-                    Style="{StaticResource SecondaryButtonStyle}"
-                    Margin="0,0,10,0"/>
-
-            <Button Grid.Column="2"
-                    Content="Open Documentation"
-                    Click="OpenDocumentation_Click"
-                    Style="{StaticResource SecondaryButtonStyle}"
-                    Margin="0,0,10,0"/>
-
-            <Button Grid.Column="3"
-                    Content="Close"
-                    Click="Close_Click"
-                    Style="{StaticResource PrimaryButtonStyle}"/>
-        </Grid>
-    </Grid>
+            <TextBlock Style="{StaticResource AkcMutedText}" Margin="0,18,0,0" TextAlignment="Center">
+                © 2026 Andy Kemp Consulting Ltd. Windows is a trademark of Microsoft.<LineBreak/>Win11 Image Prep is not affiliated with Microsoft.
+            </TextBlock>
+        </StackPanel>
+    </DockPanel>
 </Window>

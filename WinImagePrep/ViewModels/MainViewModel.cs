@@ -3392,7 +3392,7 @@ errorMessage = "Failed to create custom ISO.\n\n" +
             try
             {
                 var settingsService = new SettingsService();
-                var aboutDialog = new AboutDialog(settingsService);
+                var aboutDialog = new AboutDialog(settingsService) { Owner = Application.Current.MainWindow };
                 aboutDialog.ShowDialog();
                 AddLog("✓ Displayed About dialog");
             }

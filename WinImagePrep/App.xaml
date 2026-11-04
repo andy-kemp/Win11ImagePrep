@@ -247,5 +247,33 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Text and box styles shared with AKC AppDeploy (About window and dialogs) -->
+        <Style x:Key="AkcSubheading" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14.5"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcHeading}"/>
+            <Setter Property="Margin" Value="0,16,0,6"/>
+        </Style>
+        <Style x:Key="AkcBody" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcText}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="20"/>
+        </Style>
+        <Style x:Key="AkcMutedText" TargetType="TextBlock" BasedOn="{StaticResource AkcBody}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource AkcMuted}"/>
+        </Style>
+        <Style x:Key="AkcInfoBox" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource AkcBgSoft}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AkcBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="14,10"/>
+        </Style>
+        <Style x:Key="AkcPathBox" TargetType="Border" BasedOn="{StaticResource AkcInfoBox}">
+            <Setter Property="Padding" Value="10,6"/>
+        </Style>
     </Application.Resources>
 </Application>

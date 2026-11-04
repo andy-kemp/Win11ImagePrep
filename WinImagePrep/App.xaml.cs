@@ -48,6 +48,43 @@ namespace WinImagePrep
                     return;
                 }
 
+                // Test builds: "--render-about <file.png>" draws the About window to a PNG and exits
+                var aboutAt = Array.IndexOf(e.Args, "--render-about");
+                if (aboutAt >= 0 && aboutAt + 1 < e.Args.Length)
+                {
+                    var target = e.Args[aboutAt + 1];
+                    try
+                    {
+                        var about = new AboutDialog(new Services.SettingsService())
+                        {
+                            WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000, ShowActivated = false
+                        };
+                        about.Show();
+                        about.UpdateLayout();
+                        const double scale = 2;
+                        var w = about.ActualWidth; var h = about.ActualHeight;
+                        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                            (int)(w * scale), (int)(h * scale), 96 * scale, 96 * scale, System.Windows.Media.PixelFormats.Pbgra32);
+                        var visual = new System.Windows.Media.DrawingVisual();
+                        using (var dc = visual.RenderOpen())
+                        {
+                            dc.DrawRectangle(about.Background ?? System.Windows.Media.Brushes.White, null, new Rect(0, 0, w, h));
+                            dc.DrawRectangle(new System.Windows.Media.VisualBrush((System.Windows.Media.Visual)about.Content), null, new Rect(0, 0, w, h));
+                        }
+                        bitmap.Render(visual);
+                        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                        using (var file = System.IO.File.Create(target)) encoder.Save(file);
+                        Environment.Exit(0);
+                    }
+                    catch (Exception renderEx)
+                    {
+                        try { System.IO.File.WriteAllText(target + ".error.txt", renderEx.ToString()); } catch { }
+                        Environment.Exit(1);
+                    }
+                    return;
+                }
+
                 // Parse command-line arguments for state restoration
                 ParseCommandLineArgs(e.Args);
 
