@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.10] - 2026-11-04
+
+### Fixed
+- **Every driver goes into the boot images again (Windows Setup and recovery), as up to 5.8.** 5.9.0 added only storage, network, USB and input drivers, to save time. Arm devices such as Surface Laptop 7th Edition (Snapdragon) need platform drivers in Setup that this missed, so Setup could freeze. It's now an option, **Tools > Options > Put every driver in the boot images**, on by default. Rebuild the image to pick this up.
+- Saving **Tools > Options** no longer resets settings that aren't on that page (app removal, unattended setup and the boot driver classes) to their defaults.
+- With the option off, drivers whose class is written as a [Strings] token are recognised, and USB-C (UCM) and extension drivers are included.
+
+---
+
 ## [5.9.9] - 2026-11-04
 
 ### Fixed

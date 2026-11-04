@@ -79,7 +79,7 @@ namespace WinImagePrep.Models
         /// </summary>
         public static readonly string[] DefaultBootDriverClasses =
         {
-            "SCSIAdapter", "HDC", "DiskDrive", "Net", "USB", "HIDClass", "Keyboard", "Mouse", "System"
+            "SCSIAdapter", "HDC", "DiskDrive", "Net", "USB", "UCM", "HIDClass", "Keyboard", "Mouse", "System", "Extension"
         };
 
         /// <summary>
@@ -88,9 +88,14 @@ namespace WinImagePrep.Models
         public List<string> BootDriverClasses { get; set; } = new List<string>(DefaultBootDriverClasses);
 
         /// <summary>
-        /// Inject the full driver set into boot images instead of only boot-critical classes.
-        /// Slower and bloats boot.wim/WinRE; use only if a device can't see its disk or keyboard in setup.
+        /// Put every driver into the boot images (Windows Setup and WinRE), as versions up to 5.8 did.
+        /// The safe default: Arm devices (Surface with Snapdragon, say) need platform drivers in Setup that
+        /// the class filter can miss. Off adds only BootDriverClasses, which is quicker.
+        /// (Replaces InjectAllDriversIntoBootImages, whose saved "false" would otherwise keep the filter on.)
         /// </summary>
+        public bool AllDriversInBootImages { get; set; } = true;
+
+        /// <summary>Older setting, read but no longer used: see AllDriversInBootImages</summary>
         public bool InjectAllDriversIntoBootImages { get; set; } = false;
 
         /// <summary>
@@ -193,6 +198,7 @@ namespace WinImagePrep.Models
                 PendingUpdateVersion = this.PendingUpdateVersion,
                 BootDriverClasses = new List<string>(this.BootDriverClasses),
                 InjectAllDriversIntoBootImages = this.InjectAllDriversIntoBootImages,
+                AllDriversInBootImages = this.AllDriversInBootImages,
                 CompactImageAfterServicing = this.CompactImageAfterServicing,
                 AdkSetupUrl = this.AdkSetupUrl
             };

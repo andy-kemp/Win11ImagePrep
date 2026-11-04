@@ -27,6 +27,9 @@ namespace WinImagePrep.ViewModels
         private bool _autoCleanupMounts = true;
 
         [ObservableProperty]
+        private bool _allDriversInBootImages = true;
+
+        [ObservableProperty]
         private bool _checkForUpdates = true;
 
         [ObservableProperty]
@@ -80,6 +83,7 @@ namespace WinImagePrep.ViewModels
             WorkingFolder = _originalSettings.WorkingRoot;
             DeleteTempFilesOnExit = _originalSettings.DeleteTempFilesOnExit;
             AutoCleanupMounts = _originalSettings.AutoCleanupMounts;
+            AllDriversInBootImages = _originalSettings.AllDriversInBootImages;
             CheckForUpdates = _originalSettings.CheckForUpdates;
             LogLevel = _originalSettings.LogLevel;
 
@@ -263,6 +267,7 @@ namespace WinImagePrep.ViewModels
             WorkingFolder = defaults.WorkingRoot;
             DeleteTempFilesOnExit = defaults.DeleteTempFilesOnExit;
             AutoCleanupMounts = defaults.AutoCleanupMounts;
+            AllDriversInBootImages = defaults.AllDriversInBootImages;
             CheckForUpdates = defaults.CheckForUpdates;
             LogLevel = defaults.LogLevel;
 
@@ -350,16 +355,16 @@ namespace WinImagePrep.ViewModels
         /// </summary>
         private AppSettings CreateSettingsFromUI()
         {
-            return new AppSettings
-            {
-                WorkingRoot = WorkingFolder?.Trim() ?? string.Empty,
-                DeleteTempFilesOnExit = DeleteTempFilesOnExit,
-                AutoCleanupMounts = AutoCleanupMounts,
-                CheckForUpdates = CheckForUpdates,
-                FirstRunComplete = _originalSettings.FirstRunComplete, // Preserve FirstRunComplete
-                FirstRunUpdateCheckComplete = _originalSettings.FirstRunUpdateCheckComplete, // Preserve FirstRunUpdateCheckComplete
-                LogLevel = LogLevel
-            };
+            // Start from the saved settings, so settings that aren't on this page (app removal, unattended
+            // setup, boot driver classes...) are kept rather than reset to their defaults
+            var settings = _originalSettings.Clone();
+            settings.WorkingRoot = WorkingFolder?.Trim() ?? string.Empty;
+            settings.DeleteTempFilesOnExit = DeleteTempFilesOnExit;
+            settings.AutoCleanupMounts = AutoCleanupMounts;
+            settings.AllDriversInBootImages = AllDriversInBootImages;
+            settings.CheckForUpdates = CheckForUpdates;
+            settings.LogLevel = LogLevel;
+            return settings;
         }
 
         /// <summary>
@@ -380,6 +385,7 @@ namespace WinImagePrep.ViewModels
             return WorkingFolder != _originalSettings.WorkingRoot ||
                    DeleteTempFilesOnExit != _originalSettings.DeleteTempFilesOnExit ||
                    AutoCleanupMounts != _originalSettings.AutoCleanupMounts ||
+                   AllDriversInBootImages != _originalSettings.AllDriversInBootImages ||
                    CheckForUpdates != _originalSettings.CheckForUpdates ||
                    LogLevel != _originalSettings.LogLevel;
         }

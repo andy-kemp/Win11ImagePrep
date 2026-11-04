@@ -1548,9 +1548,9 @@ namespace WinImagePrep.ViewModels
                 }
 
                 List<string> bootDrivers;
-                if (settings.InjectAllDriversIntoBootImages)
+                if (settings.AllDriversInBootImages)
                 {
-                    AddLog("Boot images: full driver set (InjectAllDriversIntoBootImages is on)");
+                    AddLog("Boot images: every driver (Options > Put every driver in the boot images)");
                     bootDrivers = stagedDrivers;
                 }
                 else

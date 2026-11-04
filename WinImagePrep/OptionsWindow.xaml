@@ -202,6 +202,13 @@
                                   FontSize="13"
                                   Margin="0,0,0,10"/>
 
+                        <CheckBox IsChecked="{Binding AllDriversInBootImages}"
+                                  Content="Put every driver in the boot images (Windows Setup and recovery)"
+                                  FontSize="13"
+                                  Margin="0,0,0,2"/>
+                        <TextBlock Text="Safest, and needed on Arm devices such as Surface with Snapdragon. Turn it off to add only storage, network, USB and input drivers, which is quicker."
+                                   TextWrapping="Wrap" FontSize="11" Foreground="#625850" Margin="22,0,0,10"/>
+
                         <CheckBox IsChecked="{Binding CheckForUpdates}"
                                   Content="Check for application updates on startup"
                                   FontSize="13"
