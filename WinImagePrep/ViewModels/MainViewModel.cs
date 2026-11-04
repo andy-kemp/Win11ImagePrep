@@ -3307,16 +3307,16 @@ errorMessage = "Failed to create custom ISO.\n\n" +
             {
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = "https://github.com/andy-kemp/Win11ImagePrep/tree/main/WinImagePrep",
+                    FileName = "https://downloads.andykemp.com/win11-image-prep/",
                     UseShellExecute = true
                 });
-                AddLog("✓ Opened GitHub README");
+                AddLog("✓ Opened the downloads page");
             }
             catch (Exception ex)
             {
-                AddLog($"✗ Error opening GitHub README: {ex.Message}");
+                AddLog($"✗ Error opening the downloads page: {ex.Message}");
                 MessageBox.Show(
-                    "Could not open GitHub README. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/tree/main/WinImagePrep",
+                    "Could not open the downloads page. Please visit:\nhttps://downloads.andykemp.com/win11-image-prep/",
                     "Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -3331,16 +3331,16 @@ errorMessage = "Failed to create custom ISO.\n\n" +
             {
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = "https://github.com/andy-kemp/Win11ImagePrep/issues",
+                    FileName = "https://www.andykemp.com/contact/",
                     UseShellExecute = true
                 });
-                AddLog("✓ Opened GitHub issues page");
+                AddLog("✓ Opened the contact page");
             }
             catch (Exception ex)
             {
                 AddLog($"✗ Error opening issues page: {ex.Message}");
                 MessageBox.Show(
-                    "Could not open issues page. Please visit:\nhttps://github.com/andy-kemp/Win11ImagePrep/issues",
+                    "Could not open the contact page. Please visit:\nhttps://www.andykemp.com/contact/",
                     "Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -3510,7 +3510,7 @@ errorMessage = "Failed to create custom ISO.\n\n" +
                                 "Update was cancelled or failed.\n\n" +
                                 "Administrator privileges are required to update the application.\n\n" +
                                 "You can manually download the latest version from:\n" +
-                                "https://github.com/andy-kemp/Win11ImagePrep/releases",
+                                "https://downloads.andykemp.com/win11-image-prep/",
                                 "Update Failed",
                                 MessageBoxButton.OK,
                                 MessageBoxImage.Warning);

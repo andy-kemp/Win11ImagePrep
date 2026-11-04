@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.6] - 2026-11-04
+
+### Changed
+- Nothing in the app depends on GitHub any more: the list of built-in apps comes from downloads.andykemp.com (GitHub as a fallback), **Help > Downloads** opens the downloads page, and **Help > Report Issue** opens the contact page on www.andykemp.com.
+
+---
+
 ## [5.9.5] - 2026-11-04
 
 ### Changed

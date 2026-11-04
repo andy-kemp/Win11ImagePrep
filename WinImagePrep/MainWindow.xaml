@@ -52,13 +52,13 @@
                         <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_GitHub README" Command="{Binding OpenGitHubReadmeCommand}" ToolTip="View project README on GitHub">
+                <MenuItem Header="_Downloads" Command="{Binding OpenGitHubReadmeCommand}" ToolTip="The latest version at downloads.andykemp.com">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE736;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="_Report Issue" Command="{Binding OpenReportIssueCommand}" ToolTip="Report bugs or request features on GitHub">
+                <MenuItem Header="_Report Issue" Command="{Binding OpenReportIssueCommand}" ToolTip="Report a problem or request a feature: contact Andy Kemp Consulting">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xEBE8;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AkcCopper}"/>
                     </MenuItem.Icon>

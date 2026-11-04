@@ -13,7 +13,12 @@ namespace WinImagePrep.Services
     public class AppListService
     {
         // GitHub raw URL for the app list (can be updated to point to your repo)
-        private const string DefaultAppListUrl = "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/app-list.json";
+        // The app list is published with each release to downloads.andykemp.com; GitHub is the fallback
+        private static readonly string[] AppListUrls =
+        {
+            "https://downloads.andykemp.com/win11-image-prep/app-list.json",
+            "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/app-list.json",
+        };
 
         private readonly string _cacheDirectory;
         private readonly string _cacheFilePath;
@@ -91,14 +96,27 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
-        /// Download app list from GitHub
+        /// Download the app list (downloads.andykemp.com, then GitHub)
         /// </summary>
         private async Task<List<WindowsApp>?> DownloadFromGitHubAsync(CancellationToken cancellationToken)
         {
-            var response = await _httpClient.GetAsync(DefaultAppListUrl, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
+            string? json = null;
+            Exception? last = null;
+            foreach (var url in AppListUrls)
+            {
+                try
+                {
+                    using var response = await _httpClient.GetAsync(url, cancellationToken);
+                    response.EnsureSuccessStatusCode();
+                    json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    break;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    last = ex;
+                }
+            }
+            if (json == null) throw last ?? new HttpRequestException("The app list could not be downloaded");
             var appDtos = JsonSerializer.Deserialize<List<WindowsAppDto>>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
