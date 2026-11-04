@@ -134,6 +134,11 @@ jobs:
           }
           Put "$prefix/WinImagePrep_full.exe" r2/WinImagePrep_full.exe 'application/vnd.microsoft.portable-executable' 'public, max-age=31536000, immutable'
           Put "$prefix/WinImagePrep.Updater.exe" r2/WinImagePrep.Updater.exe 'application/vnd.microsoft.portable-executable' 'public, max-age=31536000, immutable'
+          # version.json for the downloads page, then SHA256SUMS.txt, which marks the version as published there
+          $appSha = ((Get-Content r2/SHA256SUMS.txt | Where-Object { $_ -match 'WinImagePrep_full\.exe$' }) -split '\s+')[0]
+          [ordered]@{ version = $ver; file = 'WinImagePrep_full.exe'; sha256 = $appSha; published = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') } |
+            ConvertTo-Json | Set-Content r2/version.json -Encoding utf8NoBOM
+          Put "$prefix/version.json" r2/version.json 'application/json' 'public, max-age=300'
           Put "$prefix/SHA256SUMS.txt" r2/SHA256SUMS.txt 'text/plain; charset=utf-8' 'public, max-age=31536000, immutable'
           $sums = @{}
           foreach ($line in Get-Content r2/SHA256SUMS.txt) { $h, $n = $line -split '\s+', 2; $sums[$n.Trim()] = $h }
