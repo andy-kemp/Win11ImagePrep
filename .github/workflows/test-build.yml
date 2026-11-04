@@ -67,14 +67,15 @@ jobs:
           $splashDone = $false
           for ($i = 0; $i -lt 240 -and $h -eq [IntPtr]::Zero; $i++) {
             Start-Sleep -Milliseconds 250; $p.Refresh()
-            # The splash is a transparent, topmost window: copy it from the screen
+            # The splash (title without a version): have it draw itself
             if (-not $splashDone -and $p.MainWindowTitle -eq 'Win11 Image Prep') {
               Start-Sleep -Milliseconds 700
               $r = New-Object Win+RECT; [Win]::GetWindowRect($p.MainWindowHandle, [ref]$r) | Out-Null
               if ($r.R - $r.L -gt 100) {
                 $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
-                $g = [System.Drawing.Graphics]::FromImage($bmp)
-                $g.CopyFromScreen($r.L, $r.T, 0, 0, $bmp.Size); $g.Dispose()
+                $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
+                [Win]::PrintWindow($p.MainWindowHandle, $hdc, 2) | Out-Null
+                $g.ReleaseHdc($hdc); $g.Dispose()
                 $bmp.Save("$PWD/release/screenshot-splash.png", [System.Drawing.Imaging.ImageFormat]::Png)
                 $splashDone = $true
               }
