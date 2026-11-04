@@ -255,6 +255,16 @@ jobs:
           if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; Write-Host 'Render timed out' }
           Get-ChildItem release/screenshot-splash* | Format-Table Name, Length
 
+      - name: Render the About window
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          $exe = Resolve-Path release/WinImagePrep_test_*.exe
+          $p = Start-Process -FilePath $exe -ArgumentList '--render-about', "$PWD\release\screenshot-about.png" -PassThru
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; Write-Host 'Render timed out' }
+          Get-ChildItem release/screenshot-about* | Format-Table Name, Length
+
       - name: Render the updater window
         shell: pwsh
         continue-on-error: true
