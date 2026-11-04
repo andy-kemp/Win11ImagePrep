@@ -42,6 +42,7 @@
 	<Resource Include="Fonts\Inter-Bold.ttf" />
 	<Resource Include="Assets\akc-logo.png" />
 	<Resource Include="Assets\akc-logo-dark-bg.png" />
+	<Resource Include="Assets\atlas.png" />
   </ItemGroup>
 
   <!-- Include documentation files in publish output -->

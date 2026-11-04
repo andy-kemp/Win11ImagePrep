@@ -539,7 +539,7 @@ namespace WinImagePrep.Services
                 {
                     progress?.Report("✗ oscdimg.exe not found!");
                     progress?.Report("Please install Windows ADK (Assessment and Deployment Kit)");
-                    progress?.Report("Download from: https://docs.microsoft.com/en-us/windows-hardware/get-started/adk-install");
+                    progress?.Report("Download from: https://learn.microsoft.com/windows-hardware/get-started/adk-install");
                     return false;
                 }
 
