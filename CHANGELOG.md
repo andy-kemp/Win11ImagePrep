@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.4] - 2026-11-04
+
+### Changed
+- The updater (1.8.1) has the same layout as the splash screen: Atlas 320px tall with his antenna rising above the card, and the copper glow.
+
+---
+
 ## [5.9.3] - 2026-11-04
 
 ### Changed
-- Splash screen matches the Exchange Certificate Manager: Atlas stands 320px tall with his head and antenna rising above the card, with a soft copper glow behind him.
+- Splash screen matches the Exchange Certificate Manager: Atlas stands 320px tall with his antenna rising above the card, with a soft copper glow behind him.
 - AKC green is now #7FBF63 (www.andykemp.com's dark-theme green) on the splash and updater, the same as the other AKC tools.
 
 ---
