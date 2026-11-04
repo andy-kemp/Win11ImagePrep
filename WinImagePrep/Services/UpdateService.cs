@@ -14,14 +14,16 @@ using WinImagePrep.Helpers;
 namespace WinImagePrep.Services
 {
     /// <summary>
-    /// Service for checking and applying application updates from GitHub
+    /// Service for checking and applying application updates from downloads.andykemp.com (GitHub as a fallback)
     /// </summary>
     public class UpdateService
     {
         private readonly HttpClient _httpClient;
-        // Updates come from the latest GitHub Release: the app and updater EXEs plus SHA256SUMS.txt.
-        // version.json and publish/ on main are still kept up to date for versions 5.9.0 and older,
-        // and are this version's fallback if the Releases API can't be reached.
+        // Updates come from downloads.andykemp.com: win11-image-prep/latest.json names the version and the
+        // app and updater EXEs, with their SHA-256 checksums. The files sit in the akc-download R2 bucket.
+        // If that can't be read, the latest GitHub Release is tried, then version.json on main (5.9.0 and older).
+        private const string DownloadsLatestUrl = "https://downloads.andykemp.com/win11-image-prep/latest.json";
+        private const string DownloadsHost = "downloads.andykemp.com";
         private const string LatestReleaseApiUrl = "https://api.github.com/repos/andy-kemp/Win11ImagePrep/releases/latest";
         private static readonly string[] MainExeAssetNames = { "WinImagePrep_full.exe", "WinImagePrep.exe" };
         private const string UpdaterAssetName = "WinImagePrep.Updater.exe";
@@ -31,16 +33,6 @@ namespace WinImagePrep.Services
         private const string VersionCheckUrl = "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/version.json";
         private const string ExeDownloadUrl = "https://github.com/andy-kemp/Win11ImagePrep/raw/main/publish/WinImagePrep.exe";
         private const string UpdaterDownloadUrl = "https://github.com/andy-kemp/Win11ImagePrep/raw/main/publish/WinImagePrep.Updater.exe";
-
-        // Documentation download URLs
-        private static readonly Dictionary<string, string> DocumentationUrls = new()
-        {
-            { "UserGuide.html", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/docs/UserGuide.html" },
-            { "README.md", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/README.md" },
-            { "CHANGELOG.md", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/CHANGELOG.md" },
-            { "ReleaseNotes.txt", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/docs/ReleaseNotes.txt" },
-            { "AUTOPILOT_MODE.md", "https://raw.githubusercontent.com/andy-kemp/Win11ImagePrep/main/publish/docs/AUTOPILOT_MODE.md" }
-        };
 
         public UpdateService(HttpClient httpClient)
         {
@@ -66,7 +58,7 @@ namespace WinImagePrep.Services
         }
 
         /// <summary>
-        /// Check if a newer version is available on GitHub
+        /// Check if a newer version is available
         /// </summary>
         public async Task<(bool updateAvailable, Version? latestVersion)> CheckForUpdateAsync(CancellationToken cancellationToken = default)
         {
@@ -79,7 +71,7 @@ namespace WinImagePrep.Services
                 return (release.Version > current3, release.Version);
             }
 
-            Logger.Warning("Latest GitHub release unavailable; falling back to version.json");
+            Logger.Warning("Latest release unavailable from downloads.andykemp.com and GitHub; falling back to version.json");
             return await CheckForUpdateFromVersionJsonAsync(cancellationToken);
         }
 
@@ -149,7 +141,7 @@ namespace WinImagePrep.Services
                 return await ApplyUpdateFromReleaseAsync(release, progress, cancellationToken);
             }
 
-            Logger.Warning("Latest GitHub release unavailable; updating from main/publish instead");
+            Logger.Warning("Latest release unavailable; updating from main/publish instead");
             return await ApplyUpdateFromMainAsync(progress, cancellationToken);
         }
 
@@ -389,6 +381,72 @@ namespace WinImagePrep.Services
         /// their SHA-256 checksums from SHA256SUMS.txt. Returns null if any of that is missing.
         /// </summary>
         private async Task<ReleaseInfo?> GetLatestReleaseAsync(CancellationToken cancellationToken)
+        {
+            return await GetLatestFromDownloadsAsync(cancellationToken)
+                ?? await GetLatestGitHubReleaseAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Read win11-image-prep/latest.json from downloads.andykemp.com. File URLs must be https on
+        /// downloads.andykemp.com, and the checksums are checked again by the app and the updater.
+        /// </summary>
+        private async Task<ReleaseInfo?> GetLatestFromDownloadsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var url = $"{DownloadsLatestUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.UserAgent.ParseAdd("Win11ImagePrep-Updater");
+                request.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
+                using var response = await _httpClient.SendAsync(request, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warning($"{DownloadsLatestUrl} returned {(int)response.StatusCode}");
+                    return null;
+                }
+
+                using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+                var root = doc.RootElement;
+                var versionText = root.GetProperty("version").GetString() ?? string.Empty;
+                if (!Version.TryParse(versionText, out var version))
+                {
+                    Logger.Warning($"latest.json version '{versionText}' is not a version");
+                    return null;
+                }
+
+                static (string? Url, string? Sha) ReadFile(JsonElement root, string name) =>
+                    root.TryGetProperty(name, out var f)
+                        ? (f.GetProperty("url").GetString(), f.GetProperty("sha256").GetString()?.ToLowerInvariant())
+                        : (null, null);
+                var app = ReadFile(root, "app");
+                var updater = ReadFile(root, "updater");
+                if (!IsDownloadsUrl(app.Url) || !IsDownloadsUrl(updater.Url) || !IsSha256(app.Sha) || !IsSha256(updater.Sha))
+                {
+                    Logger.Warning("latest.json is missing the app or updater, or names a file outside downloads.andykemp.com");
+                    return null;
+                }
+
+                string? notes = root.TryGetProperty("notes", out var n) ? n.GetString() : null;
+                _latestRelease = new ReleaseInfo(
+                    new Version(version.Major, version.Minor, Math.Max(version.Build, 0)),
+                    $"v{versionText}", app.Url!, app.Sha!, updater.Url!, updater.Sha!, notes);
+                Logger.Info($"Latest release from {DownloadsHost}: {_latestRelease.Version}");
+                return _latestRelease;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"Could not read {DownloadsLatestUrl}: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static bool IsDownloadsUrl(string? url) =>
+            Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps
+            && string.Equals(u.Host, DownloadsHost, StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsSha256(string? s) => s != null && s.Length == 64 && s.All(Uri.IsHexDigit);
+
+        private async Task<ReleaseInfo?> GetLatestGitHubReleaseAsync(CancellationToken cancellationToken)
         {
             try
             {

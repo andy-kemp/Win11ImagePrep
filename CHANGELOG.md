@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.5] - 2026-11-04
+
+### Changed
+- Updates come from downloads.andykemp.com. **Tools > Check for Updates** reads win11-image-prep/latest.json there, which names the app and updater with their SHA-256 checksums; GitHub is used only if that can't be reached.
+
+---
+
 ## [5.9.4] - 2026-11-04
 
 ### Changed

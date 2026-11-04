@@ -3,7 +3,10 @@
 #   1. builds the app and updater on Windows
 #   2. creates the GitHub release (a draft until every file is uploaded) with WinImagePrep_full.exe,
 #      the updater and SHA-256 checksums: app 5.9.1 and later update from this
-#   3. for 5.9.0 and older, commits publish/*.exe AND version.json to main in ONE commit, so their
+#   3. copies the same files to downloads.andykemp.com (R2 bucket akc-download, win11-image-prep/<version>/),
+#      then writes win11-image-prep/latest.json, which app 5.9.5 and later update from.
+#      Needs the repo secrets CLOUDFLARE_API_TOKEN (R2 edit) and CLOUDFLARE_ACCOUNT_ID.
+#   4. for 5.9.0 and older, commits publish/*.exe AND version.json to main in ONE commit, so their
 #      updater never sees a new version before its exe is there (best effort; re-run to finish)
 name: Release
 
@@ -101,6 +104,55 @@ jobs:
           Upload-WithRetry $tag
           gh release edit $tag --draft=false --latest
           if ($LASTEXITCODE -ne 0) { throw 'Could not publish the release' }
+
+      # downloads.andykemp.com: the files go in first, latest.json last, so the app never sees a version
+      # whose files aren't there. Safe to re-run.
+      - name: Publish to downloads.andykemp.com (R2)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if (-not $env:CLOUDFLARE_API_TOKEN -or -not $env:CLOUDFLARE_ACCOUNT_ID) {
+            Write-Host '::warning::CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is not set, so nothing was published to downloads.andykemp.com'
+            exit 0
+          }
+          $ver = "${{ steps.ver.outputs.version }}"
+          $bucket = 'akc-download'
+          $prefix = "win11-image-prep/$ver"
+          New-Item -ItemType Directory -Force r2 | Out-Null
+          gh release download "v$ver" -D r2 -p WinImagePrep_full.exe -p WinImagePrep.Updater.exe -p SHA256SUMS.txt --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not download the v$ver release files" }
+          function Put($key, $file, $type, $cache) {
+            for ($i = 1; $i -le 4; $i++) {
+              npx --yes wrangler@4 r2 object put "$bucket/$key" --file $file --content-type $type --cache-control $cache --remote
+              if ($LASTEXITCODE -eq 0) { return }
+              Write-Host "Upload of $key failed (attempt $i); retrying"; Start-Sleep -Seconds (10 * $i)
+            }
+            throw "Could not upload $key"
+          }
+          Put "$prefix/WinImagePrep_full.exe" r2/WinImagePrep_full.exe 'application/vnd.microsoft.portable-executable' 'public, max-age=31536000, immutable'
+          Put "$prefix/WinImagePrep.Updater.exe" r2/WinImagePrep.Updater.exe 'application/vnd.microsoft.portable-executable' 'public, max-age=31536000, immutable'
+          Put "$prefix/SHA256SUMS.txt" r2/SHA256SUMS.txt 'text/plain; charset=utf-8' 'public, max-age=31536000, immutable'
+          $sums = @{}
+          foreach ($line in Get-Content r2/SHA256SUMS.txt) { $h, $n = $line -split '\s+', 2; $sums[$n.Trim()] = $h }
+          $base = "https://downloads.andykemp.com/$prefix"
+          $log = Get-Content CHANGELOG.md -Raw
+          $m = [regex]::Match($log, "(?s)## \[$([regex]::Escape($ver))\][^\n]*\n(.*?)(?=\n---|\n## \[)")
+          [ordered]@{
+            name           = 'Win11 Image Prep'
+            version        = $ver
+            updaterVersion = "${{ steps.ver.outputs.updater }}"
+            releaseDate    = (Get-Date -Format 'yyyy-MM-dd')
+            app            = [ordered]@{ file = 'WinImagePrep_full.exe'; url = "$base/WinImagePrep_full.exe"; sha256 = $sums['WinImagePrep_full.exe']; size = (Get-Item r2/WinImagePrep_full.exe).Length }
+            updater        = [ordered]@{ file = 'WinImagePrep.Updater.exe'; url = "$base/WinImagePrep.Updater.exe"; sha256 = $sums['WinImagePrep.Updater.exe']; size = (Get-Item r2/WinImagePrep.Updater.exe).Length }
+            checksums      = "$base/SHA256SUMS.txt"
+            notes          = $(if ($m.Success) { $m.Groups[1].Value.Trim() } else { '' })
+            docs           = 'https://docs.andykemp.com/win11-image-prep/'
+          } | ConvertTo-Json -Depth 4 | Set-Content r2/latest.json -Encoding utf8NoBOM
+          Get-Content r2/latest.json
+          Put 'win11-image-prep/latest.json' r2/latest.json 'application/json' 'no-cache'
 
       # For app versions 5.9.0 and older, which update from version.json and publish/ on main.
       # Best effort: 5.9.1 and later update from the GitHub release above, so a failure here
