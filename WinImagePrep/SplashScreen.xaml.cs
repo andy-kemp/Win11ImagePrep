@@ -15,11 +15,11 @@ namespace WinImagePrep
             try
             {
                 var version = Assembly.GetExecutingAssembly().GetName().Version;
-                txtVersion.Text = $"Version {version?.Major ?? 4}.{version?.Minor ?? 0}.{version?.Build ?? 1}";
+                txtVersion.Text = version != null ? $"Version {version.Major}.{version.Minor}.{version.Build}" : "Version";
             }
             catch
             {
-                txtVersion.Text = "Version 4.0.1";
+                txtVersion.Text = "Version";
             }
         }
 

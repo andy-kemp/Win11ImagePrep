@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.1] - 2026-11-04
+
+### Changed
+- **Updates come from GitHub Releases.** The app reads the latest release, downloads the app and updater from it, and checks both against the release's SHA-256 checksums before anything runs; the updater (1.7.0) checks again before it installs. If the Releases API can't be reached, it falls back to the old route.
+- Dark Andy Kemp splash screen, as on the AKC Audit collector, with the version in AKC green.
+
+---
+
 ## [5.9.0] - 2026-11-02
 
 ### Changed

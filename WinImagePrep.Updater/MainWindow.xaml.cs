@@ -15,6 +15,9 @@ public partial class MainWindow : Window
 {
     private readonly string _targetExePath = string.Empty;
     private readonly string _downloadUrl = string.Empty;
+    private readonly string? _updaterDownloadUrl;
+    private readonly string? _expectedSha256;
+    private readonly string? _expectedUpdaterSha256;
     private readonly string _targetProcessName = string.Empty;
     private readonly int _targetProcessId;
     private bool _updateSuccessful = false;
@@ -80,6 +83,9 @@ public partial class MainWindow : Window
 
             _targetExePath = updateInfo.TargetExePath ?? string.Empty;
             _downloadUrl = updateInfo.DownloadUrl ?? string.Empty;
+            _updaterDownloadUrl = updateInfo.UpdaterDownloadUrl;
+            _expectedSha256 = updateInfo.ExpectedSha256;
+            _expectedUpdaterSha256 = updateInfo.ExpectedUpdaterSha256;
             _targetProcessName = updateInfo.ProcessName ?? string.Empty;
             _targetProcessId = updateInfo.ProcessId;
 
@@ -103,6 +109,10 @@ public partial class MainWindow : Window
     {
         public string? TargetExePath { get; set; }
         public string? DownloadUrl { get; set; }
+        // From app 5.9.1: GitHub release assets and their SHA-256 checksums. Older apps leave these out.
+        public string? UpdaterDownloadUrl { get; set; }
+        public string? ExpectedSha256 { get; set; }
+        public string? ExpectedUpdaterSha256 { get; set; }
         public string? ProcessName { get; set; }
         public int ProcessId { get; set; }
     }
@@ -156,13 +166,17 @@ public partial class MainWindow : Window
         App.Log($"Downloading main EXE from {_downloadUrl} to {tempMainExe}");
         await DownloadFileAsync(_downloadUrl, tempMainExe, 20, 50);
         App.Log("Main EXE downloaded");
+        VerifyChecksum(tempMainExe, _expectedSha256, "WinImagePrep");
 
         // Download updater EXE
-        var updaterUrl = _downloadUrl.Replace("WinImagePrep.exe", "WinImagePrep.Updater.exe");
+        var updaterUrl = !string.IsNullOrEmpty(_updaterDownloadUrl)
+            ? _updaterDownloadUrl
+            : _downloadUrl.Replace("WinImagePrep.exe", "WinImagePrep.Updater.exe");
         var tempUpdaterExe = Path.Combine(Path.GetTempPath(), $"WinImagePrep.Updater_Update_{Guid.NewGuid()}.exe");
         App.Log($"Downloading updater EXE from {updaterUrl} to {tempUpdaterExe}");
         await DownloadFileAsync(updaterUrl, tempUpdaterExe, 50, 70);
         App.Log("Updater EXE downloaded");
+        VerifyChecksum(tempUpdaterExe, _expectedUpdaterSha256, "WinImagePrep updater");
 
         // Step 3: Replace the old EXEs
         UpdateStatus("Installing updates...", 70);
@@ -319,6 +333,31 @@ exit
                 Dispatcher.Invoke(() => ProgressBar.Value = progressPercent);
             }
         }
+    }
+
+    /// <summary>
+    /// If the app supplied a checksum (5.9.1 and later), refuse to install a file that doesn't match it.
+    /// Nothing has been replaced at this point, so the installed version keeps working.
+    /// </summary>
+    private static void VerifyChecksum(string path, string? expected, string label)
+    {
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            App.Log($"No checksum supplied for {label} (older app); skipping check");
+            return;
+        }
+        string actual;
+        using (var stream = File.OpenRead(path))
+        {
+            actual = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream)).ToLowerInvariant();
+        }
+        if (!string.Equals(actual, expected.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            try { File.Delete(path); } catch { }
+            App.Log($"ERROR: {label} checksum mismatch. Expected {expected}, got {actual}");
+            throw new InvalidOperationException($"The downloaded {label} didn't match the release checksum, so nothing was changed. Please try again later.");
+        }
+        App.Log($"{label} checksum verified: {actual}");
     }
 
     private void UpdateStatus(string message, int progress)
