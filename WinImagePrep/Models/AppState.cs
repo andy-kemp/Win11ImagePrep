@@ -41,5 +41,15 @@ namespace WinImagePrep.Models
         /// Selected Windows edition indices for preparation
         /// </summary>
         public List<int>? SelectedEditions { get; set; }
+
+        /// <summary>
+        /// Disk number of the selected USB drive
+        /// </summary>
+        public uint? UsbDiskNumber { get; set; }
+
+        /// <summary>
+        /// What to carry on with once restarted as administrator (e.g. "CreateUsbFromIso")
+        /// </summary>
+        public string? ResumeAction { get; set; }
     }
 }

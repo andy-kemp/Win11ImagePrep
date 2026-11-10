@@ -18,6 +18,8 @@
         <!-- Menu Bar -->
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
+                <MenuItem Header="_New Image" Command="{Binding NewImageCommand}" ToolTip="Start a new image: clears the ISO, drivers and selections, and any prepared image"/>
+                <Separator/>
                 <MenuItem Header="_Save Configuration..." Command="{Binding SaveConfigCommand}" ToolTip="Save current settings to file"/>
                 <MenuItem Header="_Open Configuration..." Command="{Binding OpenConfigCommand}" ToolTip="Load settings from file"/>
                 <Separator/>
