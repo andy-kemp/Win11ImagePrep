@@ -68,6 +68,7 @@ namespace WinImagePrep.ViewModels
             ConfigureUnattendedCommand = new RelayCommand(ConfigureUnattendedInstall, () => EnableUnattendedInstall);
 
             // Menu commands
+            NewImageCommand = new RelayCommand(async () => await NewImageAsync(), () => !IsProcessing);
             SaveConfigCommand = new RelayCommand(SaveConfiguration);
             OpenConfigCommand = new RelayCommand(OpenConfiguration);
             ExitCommand = new RelayCommand(ExitApplication);
@@ -117,8 +118,71 @@ namespace WinImagePrep.ViewModels
                     .SelectMany(a => a.PackageNames)
                     .ToList(),
                 EnableUnattendedInstall = EnableUnattendedInstall,
-                SelectedEditions = SelectedEditions?.ToList()
+                SelectedEditions = SelectedEditions?.ToList(),
+                UsbDiskNumber = SelectedUsbDrive?.DiskNumber
             };
+        }
+
+        // What to carry on with after restarting as administrator (AppState.ResumeAction)
+        private const string ResumeCreateUsbFromIso = "CreateUsbFromIso";
+        private const string ResumeCreateUsb = "CreateUsb";
+        private const string ResumeScanApps = "ScanApps";
+        private string? _pendingResumeAction;
+
+        /// <summary>
+        /// True when running as administrator. Otherwise restarts the app as administrator (one Windows
+        /// prompt), keeping the ISO, drivers, selections and USB drive, and the new copy carries on with
+        /// <paramref name="resumeAction"/>. Returns false if the prompt is declined.
+        /// </summary>
+        private bool EnsureAdministrator(string purpose, string resumeAction)
+        {
+            if (AdminHelper.IsRunningAsAdministrator())
+                return true;
+
+            AddLog($"Administrator rights are needed to {purpose}. Restarting as administrator...");
+            try
+            {
+                var state = CaptureCurrentState();
+                state.ResumeAction = resumeAction;
+                AdminHelper.RestartAsAdministrator(state); // exits this copy once the elevated one has started
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"Restart as administrator failed: {ex.InnerException?.Message ?? ex.Message}");
+                AddLog("✗ Not restarted as administrator (the Windows prompt was declined, or it failed)");
+                MessageBox.Show(
+                    $"Administrator rights are needed to {purpose}.\n\n" +
+                    "Choose Yes at the Windows prompt to restart Win11 Image Prep as administrator. " +
+                    "Your ISO, drivers and selections are kept.",
+                    "Administrator rights needed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            return false;
+        }
+
+        /// <summary>After a restart as administrator: carry on with what was asked for before it.</summary>
+        public async Task ResumeAfterElevationAsync()
+        {
+            var action = _pendingResumeAction;
+            _pendingResumeAction = null;
+            if (action == null || !AdminHelper.IsRunningAsAdministrator())
+                return;
+
+            switch (action)
+            {
+                case ResumeCreateUsbFromIso:
+                    if (CanCreateUsbFromIso()) await CreateUsbFromIsoAsync();
+                    else AddLog("⚠ Can't carry on creating the USB: check the ISO and the USB drive, then click Create USB from ISO");
+                    break;
+                case ResumeCreateUsb:
+                    if (CanCreateUsb()) await CreateUsbAsync();
+                    else AddLog("⚠ Can't carry on creating the USB: check the USB drive, then click Create USB");
+                    break;
+                case ResumeScanApps:
+                    await ScanAppsFromIsoAsync();
+                    break;
+            }
         }
 
         /// <summary>
@@ -211,6 +275,23 @@ namespace WinImagePrep.ViewModels
                     SelectedEditions = state.SelectedEditions;
                     AddLog($"✓ Restored {state.SelectedEditions.Count} selected edition(s)");
                 }
+
+                // Restore the USB drive, and what to carry on with. Never carry on to a different drive.
+                bool usbRestored = true;
+                if (state.UsbDiskNumber != null)
+                {
+                    var drive = UsbDrives.FirstOrDefault(d => d.DiskNumber == state.UsbDiskNumber);
+                    if (drive != null) SelectedUsbDrive = drive;
+                    else
+                    {
+                        usbRestored = false;
+                        AddLog($"⚠ USB drive (disk {state.UsbDiskNumber}) wasn't found again: select a drive");
+                    }
+                }
+
+                bool usbAction = state.ResumeAction == ResumeCreateUsbFromIso || state.ResumeAction == ResumeCreateUsb;
+                if (!string.IsNullOrEmpty(state.ResumeAction) && (usbRestored || !usbAction))
+                    _pendingResumeAction = state.ResumeAction;
 
                 AddLog("✓ Application state fully restored after elevation");
             }
@@ -579,6 +660,7 @@ namespace WinImagePrep.ViewModels
         public ICommand ConfigureUnattendedCommand { get; }
 
         // Menu commands
+        public ICommand NewImageCommand { get; }
         public ICommand SaveConfigCommand { get; }
         public ICommand OpenConfigCommand { get; }
         public ICommand ExitCommand { get; }
@@ -887,24 +969,9 @@ namespace WinImagePrep.ViewModels
         /// </summary>
         private async Task ScanAppsFromIsoAsync()
         {
-            // Step 0: Verify admin rights
-            if (!AdminHelper.IsRunningAsAdministrator())
-            {
-                AddLog("✗ ERROR: Administrator privileges required");
-                MessageBox.Show(
-                    "This operation requires administrator privileges.\n\n" +
-                    "To scan apps from ISO:\n" +
-                    "1. Close this application\n" +
-                    "2. Right-click on WinImagePrep and select 'Run as administrator'\n" +
-                    "3. Your settings and selections will be preserved\n\n" +
-                    "Note: Running as administrator will allow all features to work, " +
-                    "but may affect drag-and-drop from File Explorer. You can use the " +
-                    "Browse buttons or Load Config instead.",
-                    "Administrator Required",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+            // Step 0: Mounting the image needs administrator rights: restart elevated and carry on from here
+            if (!EnsureAdministrator("scan the apps in the ISO", ResumeScanApps))
                 return;
-            }
 
             if (string.IsNullOrEmpty(SelectedIsoPath))
             {
@@ -2264,24 +2331,9 @@ namespace WinImagePrep.ViewModels
                 return;
             }
 
-            // CRITICAL: Check for administrator privileges
-            if (!AdminHelper.IsRunningAsAdministrator())
-            {
-                AddLog("✗ ERROR: Administrator privileges are required for USB creation!");
-                MessageBox.Show(
-                    "This operation requires administrator privileges.\n\n" +
-                    "To create a bootable USB:\n" +
-                    "1. Close this application\n" +
-                    "2. Right-click on WinImagePrep and select 'Run as administrator'\n" +
-                    "3. Your settings and selections will be preserved\n\n" +
-                    "Note: Running as administrator will allow all features to work, " +
-                    "but may affect drag-and-drop from File Explorer. You can use the " +
-                    "Browse buttons or Load Config instead.",
-                    "Administrator Required",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+            // Formatting a drive needs administrator rights: restart elevated and carry on from here
+            if (!EnsureAdministrator("create a bootable USB", ResumeCreateUsbFromIso))
                 return;
-            }
 
             // Show warning dialog
             var result = MessageBox.Show(
@@ -2419,24 +2471,9 @@ namespace WinImagePrep.ViewModels
                 return;
             }
 
-            // CRITICAL: Check for administrator privileges
-            if (!AdminHelper.IsRunningAsAdministrator())
-            {
-                AddLog("✗ ERROR: Administrator privileges are required for USB creation!");
-                MessageBox.Show(
-                    "This operation requires administrator privileges.\n\n" +
-                    "To create a bootable USB:\n" +
-                    "1. Close this application\n" +
-                    "2. Right-click on WinImagePrep and select 'Run as administrator'\n" +
-                    "3. Your settings and selections will be preserved\n\n" +
-                    "Note: Running as administrator will allow all features to work, " +
-                    "but may affect drag-and-drop from File Explorer. You can use the " +
-                    "Browse buttons or Load Config instead.",
-                    "Administrator Rights Required",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+            // Formatting a drive needs administrator rights: restart elevated and carry on from here
+            if (!EnsureAdministrator("create a bootable USB", ResumeCreateUsb))
                 return;
-            }
 
             if (SelectedUsbDrive.SizeGB < 14)
             {
@@ -3034,6 +3071,60 @@ errorMessage = "Failed to create custom ISO.\n\n" +
         #endregion
 
         #region Menu Commands
+
+        /// <summary>File > New image: clear the ISO, drivers, editions and app selections, and any prepared image.</summary>
+        private async Task NewImageAsync()
+        {
+            var dir = _config.Windows11Directory;
+            bool hasPreparedImage = false;
+            try { hasPreparedImage = Directory.Exists(dir) && Directory.EnumerateFileSystemEntries(dir).Any(); }
+            catch { /* can't be read: nothing to offer to delete */ }
+
+            var result = MessageBox.Show(
+                "Start a new image?\n\n" +
+                "This clears the ISO, the driver packs, and the edition and app selections." +
+                (hasPreparedImage
+                    ? $"\n\nThe prepared image in {dir} is deleted. Saved images are kept."
+                    : string.Empty),
+                "New image",
+                MessageBoxButton.OKCancel,
+                hasPreparedImage ? MessageBoxImage.Warning : MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.OK)
+                return;
+
+            SelectedIsoPath = string.Empty;
+            IsoVolumeLabel = "WIN11USB";
+            SelectedDriverSourcePath = string.Empty;
+            DriverSources.Clear();
+            OnPropertyChanged(nameof(HasDriverSources));
+            SelectedEditions = null;
+            _pendingAppSelectionsRestore = null;
+            foreach (var app in WindowsApps) app.IsSelected = false;
+            OnPropertyChanged(nameof(SelectedAppsCountText));
+            ShowWarning = false;
+            WarningMessage = string.Empty;
+            OverallProgress = 0;
+            OverallProgressText = string.Empty;
+            CurrentOperationProgress = 0;
+            CurrentOperationText = string.Empty;
+            LogEntries.Clear();
+
+            if (hasPreparedImage)
+            {
+                IsProcessing = true;
+                try { await Task.Run(() => DiscardPreparedImage(dir)); }
+                finally { IsProcessing = false; } // also re-evaluates the image-ready panel
+            }
+            else
+            {
+                UpdateImageReadyState();
+            }
+
+            OnPropertyChanged(nameof(CanExecuteInject));
+            CommandManager.InvalidateRequerySuggested();
+            AddLog("New image: select a Windows ISO and driver source to begin");
+        }
 
         private void SaveConfiguration()
         {
@@ -3851,6 +3942,35 @@ errorMessage = "Failed to create custom ISO.\n\n" +
             return !Directory.Exists(directory);
         }
 
+        /// <summary>
+        /// Delete the prepared image folder. Files from an elevated build may need administrator rights; if
+        /// they still can't all go, the folder is marked as discarded and the next build clears it.
+        /// </summary>
+        private void DiscardPreparedImage(string dir)
+        {
+            AddLog("Deleting existing temporary files...");
+            bool deleted = false;
+            try { deleted = FileSystemHelper.ForceDeleteDirectory(dir, true); }
+            catch (Exception ex) { AddLog($"⚠ {ex.Message}"); }
+
+            if (!deleted && !AdminHelper.IsRunningAsAdministrator())
+            {
+                AddLog("Some files were written by an administrator build; asking Windows for permission to delete them...");
+                deleted = DeleteDirectoryAsAdministrator(dir);
+            }
+
+            if (deleted)
+            {
+                AddLog($"✓ Deleted temporary directory: {dir}");
+                ClearDiscardedWork();
+            }
+            else
+            {
+                MarkDiscardedWork(dir);
+                AddLog("⚠ Some files couldn't be deleted now. You won't be asked about them again, and they're cleared when you next build.");
+            }
+        }
+
         public async Task CheckForExistingWorkAsync()
         {
             await Task.Run(() =>
@@ -3876,6 +3996,10 @@ errorMessage = "Failed to create custom ISO.\n\n" +
                         ClearDiscardedWork();
                         return;
                     }
+
+                    // Carrying on after a restart as administrator: the question was answered before it
+                    if (_pendingResumeAction != null)
+                        return;
 
                     // Already discarded ("No" last time) but not all of it could be deleted then: try again
                     // quietly and never ask about it again. The next build clears the folder anyway.
@@ -3904,28 +4028,7 @@ errorMessage = "Failed to create custom ISO.\n\n" +
                             // User wants to start fresh - delete the directory. Files from an elevated build
                             // may need administrator rights; if they still can't all go, the folder is marked as
                             // discarded so this isn't asked again, and the next build clears it.
-                            var dir = _config.Windows11Directory;
-                            AddLog("Deleting existing temporary files...");
-                            bool deleted = false;
-                            try { deleted = FileSystemHelper.ForceDeleteDirectory(dir, true); }
-                            catch (Exception ex) { AddLog($"⚠ {ex.Message}"); }
-
-                            if (!deleted && !AdminHelper.IsRunningAsAdministrator())
-                            {
-                                AddLog("Some files were written by an administrator build; asking Windows for permission to delete them...");
-                                deleted = DeleteDirectoryAsAdministrator(dir);
-                            }
-
-                            if (deleted)
-                            {
-                                AddLog($"✓ Deleted temporary directory: {dir}");
-                                ClearDiscardedWork();
-                            }
-                            else
-                            {
-                                MarkDiscardedWork(dir);
-                                AddLog("⚠ Some files couldn't be deleted now. You won't be asked about them again, and they're cleared when you next build.");
-                            }
+                            DiscardPreparedImage(_config.Windows11Directory);
                             UpdateImageReadyState();
                         }
                         else

@@ -343,6 +343,9 @@ namespace WinImagePrep
                 if (_viewModel != null)
                 {
                     await _viewModel.CheckForExistingWorkAsync();
+
+                    // Restarted as administrator for a USB or app scan: carry on with it
+                    await _viewModel.ResumeAfterElevationAsync();
                     await _viewModel.CheckPendingFirstRunUpdateAsync();
 
                     // Perform startup update check

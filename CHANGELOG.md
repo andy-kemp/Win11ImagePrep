@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.15] - 2026-11-10
+
+### Added
+- **File > New Image** starts again from a clean window: it clears the ISO, the driver packs, and the edition and app selections, and deletes the prepared image in the working folder (after asking). Saved images are kept.
+
+### Fixed
+- **Create USB from ISO, Create USB and Scan apps from ISO now ask for administrator rights themselves.** They used to tell you to close the app and run it as administrator. Now the app restarts as administrator (one Windows prompt), keeps your ISO, drivers, selections and USB drive, and carries on with what you clicked. If the USB drive can't be found again after the restart, it stops and asks you to select one.
+
+---
+
 ## [5.9.14] - 2026-11-04
 
 ### Changed
