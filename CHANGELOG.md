@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.9.16] - 2026-11-17
+
+### Changed
+- **Signed by Andy Kemp Consulting Ltd.** The app, the updater, the installer and its uninstaller are now code-signed and timestamped (Azure Artifact Signing). Windows shows a verified publisher instead of "Unknown publisher", and AppLocker and App Control can allow Win11 Image Prep by publisher.
+
+---
+
 ## [5.9.15] - 2026-11-10
 
 ### Added

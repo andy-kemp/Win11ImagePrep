@@ -1,6 +1,10 @@
 # Publishes a release: run it from Actions > Release > Run workflow (on main), or push a v* tag.
 # It releases the Version in WinImagePrep.csproj and creates the v<version> tag itself.
-#   1. builds the app and updater on Windows
+#   1. builds the app and updater on Windows, and signs them with Azure Artifact Signing
+#      (Andy Kemp Consulting Ltd, timestamped). Setup and its uninstaller are signed by Inno Setup with the
+#      same tool. Every file is checked before anything is published: no unsigned releases.
+#      Signs in to Azure with OIDC from the `release` environment (app registration akc-codesign-github);
+#      repo variables AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID. No signing secret is stored.
 #   2. creates the GitHub release (a draft until every file is uploaded) with WinImagePrep_full.exe,
 #      the updater and SHA-256 checksums: app 5.9.1 and later update from this
 #   3. copies the same files to downloads.andykemp.com (R2 bucket akc-download, win11-image-prep/<version>/),
@@ -18,14 +22,23 @@ on:
 
 permissions:
   contents: write
+  id-token: write   # OIDC sign-in to Azure for code signing
 
 concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  SIGN_ENDPOINT: https://weu.codesigning.azure.net
+  SIGN_ACCOUNT: akc-signing
+  SIGN_PROFILE: akc-public
+  SIGN_TSA: http://timestamp.acs.microsoft.com
+  SIGN_PUBLISHER: Andy Kemp Consulting Ltd
+
 jobs:
   release:
     runs-on: windows-latest
+    environment: release   # the only place the signing identity is trusted
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,6 +78,42 @@ jobs:
           dotnet publish WinImagePrep/WinImagePrep.csproj -c Release -r win-x64 --self-contained -o out/app
           dotnet publish WinImagePrep.Updater/WinImagePrep.Updater.csproj -c Release -r win-x64 --self-contained -o out/updater
 
+      - name: Sign in to Azure (OIDC, for code signing)
+        if: steps.ver.outputs.published != 'true'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Microsoft's SignTool with the Artifact Signing dlib, which signs in through the Azure CLI session above.
+      # Certificates last 72 hours, so the RFC 3161 timestamp is what keeps the signatures valid.
+      - name: Sign the app and updater
+        if: steps.ver.outputs.published != 'true'
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\x64\signtool.exe" |
+            Sort-Object { [version]$_.Directory.Parent.Name } | Select-Object -Last 1
+          if (-not $signtool) { throw 'signtool.exe not found on the runner' }
+          $dlibDir = Join-Path $env:RUNNER_TEMP 'artifact-signing'
+          nuget install Microsoft.ArtifactSigning.Client -x -OutputDirectory $dlibDir -NonInteractive | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'Could not install Microsoft.ArtifactSigning.Client' }
+          $dlib = Get-ChildItem $dlibDir -Recurse -Filter Azure.CodeSigning.Dlib.dll | Where-Object FullName -match '\\x64\\' | Select-Object -First 1
+          if (-not $dlib) { throw 'Azure.CodeSigning.Dlib.dll (x64) not found in the package' }
+          $meta = Join-Path $env:RUNNER_TEMP 'artifact-signing.json'
+          @{ Endpoint = $env:SIGN_ENDPOINT; CodeSigningAccountName = $env:SIGN_ACCOUNT; CertificateProfileName = $env:SIGN_PROFILE; CorrelationId = "${{ github.repository }}@${{ github.sha }}" } |
+            ConvertTo-Json | Set-Content $meta -Encoding utf8NoBOM
+          # For the installer step (Inno Setup signs Setup and the uninstaller with the same tool)
+          "SIGNTOOL=$($signtool.FullName)" >> $env:GITHUB_ENV
+          "SIGN_DLIB=$($dlib.FullName)" >> $env:GITHUB_ENV
+          "SIGN_META=$meta" >> $env:GITHUB_ENV
+          Write-Host "SignTool $($signtool.Directory.Parent.Name), dlib $($dlib.FullName)"
+          $files = [ordered]@{ 'out/app/WinImagePrep.exe' = 'Win11 Image Prep'; 'out/updater/WinImagePrep.Updater.exe' = 'Win11 Image Prep Updater' }
+          foreach ($f in $files.Keys) {
+            & $signtool.FullName sign /v /fd SHA256 /tr $env:SIGN_TSA /td SHA256 /d $files[$f] /du 'https://www.andykemp.com' /dlib $dlib.FullName /dmdf $meta $f
+            if ($LASTEXITCODE -ne 0) { throw "Could not sign $f" }
+          }
+
       - name: Create GitHub release
         if: steps.ver.outputs.published != 'true'
         shell: pwsh
@@ -77,8 +126,20 @@ jobs:
           # The installer (Program Files, for Intune and other deployment tools)
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
-          & $iscc /Q "/DAppVersion=${{ steps.ver.outputs.version }}" "/DSourceDir=$PWD\out\app" "/DUpdaterDir=$PWD\out\updater" "/O$PWD\release" installer\Win11ImagePrep.iss
+          # $q and $f are Inno Setup's own placeholders (a quote, and the file to sign), so this string is single-quoted
+          $signCmd = '$q{0}$q sign /fd SHA256 /tr {1} /td SHA256 /d $qWin11 Image Prep Setup$q /du https://www.andykemp.com /dlib $q{2}$q /dmdf $q{3}$q $f' -f $env:SIGNTOOL, $env:SIGN_TSA, $env:SIGN_DLIB, $env:SIGN_META
+          & $iscc /Q "/DAppVersion=${{ steps.ver.outputs.version }}" "/DSourceDir=$PWD\out\app" "/DUpdaterDir=$PWD\out\updater" "/O$PWD\release" /DSign "/Sakc=$signCmd" installer\Win11ImagePrep.iss
           if ($LASTEXITCODE -ne 0) { throw 'Could not build the installer' }
+          # Every file must be validly signed, timestamped and from Andy Kemp Consulting Ltd, or nothing is released
+          $bad = @()
+          foreach ($f in Get-ChildItem release -Filter *.exe) {
+            $sig = Get-AuthenticodeSignature $f.FullName
+            Write-Host "$($f.Name) : $($sig.Status) | $($sig.SignerCertificate.Subject) | timestamped: $([bool]$sig.TimeStamperCertificate)"
+            if ($sig.Status -ne 'Valid') { $bad += "$($f.Name) is $($sig.Status)" }
+            if (-not $sig.TimeStamperCertificate) { $bad += "$($f.Name) has no timestamp" }
+            if ($sig.SignerCertificate.Subject -notmatch "O=$([regex]::Escape($env:SIGN_PUBLISHER))") { $bad += "$($f.Name) is signed by '$($sig.SignerCertificate.Subject)'" }
+          }
+          if ($bad) { $bad | ForEach-Object { Write-Host "::error::$_" }; throw 'Signature check failed: nothing is released' }
           Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release/SHA256SUMS.txt
           # Release notes: this version's section of CHANGELOG.md
           $log = Get-Content CHANGELOG.md -Raw
