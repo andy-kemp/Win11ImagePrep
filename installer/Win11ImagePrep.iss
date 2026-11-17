@@ -1,5 +1,6 @@
 ; Win11 Image Prep installer (Inno Setup 6). Built by .github/workflows/release.yml:
 ;   iscc /DAppVersion=5.9.11 /DSourceDir=..\out\app /DUpdaterDir=..\out\updater /O..\release installer\Win11ImagePrep.iss
+;   The release adds /DSign and /Sakc=<signtool command>, so Setup and its uninstaller are code-signed.
 ;
 ; Installs for all users in C:\Program Files\Andy Kemp Consulting\Win11 Image Prep, with a Start menu shortcut.
 ;
@@ -33,6 +34,11 @@
 #define AppKey "SOFTWARE\Andy Kemp Consulting\Win11 Image Prep"
 
 [Setup]
+#ifdef Sign
+; Code signing (release builds only): the akc sign tool is passed to ISCC with /Sakc=...
+SignTool=akc
+SignedUninstaller=yes
+#endif
 ; Never change AppId: it is how Windows and Intune recognise upgrades and the uninstall entry
 AppId={{669DE22E-E42E-4D1B-AE68-1A81A43BCF12}
 AppName={#AppName}
